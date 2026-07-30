@@ -14,7 +14,7 @@ American street food · الخبر الشمالية (North Khobar), KSA
 | Data model (`supabase/schema.sql`) | Written — **not yet executed against a database** |
 | Menu seed (`supabase/seed.sql`) | Written — 17 items, official Arabic names |
 | Design tokens (`packages/shared/src/tokens.ts`) | Done |
-| Hours / money / VAT logic | Done — **27 unit tests passing** |
+| Hours / money / VAT logic | Done — **40 unit tests passing** |
 | Website | **Builds and exports** — 6 pages, AR + EN. Needs real photos |
 | Typography | Self-hosted Tajawal + Cairo (SIL OFL), Arabic + Latin subsets |
 | Mobile app | Not started |
@@ -127,7 +127,11 @@ the customer is standing there watching for "ready".
 
 ## Brand
 
-- **Red** `#D8231A` (the badge), near-black wordmark, white, red/white checkerboard
+- **Red** `#B82712`, ink `#1B1C19`, gold `#ECA70F`, paper `#FEFEFE` — all sampled
+  from the Illustrator vector source, not estimated from a photo
+- Logo vectors extracted to `apps/web/public/brand/`: `logo.svg` (flat,
+  transparent), `logo-on-white.svg`, `rooster.svg` (detailed illustration, used
+  as hero art)
 - Mascot: white rooster, red comb, arms crossed, in a red rounded badge
 - IG [`@stackdchicken`](https://instagram.com/stackdchicken) · TikTok `@Stackd`
 
