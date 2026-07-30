@@ -52,6 +52,27 @@ function extractBody(html) {
 }
 
 /**
+ * Brand SVGs are served from /brand in production. A single file has no server,
+ * so they are inlined as data URIs — the artwork must survive, and a broken
+ * logo would make the preview useless for judging the design.
+ */
+const assetCache = new Map();
+function inlineAssets(html) {
+  return html.replace(/(src=")(\/[^"]+\.svg)(")/g, (whole, pre, url, post) => {
+    if (!assetCache.has(url)) {
+      try {
+        const svg = readFileSync(join(out, url.replace(/^\//, '')));
+        assetCache.set(url, `data:image/svg+xml;base64,${svg.toString('base64')}`);
+      } catch {
+        console.warn(`  ! could not inline ${url} — it will render broken`);
+        assetCache.set(url, url);
+      }
+    }
+    return pre + assetCache.get(url) + post;
+  });
+}
+
+/**
  * The token block lives on :root in production. Scoped to the preview shell so
  * every panel inherits it, since panels are divs rather than documents.
  */
@@ -59,7 +80,7 @@ const css = readCss();
 
 const panels = PANELS.map((p) => {
   const html = readFileSync(join(out, p.path), 'utf8');
-  return { ...p, body: extractBody(html) };
+  return { ...p, body: inlineAssets(extractBody(html)) };
 });
 
 const page = `<style>

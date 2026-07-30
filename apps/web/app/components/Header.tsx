@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import { t, type Locale } from '@stackd/shared';
 
-/** The language toggle swaps only the locale segment, preserving the page. */
+/**
+ * The logo is the real extracted vector (transparent ground variant), so it
+ * stays crisp at any size and needs no raster fallbacks.
+ */
 export function Header({ locale }: { locale: Locale }) {
   const other: Locale = locale === 'ar' ? 'en' : 'ar';
 
@@ -9,18 +12,17 @@ export function Header({ locale }: { locale: Locale }) {
     <>
       <header className="header">
         <div className="wrap header-inner">
-          <Link href={`/${locale}/`} className="logo" aria-label="STACKD">
-            STACKD
+          <Link href={`/${locale}/`} className="header-logo" aria-label="STACKD">
+            <img src="/brand/logo.svg" alt="STACKD" width={800} height={886} />
           </Link>
           <nav className="nav">
-            <Link href={`/${locale}/menu/`}>{t(locale, 'nav.menu')}</Link>
-            <Link href={`/${locale}/visit/`}>{t(locale, 'nav.visit')}</Link>
-            {/* Language toggle links to the same page in the other locale.
-                Hardcoded to the home page of the other locale because a static
-                export cannot read the current path on the server. A client
-                component could preserve the path — worth doing once there are
-                more than three pages. */}
-            <Link href={`/${other}/`} className="lang-toggle" lang={other}>
+            <Link href={`/${locale}/menu/`} className="nav-link">
+              {t(locale, 'nav.menu')}
+            </Link>
+            <Link href={`/${locale}/visit/`} className="nav-link">
+              {t(locale, 'nav.visit')}
+            </Link>
+            <Link href={`/${other}/`} className="lang-btn" lang={other}>
               {t(locale, 'nav.lang')}
             </Link>
           </nav>
