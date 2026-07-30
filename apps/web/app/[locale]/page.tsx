@@ -9,7 +9,7 @@ import {
   toArabicDigits,
 } from '@stackd/shared';
 import { OpenStatus } from '../components/OpenStatus';
-import { Marquee } from '../components/Marquee';
+import { SloganBand } from '../components/SloganBand';
 
 export function generateStaticParams() {
   return [{ locale: 'ar' }, { locale: 'en' }];
@@ -36,10 +36,6 @@ export default async function HomePage({
         <div className="glow-bg" />
         <div className="wrap hero-grid above">
           <div className="hero-copy">
-            <p className="eyebrow">
-              {t(locale, 'hero.est')} · {isAr ? BRANCH.cityAr : BRANCH.cityEn}
-            </p>
-
             <h1 className="display h-xl hero-title">
               {isAr ? (
                 <>
@@ -68,21 +64,6 @@ export default async function HomePage({
               </a>
             </div>
 
-            <div className="chips">
-              <div className="chip">
-                <span className="chip-v">3 PM – 3 AM</span>
-                <span className="chip-k">{t(locale, 'visit.everyDay')}</span>
-              </div>
-              <div className="chip">
-                <span className="chip-v">{num(MENU.flatMap((c) => c.items).length)}</span>
-                <span className="chip-k">{isAr ? 'طبق' : 'Dishes'}</span>
-              </div>
-              <div className="chip">
-                <span className="chip-v">{BRANCH.priceRange}</span>
-                <span className="chip-k">{isAr ? 'للفرد' : 'Per person'}</span>
-              </div>
-            </div>
-
             <OpenStatus locale={locale} />
           </div>
 
@@ -92,7 +73,7 @@ export default async function HomePage({
         </div>
       </section>
 
-      <Marquee locale={locale} />
+      <SloganBand locale={locale} />
 
       {/* ---- Signatures --------------------------------------------------- */}
       <section className="section">

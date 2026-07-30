@@ -432,45 +432,6 @@ svg {
   align-items: center;
 }
 
-/* Floating stat chips — quick facts that give the hero substance without
-   needing photography. */
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.chip {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding: 12px 18px;
-  border-radius: var(--r-md);
-  background: var(--surface);
-  border: 1px solid var(--line);
-}
-.chip-v {
-  font-family: var(--font-display);
-  font-size: 19px;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  direction: ltr;
-  unicode-bidi: isolate;
-}
-.chip-k {
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  color: var(--text-faint);
-}
-[dir='ltr'] .chip-k {
-  text-transform: uppercase;
-}
-[dir='rtl'] .chip-k {
-  letter-spacing: 0.02em;
-}
-
 /* Hero artwork: the real illustrated rooster on a red halo. */
 .hero-art {
   position: relative;
@@ -506,66 +467,81 @@ svg {
 }
 
 /* ==========================================================================
-   Marquee — bilingual slogan ticker. Cheap energy, entirely on-brand.
+   Slogan band — static replacement for the scrolling ticker
    ========================================================================== */
 
-.marquee {
-  background: var(--red);
+.band {
+  position: relative;
+}
+
+.band-body {
+  position: relative;
+  background: linear-gradient(135deg, var(--red-hot) 0%, var(--red) 46%, var(--red-deep) 100%);
   color: var(--paper);
-  padding-block: 15px;
+  padding-block: clamp(34px, 6vw, 68px);
   overflow: hidden;
-  display: flex;
-  user-select: none;
 }
-.marquee-track {
-  display: flex;
-  flex: none;
-  gap: 34px;
-  padding-inline-end: 34px;
-  animation: slide 26s linear infinite;
-  /* Always slides right-to-left visually, in both directions. */
-  will-change: transform;
+
+/* Warm halo so the band has depth rather than reading as a flat stripe. */
+.band-body::before {
+  content: '';
+  position: absolute;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(236, 167, 15, 0.34), transparent 66%);
+  inset-block-start: -34%;
+  inset-inline-start: 46%;
+  filter: blur(46px);
+  pointer-events: none;
 }
-.marquee-item {
-  font-family: var(--font-display);
-  font-size: clamp(15px, 2.4vw, 24px);
-  font-weight: 900;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
+
+.band-inner {
+  position: relative;
+  z-index: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 34px;
+  gap: clamp(12px, 2vw, 20px);
+  text-align: center;
 }
-[dir='ltr'] .marquee-item {
+
+.band-lead {
   font-family: var(--font-display);
+  font-size: clamp(28px, 6.4vw, 78px);
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  margin: 0;
+  text-wrap: balance;
+  text-shadow: 0 6px 30px rgba(0, 0, 0, 0.24);
+}
+[dir='ltr'] .band-lead {
   text-transform: uppercase;
 }
-.marquee-item::after {
-  content: '';
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+[dir='rtl'] .band-lead {
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.band-rule {
+  display: block;
+  width: clamp(56px, 9vw, 108px);
+  height: 3px;
   background: var(--gold);
-  flex: none;
+  border-radius: 2px;
 }
-@keyframes slide {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-100%);
-  }
+
+.band-second {
+  font-family: var(--font-display);
+  font-size: clamp(15px, 2.6vw, 27px);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--gold-soft);
+  margin: 0;
 }
-[dir='rtl'] .marquee-track {
-  animation-name: slide-rtl;
-}
-@keyframes slide-rtl {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(100%);
-  }
+[dir='ltr'] .band-second[lang='en'] {
+  text-transform: uppercase;
 }
 
 /* ==========================================================================

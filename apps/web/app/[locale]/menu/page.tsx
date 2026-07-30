@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { MENU, formatAmount, t, toArabicDigits, assertLocale } from '@stackd/shared';
-import { Marquee } from '../../components/Marquee';
+import { SloganBand } from '../../components/SloganBand';
 
 export function generateStaticParams() {
   return [{ locale: 'ar' }, { locale: 'en' }];
@@ -43,7 +43,7 @@ export default async function MenuPage({
         </div>
       </section>
 
-      <Marquee locale={locale} />
+      <SloganBand locale={locale} />
 
       <section className="section">
         <div className="wrap">
