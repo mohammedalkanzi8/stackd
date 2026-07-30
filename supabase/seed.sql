@@ -11,15 +11,31 @@
 -- Branch
 -- ---------------------------------------------------------------------------
 
-insert into branches (id, name_en, name_ar, address_en, address_ar, city_en, city_ar)
+insert into branches (
+  id, name_en, name_ar, address_en, address_ar, city_en, city_ar,
+  phone, postal_code, plus_code, prep_time_mins
+)
 values (
   '00000000-0000-0000-0000-000000000001',
   'STACKD — North Khobar',
   'ستاكد - الخبر الشمالية',
-  'North Khobar',            -- TODO: full street address + national address
-  'الخبر الشمالية',
-  'Al Khobar', 'الخبر'
+  '76X9+7P5, Al Khobar Al Shamalia',
+  '76X9+7P5، الخبر الشمالية',
+  'Al Khobar', 'الخبر',
+  '+966500338808',   -- displayed locally as 050 033 8808
+  '31311',
+  '76X9+7P5',
+  15
 );
+-- TODO: the National Address (short address, e.g. ABCD1234) is still needed.
+-- ZATCA requires the seller's address on a tax invoice and a Plus Code does not
+-- satisfy that. Look it up at https://splonline.com.sa
+
+-- Opening hours: 15:00 → 03:00, every day of the week.
+-- closes_at < opens_at marks an overnight window — see is_branch_open().
+insert into branch_hours (branch_id, weekday, opens_at, closes_at)
+select '00000000-0000-0000-0000-000000000001', d, '15:00'::time, '03:00'::time
+from generate_series(0, 6) as d;
 
 -- ---------------------------------------------------------------------------
 -- Categories — order matches the in-store board reading order
@@ -131,9 +147,9 @@ insert into menu_items
 values
   ('10000000-0000-0000-0000-000000000005', 'Soft Drink', 'مشروبات غازية', 800, null, 1),
   ('10000000-0000-0000-0000-000000000005', 'Kenza',      'كينزا',         300, null, 2),
-  ('10000000-0000-0000-0000-000000000005', 'Water',      'ماء',           100,    0, 3);
-  -- CONFLICT: in-store board shows water at 1 SAR, digital menu shows 2 SAR.
-  -- Seeded at 1 SAR (in-store board). Confirm before launch.
+  ('10000000-0000-0000-0000-000000000005', 'Water',      'ماء',           200,    0, 3);
+  -- RESOLVED: 2 SAR, confirmed by owner. The in-store board's 1 SAR is stale
+  -- and should be corrected at the next reprint.
 
 -- ---------------------------------------------------------------------------
 -- Modifiers

@@ -1,5 +1,7 @@
 # Menu data conflicts — need an owner decision
 
+**Status: 1 of 7 resolved.** §1 (water price) is settled. §2–§7 still open.
+
 Two menus were supplied and they disagree. Both are in circulation, so customers
 are seeing different numbers depending on where they look. Resolve before launch,
 because the app becomes a third version of the truth otherwise.
@@ -13,10 +15,10 @@ because the app becomes a third version of the truth otherwise.
 
 | | Source A | Source B |
 |---|---|---|
-| Water | **2 SAR** | **1 SAR** |
+| Water | **2 SAR** | 1 SAR |
 
-Seeded at **1 SAR**. Cheap to fix either way, but a customer who orders in the app
-and pays a different price at the counter is a real complaint.
+**✅ RESOLVED — owner confirmed 2 SAR.** Seeded accordingly. The in-store board's
+1 SAR is stale and should be corrected at the next reprint.
 
 ## 2. Calorie counts on the Giants
 

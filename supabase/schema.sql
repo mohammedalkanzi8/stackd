@@ -17,7 +17,12 @@ create table branches (
   address_ar      text not null,
   city_en         text not null default 'Al Khobar',
   city_ar         text not null default 'الخبر',
-  phone           text,
+  phone           text,          -- E.164
+  postal_code     text,
+  plus_code       text,          -- Google Plus Code, e.g. 76X9+7P5
+  -- Saudi National Address short code (4 letters + 4 digits). Required on ZATCA
+  -- tax invoices; a Plus Code does not satisfy the requirement.
+  national_address text,
   lat             numeric(10,7),
   lng             numeric(10,7),
   -- ZATCA requires the seller VAT number on every tax invoice.
@@ -32,6 +37,12 @@ create table branches (
 
 -- Opening hours, one row per weekday per branch. 0 = Sunday.
 -- Separate table so Ramadan / holiday overrides can be layered on later.
+--
+-- OVERNIGHT WINDOWS: STACKD trades 15:00 → 03:00, so closes_at < opens_at.
+-- The convention is that a row belongs to the day the shift STARTS. Sunday's
+-- row (weekday 0, 15:00–03:00) therefore covers Sunday 15:00 through Monday
+-- 03:00. Never compare `now()::time between opens_at and closes_at` — that is
+-- false for the entire post-midnight stretch, which is peak trade.
 create table branch_hours (
   branch_id   uuid not null references branches(id) on delete cascade,
   weekday     int  not null check (weekday between 0 and 6),
@@ -39,6 +50,38 @@ create table branch_hours (
   closes_at   time not null,
   primary key (branch_id, weekday)
 );
+
+-- Authoritative open/closed check. Handles the midnight wrap and pins the
+-- comparison to Riyadh time (UTC+3, no DST) regardless of server timezone.
+create or replace function is_branch_open(
+  p_branch_id uuid,
+  p_at        timestamptz default now()
+) returns boolean
+language sql stable as $$
+  with l as (select (p_at at time zone 'Asia/Riyadh') as ts)
+  select exists (
+    select 1
+    from l, branch_hours h
+    where h.branch_id = p_branch_id
+      and (
+        -- Same-day window (e.g. 09:00–17:00)
+        (h.closes_at > h.opens_at
+         and extract(dow from l.ts)::int = h.weekday
+         and l.ts::time >= h.opens_at
+         and l.ts::time <  h.closes_at)
+
+        -- Overnight window, evening leg: today's row, after opening
+        or (h.closes_at < h.opens_at
+            and extract(dow from l.ts)::int = h.weekday
+            and l.ts::time >= h.opens_at)
+
+        -- Overnight window, small-hours leg: YESTERDAY's row still running
+        or (h.closes_at < h.opens_at
+            and extract(dow from l.ts - interval '1 day')::int = h.weekday
+            and l.ts::time < h.closes_at)
+      )
+  );
+$$;
 
 -- ---------------------------------------------------------------------------
 -- Menu
@@ -146,10 +189,25 @@ create table orders (
 
   -- Money, all halalas. Stored (not computed) so a menu price change never
   -- rewrites history.
-  subtotal        int not null,
+  --
+  -- ⚠ PRICES ARE VAT-INCLUSIVE. Saudi consumer-protection rules require the
+  -- displayed price to include VAT, so a 27.00 SAR burger ALREADY contains its
+  -- VAT — it is not 27.00 + 15%. Therefore:
+  --
+  --   grand_total = subtotal - discount_total
+  --   vat_total   = the VAT component EXTRACTED from grand_total
+  --                 (round(grand_total - grand_total / 1.15)), reported on the
+  --                 ZATCA invoice. It is NOT added to grand_total.
+  --
+  -- Do not "add VAT" anywhere downstream. See packages/shared/src/money.ts
+  -- (`splitVatInclusive`) for the canonical implementation, which guarantees
+  -- net + vat = gross exactly so receipts never show a one-halala drift.
+  subtotal        int not null,             -- sum of line totals, VAT-inclusive
   discount_total  int not null default 0,   -- from reward redemptions
-  vat_total       int not null,             -- 15% KSA VAT
-  grand_total     int not null,
+  vat_total       int not null,             -- extracted 15% component
+  grand_total     int not null,             -- what the customer actually pays
+  constraint order_totals_reconcile
+    check (grand_total = subtotal - discount_total),
 
   -- Loyalty outcome, snapshotted.
   points_earned   int not null default 0,

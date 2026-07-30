@@ -1,0 +1,640 @@
+/*
+ * STACKD — global styles.
+ *
+ * Tokens are mirrored from packages/shared/src/tokens.ts as CSS custom
+ * properties. Keep the two in sync; the TS module is the source of truth and is
+ * what the Expo app consumes.
+ *
+ * Layout is logical-property based throughout (inline-start/end, margin-inline)
+ * so the Arabic RTL layout is genuinely mirrored rather than hand-patched.
+ */
+
+:root {
+  --red-900: #5c0d0a;
+  --red-700: #9c1711;
+  --red-600: #c01c14;
+  --red-500: #d8231a;
+  --red-400: #e8453c;
+  --red-100: #fde3e1;
+
+  --ink-900: #0b0b0b;
+  --ink-800: #141414;
+  --ink-700: #1e1e1e;
+  --ink-600: #2c2c2c;
+  --ink-500: #454545;
+  --ink-400: #6b6b6b;
+  --ink-300: #9a9a9a;
+  --ink-200: #c6c6c6;
+  --ink-100: #e6e6e6;
+  --ink-50: #f4f4f4;
+
+  --white: #fff;
+  --bone: #faf8f5;
+  --fry-500: #e0a32b;
+  --green-500: #1e7a45;
+
+  /* Semantic */
+  --bg: var(--bone);
+  --bg-elevated: var(--white);
+  --surface: var(--ink-900);
+  --text: var(--ink-900);
+  --text-secondary: var(--ink-500);
+  --text-muted: var(--ink-400);
+  --accent: var(--red-500);
+  --price: var(--red-500);
+  --border: var(--ink-200);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  --font-display: 'Anton', 'Archivo Black', Impact, system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --checker: 12px;
+
+  --maxw: 1120px;
+}
+
+/* Arabic swaps the type stack; everything else is shared. */
+:root:lang(ar),
+[dir='rtl'] {
+  --font-display: 'Tajawal', 'Cairo', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans Arabic', 'Cairo', system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: var(--ink-900);
+    --bg-elevated: var(--ink-800);
+    --surface: var(--ink-700);
+    --text: var(--white);
+    --text-secondary: var(--ink-300);
+    --text-muted: var(--ink-400);
+    --accent: var(--red-400);
+    --price: #f27a73;
+    --border: var(--ink-700);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.05;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+/* Latin display type is uppercase; Arabic has no case, so skip it there. */
+:lang(en) h1,
+:lang(en) h2,
+:lang(en) h3 {
+  text-transform: uppercase;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* --- Layout helpers ---------------------------------------------------- */
+
+.wrap {
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+
+.section {
+  padding-block: 72px;
+}
+
+/* The red/white checkerboard lifted from the menu artwork. A real brand asset —
+   used as a rule, never as a page background. */
+.checker {
+  height: var(--checker);
+  background-image:
+    linear-gradient(45deg, var(--red-500) 25%, transparent 25%, transparent 75%, var(--red-500) 75%),
+    linear-gradient(45deg, var(--red-500) 25%, transparent 25%, transparent 75%, var(--red-500) 75%);
+  background-size: calc(var(--checker) * 2) calc(var(--checker) * 2);
+  background-position: 0 0, var(--checker) var(--checker);
+  background-color: var(--white);
+}
+
+/* --- Header ------------------------------------------------------------ */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--ink-900);
+  color: var(--white);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: 68px;
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: 28px;
+  letter-spacing: 0.02em;
+  color: var(--white);
+  margin-inline-end: auto;
+}
+:lang(en) .logo {
+  text-transform: uppercase;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+:lang(en) .nav {
+  text-transform: uppercase;
+}
+
+.nav a {
+  color: var(--ink-200);
+  padding-block: 6px;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav a:hover,
+.nav a[aria-current='page'] {
+  color: var(--white);
+  border-bottom-color: var(--red-500);
+}
+
+.lang-toggle {
+  border: 1px solid var(--ink-600);
+  border-radius: var(--radius-pill, 999px);
+  padding: 5px 14px;
+  font-weight: 700;
+  color: var(--white);
+}
+.lang-toggle:hover {
+  background: var(--red-500);
+  border-color: var(--red-500);
+}
+
+/* --- Hero -------------------------------------------------------------- */
+
+.hero {
+  background: var(--ink-900);
+  color: var(--white);
+  padding-block: 88px 96px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::after {
+  /* Faint oversized wordmark as texture. */
+  content: 'STACKD';
+  position: absolute;
+  inset-block-end: -0.22em;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: clamp(120px, 26vw, 340px);
+  color: var(--white);
+  opacity: 0.04;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-est {
+  font-size: 12px;
+  letter-spacing: 0.28em;
+  color: var(--fry-500);
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+:lang(en) .hero-est {
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  font-size: clamp(44px, 9vw, 92px);
+}
+
+.hero-tagline {
+  font-size: clamp(15px, 2.4vw, 20px);
+  color: var(--ink-200);
+  letter-spacing: 0.06em;
+  margin-block: 18px 0;
+}
+:lang(en) .hero-tagline {
+  text-transform: uppercase;
+}
+
+.hero-slogan {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 4vw, 34px);
+  color: var(--red-400);
+  margin-block-start: 28px;
+}
+:lang(en) .hero-slogan {
+  text-transform: uppercase;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  margin-block-start: 36px;
+}
+
+/* --- Buttons ----------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 30px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.12s, background 0.15s, color 0.15s;
+}
+:lang(en) .btn {
+  text-transform: uppercase;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background: var(--red-500);
+  color: var(--white);
+}
+.btn-primary:hover {
+  background: var(--red-600);
+}
+
+.btn-ghost {
+  border-color: var(--ink-600);
+  color: var(--white);
+}
+.btn-ghost:hover {
+  border-color: var(--white);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* --- Status pill ------------------------------------------------------- */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--white);
+}
+.status[data-open='false'] {
+  color: var(--ink-300);
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ink-400);
+  flex: none;
+}
+.status[data-open='true'] .status-dot {
+  background: #35d07f;
+  box-shadow: 0 0 0 4px rgba(53, 208, 127, 0.22);
+}
+.status-detail {
+  font-weight: 500;
+  color: var(--ink-300);
+}
+
+/* --- Menu -------------------------------------------------------------- */
+
+.menu-head {
+  text-align: center;
+  margin-block-end: 8px;
+}
+.menu-head h1 {
+  font-size: clamp(38px, 7vw, 64px);
+}
+.menu-note {
+  color: var(--text-muted);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  margin-block: 10px 56px;
+  text-align: center;
+}
+
+.category {
+  margin-block-end: 56px;
+}
+
+.category-title {
+  display: inline-block;
+  background: var(--red-500);
+  color: var(--white);
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  padding: 8px 22px;
+  border-radius: var(--radius-sm);
+  margin-block-end: 24px;
+}
+:lang(en) .category-title {
+  text-transform: uppercase;
+}
+
+.items {
+  display: grid;
+  gap: 2px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 20px;
+  align-items: baseline;
+  padding: 20px 22px;
+  background: var(--bg-elevated);
+}
+
+.item-name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  letter-spacing: 0.02em;
+}
+:lang(en) .item-name {
+  text-transform: uppercase;
+}
+
+.item-price {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--price);
+  white-space: nowrap;
+  /* Prices stay Western-Arabic numerals in both locales for scannability, and
+     LTR so "SAR 27" never reorders inside an RTL paragraph. */
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.item-desc {
+  grid-column: 1 / -1;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+}
+:lang(en) .item-desc {
+  text-transform: uppercase;
+}
+
+.item-meta {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block-start: 4px;
+}
+
+.chip {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--ink-50);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+:lang(en) .chip {
+  text-transform: uppercase;
+}
+.chip-spicy {
+  background: var(--red-100);
+  color: var(--red-700);
+  border-color: transparent;
+}
+@media (prefers-color-scheme: dark) {
+  .chip {
+    background: var(--ink-700);
+  }
+  .chip-spicy {
+    background: var(--red-900);
+    color: var(--red-100);
+  }
+}
+
+/* --- Visit ------------------------------------------------------------- */
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+  margin-block-start: 40px;
+}
+
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 26px;
+}
+
+.card h2 {
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin-block-end: 14px;
+}
+
+.card p,
+.card li {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.hours-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 7px;
+  border-block-end: 1px solid var(--border);
+  font-size: 15px;
+}
+.hours-row:last-child {
+  border-block-end: 0;
+}
+.hours-time {
+  font-weight: 700;
+  color: var(--text);
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-block-start: 18px;
+}
+
+.btn-sm {
+  padding: 10px 20px;
+  font-size: 13px;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: var(--white);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+:lang(en) .btn-sm {
+  text-transform: uppercase;
+}
+.btn-sm-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+/* --- Loyalty teaser ---------------------------------------------------- */
+
+.loyalty {
+  background: var(--red-500);
+  color: var(--white);
+  text-align: center;
+  padding-block: 72px;
+}
+.loyalty h2 {
+  font-size: clamp(30px, 6vw, 52px);
+}
+.loyalty p {
+  max-width: 46ch;
+  margin-inline: auto;
+  margin-block: 16px 0;
+  font-size: 17px;
+  color: rgba(255, 255, 255, 0.9);
+}
+.loyalty-soon {
+  display: inline-block;
+  margin-block-start: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  padding: 9px 22px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+}
+:lang(en) .loyalty-soon {
+  text-transform: uppercase;
+}
+
+/* --- Footer ------------------------------------------------------------ */
+
+.footer {
+  background: var(--ink-900);
+  color: var(--ink-300);
+  padding-block: 48px 40px;
+  font-size: 14px;
+}
+.footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+  justify-content: space-between;
+}
+.footer a:hover {
+  color: var(--white);
+}
+.footer-social {
+  display: flex;
+  gap: 18px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .section {
+    padding-block: 48px;
+  }
+  .hero {
+    padding-block: 60px 68px;
+  }
+  .nav {
+    gap: 14px;
+    font-size: 13px;
+  }
+  .logo {
+    font-size: 22px;
+  }
+  .item {
+    padding: 16px 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto;
+  }
+}

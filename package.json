@@ -1,0 +1,19 @@
+{
+  "name": "stackd",
+  "private": true,
+  "version": "0.1.0",
+  "description": "STACKD — website, mobile apps, and loyalty program",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "dev": "npm run dev --workspace @stackd/web",
+    "build": "npm run build --workspace @stackd/web",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

@@ -12,44 +12,56 @@ American street food · الخبر الشمالية (North Khobar), KSA
 | Piece | State |
 |---|---|
 | Data model (`supabase/schema.sql`) | Written — **not yet executed against a database** |
-| Menu seed (`supabase/seed.sql`) | Written — 13 items, official Arabic names |
+| Menu seed (`supabase/seed.sql`) | Written — 17 items, official Arabic names |
 | Design tokens (`packages/shared/src/tokens.ts`) | Done |
-| Website | Not started — blocked on address/hours/photos |
+| Hours / money / VAT logic | Done — **27 unit tests passing** |
+| Website | **Builds and exports** — 6 pages, AR + EN. Needs real photos |
 | Mobile app | Not started |
 | Kitchen display | Not started |
 
-⚠ **Read [`docs/DISCREPANCIES.md`](docs/DISCREPANCIES.md) first.** Seven conflicts
-between the two supplied menus are unresolved, including wrong calorie data on
-both printed menus.
+⚠ **Read [`docs/DISCREPANCIES.md`](docs/DISCREPANCIES.md) first.** Six conflicts
+between the two supplied menus remain unresolved, including wrong calorie data on
+both printed menus. (Water price is resolved: 2 SAR.)
 
 ---
 
-## Environment setup required
-
-This machine is **Ubuntu 26.04 on WSL2** and has neither Node nor Postgres
-installed in Linux. The `npm` currently on `PATH` is Windows' npm bleeding
-through WSL interop:
-
-```
-$ type npm
-npm is /mnt/c/Program Files/nodejs/npm
-```
-
-Do **not** build with that — native modules compile for the wrong platform and
-Expo's tooling misbehaves on Windows paths mounted under `/mnt/c`.
-
-### Install Node in WSL
+## Running it
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs
+npm install
+npm test          # 27 tests: hours logic, VAT math, menu integrity
+npm run dev       # http://localhost:3000/ar/
+npm run build     # static export into apps/web/out/
 ```
 
-Then confirm it resolves to Linux, not Windows:
+## Deploying to Hostinger
 
-```bash
-command -v node   # should print /usr/bin/node
-```
+`npm run build` produces `apps/web/out/`. Upload its **contents** (including the
+dotfile `.htaccess`) into `public_html`. There is no build step on the server.
+
+The `.htaccess` redirects `/` to `/ar/` — or `/en/` when the browser prefers
+English — because a static export has no middleware. It also sets cache headers:
+fingerprinted assets for a year, HTML for ten minutes so a menu change appears
+promptly.
+
+Enable the HSTS line in `.htaccess` only after HTTPS is confirmed working on
+`stackd.com.sa`; a bad cert with HSTS on locks visitors out for a year.
+
+---
+
+## Environment notes
+
+Ubuntu 26.04 on WSL2. Node 22 is installed at `/usr/bin/node`.
+
+Beware: Windows' npm is also on `PATH` via WSL interop
+(`/mnt/c/Program Files/nodejs/npm`). If `command -v node` ever returns a
+`/mnt/c/` path, the shell picked up the Windows toolchain — native modules will
+compile for the wrong platform and Expo will misbehave on `/mnt/c` paths.
+
+`npm audit` reports 3 high-severity advisories in `postcss` and `sharp`,
+transitively via Next. Both are build-time only, and image optimisation is
+disabled for the static export, so nothing ships to the browser. Worth clearing
+on a Next upgrade regardless.
 
 ### Postgres (optional — for local schema testing)
 

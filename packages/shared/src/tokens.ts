@@ -175,9 +175,12 @@ export const fontSize = {
 /**
  * Loyalty economics, tuned against the real menu.
  *
- * Observed ticket: a burger (27-48) + fries (9) + drink (8) lands ~44-65 SAR.
- * At 1 pt/SAR the reward costs below target ~7% effective return — in line with
- * QSR norms and cheap enough to stay sustainable on food cost.
+ * Google lists SAR 40–60 per person (62 reports), which matches the basket
+ * arithmetic: burger (27–48) + fries (9) + drink (8).
+ *
+ * At 1 pt/SAR the reward catalogue in seed.sql targets ~7% effective return —
+ * in line with QSR norms and sustainable on food cost. Points accrue on the
+ * pre-VAT net, so a 60 SAR ticket earns 52, not 60.
  *
  * Change `pointsPerRiyal` to 2 for a promo weekend; nothing else needs touching.
  */
@@ -188,5 +191,5 @@ export const loyalty = {
   expiryMonths: 12,
 } as const;
 
-/** KSA VAT. Applied at order total, stored explicitly on the order row. */
-export const VAT_RATE = 0.15;
+// VAT_RATE lives in ./money.ts — it belongs with the arithmetic that consumes
+// it, not with presentation tokens.

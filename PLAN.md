@@ -8,7 +8,7 @@
 (that's National Day 94 seasonal only)
 **Scope decided:** pickup ordering (no delivery), Expo for iOS + Android, points-per-riyal loyalty
 
-Menu is seeded (`seed.sql`): 5 categories, 13 items, 27–48 SAR mains.
+Menu is seeded (`seed.sql`): 5 categories, 17 items, 27–48 SAR mains.
 **7 open data conflicts — see `DISCREPANCIES.md`.**
 
 ---
