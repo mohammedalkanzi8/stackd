@@ -16,6 +16,7 @@ American street food · الخبر الشمالية (North Khobar), KSA
 | Design tokens (`packages/shared/src/tokens.ts`) | Done |
 | Hours / money / VAT logic | Done — **27 unit tests passing** |
 | Website | **Builds and exports** — 6 pages, AR + EN. Needs real photos |
+| Typography | Self-hosted Tajawal + Cairo (SIL OFL), Arabic + Latin subsets |
 | Mobile app | Not started |
 | Kitchen display | Not started |
 
@@ -29,7 +30,7 @@ both printed menus. (Water price is resolved: 2 SAR.)
 
 ```bash
 npm install
-npm test          # 27 tests: hours logic, VAT math, menu integrity
+npm test          # 40 tests: hours logic, VAT math, i18n paths, menu integrity
 npm run dev       # http://localhost:3000/ar/
 npm run build     # static export into apps/web/out/
 ```
@@ -146,3 +147,28 @@ Full token set in `packages/shared/src/tokens.ts`.
   Apple Pay routes via Mada in KSA.
 - **`.com.sa`** requires a Commercial Registration, via an accredited registrar.
   Run a SAIP trademark search first — other `Stack'd` restaurants operate in KSA.
+
+---
+
+## Fonts
+
+Type is **Tajawal** (display) and **Cairo** (body), both SIL Open Font Licence,
+self-hosted rather than loaded from Google's CDN.
+
+Both families ship matched Arabic *and* Latin, so the same faces run in both
+locales — a bilingual brand should not change typeface when it changes language.
+
+```bash
+node scripts/fetch-fonts.mjs
+```
+
+Downloads woff2 into `apps/web/public/fonts/` and regenerates
+`apps/web/app/fonts.generated.css` (imported by the layout, so Next bundles the
+`@font-face` rules into the main stylesheet — no extra blocking request).
+
+Only the `arabic` and `latin` subsets are kept, and each rule carries a
+`unicode-range`, so an English page never downloads the Arabic files. The layout
+preloads just the two faces the current locale renders.
+
+Licence text travels with the fonts in `apps/web/public/fonts/OFL.txt`, as OFL
+requires. Do not delete it.

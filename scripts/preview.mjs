@@ -39,6 +39,30 @@ function readCss() {
 }
 
 /**
+ * Inline the self-hosted woff2 files into the @font-face rules as data URIs.
+ *
+ * Without this the preview silently falls back to system fonts, which would
+ * defeat the point — seeing the real Arabic typography is why the fonts were
+ * added. unicode-range still applies, so the browser only decodes what a given
+ * page needs even though every subset is embedded.
+ */
+function inlineFonts(css) {
+  let embedded = 0;
+  const result = css.replace(/url\(\/fonts\/([^)"']+\.woff2)\)/g, (whole, file) => {
+    try {
+      const buf = readFileSync(join(out, 'fonts', file));
+      embedded++;
+      return `url(data:font/woff2;base64,${buf.toString('base64')})`;
+    } catch {
+      console.warn(`  ! could not inline font ${file}`);
+      return whole;
+    }
+  });
+  console.log(`  embedded ${embedded} font file(s)`);
+  return result;
+}
+
+/**
  * Extract the rendered page content: everything inside <body>, minus Next's
  * <script> tags and its hydration payload, which cannot run standalone.
  */
@@ -76,7 +100,7 @@ function inlineAssets(html) {
  * The token block lives on :root in production. Scoped to the preview shell so
  * every panel inherits it, since panels are divs rather than documents.
  */
-const css = readCss();
+const css = inlineFonts(readCss());
 
 const panels = PANELS.map((p) => {
   const html = readFileSync(join(out, p.path), 'utf8');
@@ -164,9 +188,9 @@ ${css}
 
   <p class="pv-note">
     <strong>Static preview of the real build.</strong>
-    Type is the system stack — a self-hosted display face is the biggest
-    remaining upgrade, especially for Arabic. No food photography yet, so the
-    brand illustration carries the imagery. Use the tabs above to switch pages;
+    Tajawal and Cairo are embedded, so the type here is exactly what deploys —
+    in both Arabic and English. No food photography yet, so the brand
+    illustration carries the imagery. Use the tabs above to switch pages;
     in-page links are inert in a single file.
   </p>
 

@@ -64,19 +64,20 @@
   --r-xl: 34px;
   --r-pill: 999px;
 
-  --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI Variable Display',
-    'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  --font-ar: 'Segoe UI Variable Display', 'Segoe UI', 'Noto Sans Arabic', Tahoma,
-    system-ui, sans-serif;
+  /* Self-hosted Tajawal + Cairo (SIL OFL). Both ship matched Arabic AND Latin,
+     so the SAME faces run in both locales — a bilingual brand should not change
+     typeface when it changes language. See public/fonts/fonts.css. */
+  --font-display: 'Tajawal', 'Cairo', ui-sans-serif, system-ui, sans-serif;
+  --font: 'Cairo', 'Tajawal', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', sans-serif;
 
   --maxw: 1200px;
   --gutter: clamp(18px, 4.5vw, 52px);
   --checker: 13px;
 }
 
-[dir='rtl'] {
-  --font: var(--font-ar);
-}
+/* No per-direction font override: Tajawal and Cairo cover Arabic and Latin, so
+   both locales share one type system. RTL differences are metric only. */
 
 /* A light mode exists, but this identity lives in the dark. Light is a
    considered alternative rather than an inversion. */
@@ -175,6 +176,7 @@ svg {
 /* Display type. Tight tracking at large sizes is what separates a modern
    heading from a default one. */
 .display {
+  font-family: var(--font-display);
   font-weight: 900;
   line-height: 0.94;
   letter-spacing: -0.035em;
@@ -410,6 +412,7 @@ svg {
 }
 
 .hero-slogan {
+  font-family: var(--font-display);
   display: inline-block;
   font-size: clamp(15px, 2.4vw, 22px);
   font-weight: 900;
@@ -418,6 +421,7 @@ svg {
   margin: 0;
 }
 [dir='ltr'] .hero-slogan {
+  font-family: var(--font-display);
   text-transform: uppercase;
 }
 
@@ -445,6 +449,7 @@ svg {
   border: 1px solid var(--line);
 }
 .chip-v {
+  font-family: var(--font-display);
   font-size: 19px;
   font-weight: 900;
   letter-spacing: -0.02em;
@@ -522,6 +527,7 @@ svg {
   will-change: transform;
 }
 .marquee-item {
+  font-family: var(--font-display);
   font-size: clamp(15px, 2.4vw, 24px);
   font-weight: 900;
   letter-spacing: -0.01em;
@@ -531,6 +537,7 @@ svg {
   gap: 34px;
 }
 [dir='ltr'] .marquee-item {
+  font-family: var(--font-display);
   text-transform: uppercase;
 }
 .marquee-item::after {
@@ -666,6 +673,7 @@ svg {
   margin-block-end: 24px;
 }
 .cat-name {
+  font-family: var(--font-display);
   font-size: clamp(24px, 4vw, 42px);
   font-weight: 900;
   letter-spacing: -0.03em;
@@ -736,6 +744,7 @@ svg {
 }
 
 .card-name {
+  font-family: var(--font-display);
   flex: 1;
   font-size: clamp(18px, 2.4vw, 22px);
   font-weight: 900;
@@ -746,6 +755,7 @@ svg {
 
 /* Price as a solid pill — the most scannable element in the card. */
 .price {
+  font-family: var(--font-display);
   flex: none;
   display: inline-flex;
   align-items: baseline;
@@ -811,6 +821,7 @@ svg {
   color: rgba(254, 254, 254, 0.74);
 }
 .card-feature .price {
+  font-family: var(--font-display);
   background: var(--paper);
   color: var(--red);
 }
@@ -855,6 +866,7 @@ svg {
   margin-block: 18px;
 }
 .clock-t {
+  font-family: var(--font-display);
   font-size: clamp(44px, 11vw, 108px);
   font-weight: 900;
   letter-spacing: -0.05em;
@@ -914,6 +926,7 @@ svg {
   gap: 2px;
 }
 .ring-num {
+  font-family: var(--font-display);
   font-size: clamp(52px, 9vw, 78px);
   font-weight: 900;
   letter-spacing: -0.05em;
@@ -967,6 +980,7 @@ svg {
   font-size: 15px;
 }
 .info-big {
+  font-family: var(--font-display);
   font-size: clamp(20px, 2.8vw, 26px);
   font-weight: 900;
   letter-spacing: -0.02em;
@@ -1119,6 +1133,7 @@ svg {
     gap: 10px;
   }
   .price {
+  font-family: var(--font-display);
     align-self: flex-start;
   }
 }
