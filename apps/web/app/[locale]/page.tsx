@@ -10,6 +10,7 @@ import {
 } from '@stackd/shared';
 import { OpenStatus } from '../components/OpenStatus';
 import { SloganBand } from '../components/SloganBand';
+import { CardMedia } from '../components/CardMedia';
 
 export function generateStaticParams() {
   return [{ locale: 'ar' }, { locale: 'en' }];
@@ -64,13 +65,7 @@ export default async function HomePage({
               </a>
             </div>
 
-            <div className="chips">
-              <div className="chip">
-                <span className="chip-v">3 PM – 3 AM</span>
-                <span className="chip-k">{t(locale, 'visit.everyDay')}</span>
-              </div>
-              <OpenStatus locale={locale} />
-            </div>
+            <OpenStatus locale={locale} />
           </div>
 
           <div className="hero-art">
@@ -97,6 +92,7 @@ export default async function HomePage({
           <div className="grid reveal" style={{ marginBlockStart: 32 }}>
             {featured.map((item, i) => (
               <article className={`card${i === 0 ? ' card-feature' : ''}`} key={item.slug}>
+                <CardMedia item={item} locale={locale} />
                 <div className="card-top">
                   <h3 className="card-name">{isAr ? item.nameAr : item.nameEn}</h3>
                   <span className="price">

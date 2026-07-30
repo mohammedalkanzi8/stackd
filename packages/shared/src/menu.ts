@@ -24,6 +24,17 @@ export interface MenuItem {
   /** kcal, or null where the printed value is known-bad. */
   calories: number | null;
   spicy?: boolean;
+  /**
+   * Path to a photo under `apps/web/public/menu/`, e.g. '/menu/big-stackd.jpg'.
+   *
+   * Leave undefined and the card renders a branded placeholder instead — no
+   * broken image, no grey box. To add a real photo: drop the file in that
+   * folder and set this field. Nothing else needs to change.
+   *
+   * Shoot or crop to 4:3. Anything else is cropped to fit and you lose control
+   * of what gets cut.
+   */
+  image?: string;
   /** Flagged when the Arabic name is our translation, not the owner's. */
   arabicNeedsReview?: boolean;
 }
@@ -32,12 +43,22 @@ export interface MenuCategory {
   slug: string;
   nameEn: string;
   nameAr: string;
+  /**
+   * Whether cards in this category get a photo area.
+   *
+   * Dishes earn a photo; a 3 SAR sauce does not. Without this, seventeen
+   * identical placeholder tiles would stack up and the menu would read as
+   * unfinished rather than deliberate. Sauces and drinks stay compact text
+   * cards, which is also how they appear on the printed menu.
+   */
+  showPhotos: boolean;
   items: MenuItem[];
 }
 
 export const MENU: MenuCategory[] = [
   {
     slug: 'burgers',
+    showPhotos: true,
     nameEn: 'Stackd Burgers & Sandwiches',
     nameAr: 'برجر ستاكد',
     items: [
@@ -92,6 +113,7 @@ export const MENU: MenuCategory[] = [
   },
   {
     slug: 'giants',
+    showPhotos: true,
     nameEn: 'Giants',
     nameAr: 'العماليق',
     items: [
@@ -118,6 +140,7 @@ export const MENU: MenuCategory[] = [
   },
   {
     slug: 'sides',
+    showPhotos: true,
     nameEn: 'Sides',
     nameAr: 'أطباق جانبية',
     items: [
@@ -128,6 +151,7 @@ export const MENU: MenuCategory[] = [
   },
   {
     slug: 'sauces',
+    showPhotos: false,
     nameEn: 'Sauces',
     nameAr: 'صلصات',
     items: [
@@ -139,6 +163,7 @@ export const MENU: MenuCategory[] = [
   },
   {
     slug: 'drinks',
+    showPhotos: false,
     nameEn: 'Drinks',
     nameAr: 'مشروبات',
     items: [

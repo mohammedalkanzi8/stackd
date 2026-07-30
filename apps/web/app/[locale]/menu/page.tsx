@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { MENU, formatAmount, t, toArabicDigits, assertLocale } from '@stackd/shared';
 import { SloganBand } from '../../components/SloganBand';
+import { CardMedia } from '../../components/CardMedia';
 
 export function generateStaticParams() {
   return [{ locale: 'ar' }, { locale: 'en' }];
@@ -62,6 +63,7 @@ export default async function MenuPage({
                   const desc = isAr ? item.descAr : item.descEn;
                   return (
                     <article className="card" key={item.slug}>
+                      {cat.showPhotos && <CardMedia item={item} locale={locale} />}
                       <div className="card-top">
                         <h3 className="card-name">{isAr ? item.nameAr : item.nameEn}</h3>
                         <span className="price">

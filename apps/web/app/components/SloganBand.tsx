@@ -1,29 +1,23 @@
 import { BRAND, type Locale } from '@stackd/shared';
 
 /**
- * Static bilingual slogan band. Replaces the scrolling ticker that sat here.
+ * Slogan band. Shows the slogan in the ACTIVE locale only.
  *
- * The slogan is the loudest thing the brand says, so it is set once at full
- * size rather than sliding past. Both languages appear together — the active
- * locale leads, the other follows in gold beneath a rule. Motion is not what
- * made the ticker weak; repetition at small size was.
+ * An earlier version printed both languages at once. That is wrong for a
+ * localised site: a visitor who chose Arabic should read Arabic, not Arabic
+ * plus a translation. The language switch already makes the other version one
+ * tap away.
  */
 export function SloganBand({ locale }: { locale: Locale }) {
-  const isAr = locale === 'ar';
-  const lead = isAr ? BRAND.sloganAr : BRAND.sloganEn;
-  const second = isAr ? BRAND.sloganEn : BRAND.sloganAr;
-  const secondLang = isAr ? 'en' : 'ar';
+  const slogan = locale === 'ar' ? BRAND.sloganAr : BRAND.sloganEn;
 
   return (
-    <section className="band" aria-label={BRAND.sloganEn}>
+    <section className="band" aria-label={slogan}>
       <div className="checker" role="presentation" />
       <div className="band-body">
         <div className="wrap band-inner">
-          <p className="band-lead">{lead}</p>
+          <p className="band-lead">{slogan}</p>
           <span className="band-rule" role="presentation" />
-          <p className="band-second" lang={secondLang} dir={secondLang === 'ar' ? 'rtl' : 'ltr'}>
-            {second}
-          </p>
         </div>
       </div>
       <div className="checker" role="presentation" />

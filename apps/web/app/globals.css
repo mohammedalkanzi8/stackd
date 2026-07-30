@@ -199,9 +199,7 @@ svg {
 }
 
 .eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
+  display: block;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.22em;
@@ -214,14 +212,6 @@ svg {
 [dir='rtl'] .eyebrow {
   letter-spacing: 0.06em;
 }
-.eyebrow::before {
-  content: '';
-  width: 26px;
-  height: 2px;
-  background: var(--gold);
-  flex: none;
-}
-
 .lede {
   max-width: 52ch;
   font-size: clamp(15px, 1.9vw, 19px);
@@ -754,6 +744,52 @@ svg {
 .card > * {
   position: relative;
   z-index: 1;
+}
+
+/* Photo area. 4:3 so every card is the same height regardless of what lands in
+   it, and so a missing photo never changes the grid. */
+.card-media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  margin: calc(clamp(20px, 3vw, 28px) * -1);
+  margin-block-end: 4px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.card:hover .card-media img {
+  transform: scale(1.05);
+}
+
+/* Placeholder: the brand checkerboard, dimmed, with the logo mark centred.
+   Deliberately branded rather than a grey box, so a card without a photo still
+   looks finished. */
+.card-media-empty {
+  display: grid;
+  place-items: center;
+  background-color: var(--ink-2);
+  background-image:
+    linear-gradient(45deg, var(--red-dark) 25%, transparent 25% 75%, var(--red-dark) 75%),
+    linear-gradient(45deg, var(--red-dark) 25%, transparent 25% 75%, var(--red-dark) 75%);
+  background-size: 26px 26px;
+  background-position: 0 0, 13px 13px;
+}
+.card-media-mark {
+  width: 42%;
+  max-width: 130px;
+  height: auto;
+  opacity: 0.5;
+  filter: grayscale(0.15);
+}
+
+/* The featured card keeps its gradient, so the placeholder must not fight it. */
+.card-feature .card-media-empty {
+  background-color: var(--red-deep);
 }
 
 .card-top {
