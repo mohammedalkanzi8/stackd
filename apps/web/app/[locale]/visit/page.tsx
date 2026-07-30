@@ -9,6 +9,7 @@ import {
   assertLocale,
 } from '@stackd/shared';
 import { OpenStatus } from '../../components/OpenStatus';
+import { Marquee } from '../../components/Marquee';
 
 export function generateStaticParams() {
   return [{ locale: 'ar' }, { locale: 'en' }];
@@ -49,28 +50,31 @@ export default async function VisitPage({
 
   return (
     <>
-      <section className="slab slab-ink">
-        <div className="wrap" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <section className="hero" style={{ paddingBlockEnd: 'clamp(30px, 5vw, 56px)' }}>
+        <div className="glow-bg" />
+        <div className="wrap stack above">
           <p className="eyebrow">{isAr ? BRANCH.cityAr : BRANCH.cityEn}</p>
-          <h1 className="slab-title">{t(locale, 'visit.title')}</h1>
-          <div className="latenight" style={{ marginBlockStart: 6 }}>
-            <span className="latenight-num" dir="ltr">3 PM</span>
-            <span className="latenight-label">{isAr ? 'حتى' : 'until'}</span>
-            <span className="latenight-num" dir="ltr">3 AM</span>
+          <h1 className="display h-xl">{t(locale, 'visit.title')}</h1>
+          <div className="clock" style={{ marginBlock: 4 }}>
+            <span className="clock-t" style={{ fontSize: 'clamp(34px, 7vw, 62px)' }}>
+              3 PM
+            </span>
+            <span className="clock-sep">{isAr ? 'حتى' : 'until'}</span>
+            <span className="clock-t" style={{ fontSize: 'clamp(34px, 7vw, 62px)' }}>
+              3 AM
+            </span>
           </div>
-          <div>
-            <OpenStatus locale={locale} />
-          </div>
+          <OpenStatus locale={locale} />
         </div>
       </section>
 
-      <div className="checker" role="presentation" />
+      <Marquee locale={locale} />
 
-      <section className="slab slab-paper">
+      <section className="section">
         <div className="wrap">
-          <div className="info-grid" style={{ marginBlockStart: 0 }}>
+          <div className="info reveal" style={{ marginBlockStart: 0 }}>
             <div className="card">
-              <h2 className="card-title">{t(locale, 'visit.address')}</h2>
+              <h2 className="info-title">{t(locale, 'visit.address')}</h2>
               <p>{isAr ? BRANCH.addressAr : BRANCH.addressEn}</p>
               <p style={{ fontSize: 13, color: 'var(--text-faint)' }}>
                 <span dir="ltr">{BRANCH.plusCode}</span>
@@ -88,7 +92,7 @@ export default async function VisitPage({
             </div>
 
             <div className="card">
-              <h2 className="card-title">{t(locale, 'visit.hours')}</h2>
+              <h2 className="info-title">{t(locale, 'visit.hours')}</h2>
               {rows.map((row, i) => {
                 // Seven identical days collapse into one "Every day" line.
                 const label =
@@ -109,8 +113,8 @@ export default async function VisitPage({
             </div>
 
             <div className="card">
-              <h2 className="card-title">{t(locale, 'visit.phone')}</h2>
-              <span className="card-big">{BRANCH.phoneDisplay}</span>
+              <h2 className="info-title">{t(locale, 'visit.phone')}</h2>
+              <span className="info-big">{BRANCH.phoneDisplay}</span>
               <div className="link-row">
                 <a href={`tel:${BRANCH.phone}`} className="btn btn-primary btn-sm">
                   {t(locale, 'visit.call')}
@@ -119,13 +123,13 @@ export default async function VisitPage({
             </div>
 
             <div className="card">
-              <h2 className="card-title">{t(locale, 'visit.services')}</h2>
+              <h2 className="info-title">{t(locale, 'visit.services')}</h2>
               <ul className="svc">
                 {services.map((s) => (
                   <li key={s}>{s}</li>
                 ))}
               </ul>
-              <p style={{ fontSize: 13, color: 'var(--text-faint)' }}>
+              <p style={{ fontSize: 13, color: 'var(--text-faint)', marginBlockStart: 8 }}>
                 {t(locale, 'visit.avgSpend')}: {BRANCH.priceRange}
               </p>
             </div>

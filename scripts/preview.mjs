@@ -91,7 +91,7 @@ ${css}
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-body);
+  font-family: var(--font);
 }
 .pv-bar {
   position: sticky;
@@ -106,7 +106,7 @@ ${css}
   border-bottom: 1px solid #262626;
 }
 .pv-brand {
-  font-family: var(--font-body);
+  font-family: var(--font);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -129,8 +129,8 @@ ${css}
 }
 .pv-tab:hover { color: #fff; border-color: #4a4a4a; }
 .pv-tab[aria-selected='true'] {
-  background: #d8231a;
-  border-color: #d8231a;
+  background: #b82712;
+  border-color: #b82712;
   color: #fff;
 }
 .pv-tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
@@ -164,9 +164,10 @@ ${css}
 
   <p class="pv-note">
     <strong>Static preview of the real build.</strong>
-    Typography falls back to system fonts — the display faces (Anton for Latin,
-    Tajawal for Arabic) still need to be self-hosted as woff2. Item photography
-    is not in yet. Links between pages are inert here; use the tabs.
+    Type is the system stack — a self-hosted display face is the biggest
+    remaining upgrade, especially for Arabic. No food photography yet, so the
+    brand illustration carries the imagery. Use the tabs above to switch pages;
+    in-page links are inert in a single file.
   </p>
 
   ${panels
@@ -230,7 +231,8 @@ ${p.body}
 
     document.querySelectorAll('.pv-panel').forEach(function (panel) {
       var ar = panel.getAttribute('lang') === 'ar';
-      panel.querySelectorAll('.status').forEach(function (el) {
+      /* Only the live pill, never the static badges that share .status. */
+      panel.querySelectorAll('[data-openstatus]').forEach(function (el) {
         el.style.visibility = 'visible';
         el.removeAttribute('aria-hidden');
         el.setAttribute('data-open', String(open));

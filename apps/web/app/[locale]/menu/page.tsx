@@ -1,11 +1,6 @@
 import type { Metadata } from 'next';
-import {
-  MENU,
-  formatAmount,
-  t,
-  toArabicDigits,
-  assertLocale,
-} from '@stackd/shared';
+import { MENU, formatAmount, t, toArabicDigits, assertLocale } from '@stackd/shared';
+import { Marquee } from '../../components/Marquee';
 
 export function generateStaticParams() {
   return [{ locale: 'ar' }, { locale: 'en' }];
@@ -39,43 +34,47 @@ export default async function MenuPage({
 
   return (
     <>
-      <section className="slab slab-ink">
-        <div className="wrap menu-intro" style={{ marginBlockEnd: 0 }}>
+      <section className="hero" style={{ paddingBlockEnd: 'clamp(30px, 5vw, 56px)' }}>
+        <div className="glow-bg" />
+        <div className="wrap stack above">
           <p className="eyebrow">{isAr ? 'الأسعار بالريال السعودي' : 'Prices in Saudi Riyal'}</p>
-          <h1 className="slab-title">{t(locale, 'menu.title')}</h1>
+          <h1 className="display h-xl">{t(locale, 'menu.title')}</h1>
           <p className="lede">{t(locale, 'menu.subtitle')}</p>
         </div>
       </section>
 
-      <div className="checker" role="presentation" />
+      <Marquee locale={locale} />
 
-      <section className="slab slab-paper">
+      <section className="section">
         <div className="wrap">
           {MENU.map((cat) => (
-            <div className="category" key={cat.slug}>
-              <div className="category-head">
-                <h2 className="category-name">{isAr ? cat.nameAr : cat.nameEn}</h2>
-                <span className="category-count">
+            <div className="cat reveal" key={cat.slug}>
+              <div className="cat-head">
+                <h2 className="cat-name display">{isAr ? cat.nameAr : cat.nameEn}</h2>
+                <span className="cat-rule" />
+                <span className="cat-count">
                   {num(cat.items.length)} {isAr ? 'أطباق' : 'items'}
                 </span>
               </div>
 
-              <div className="items">
+              <div className="grid">
                 {cat.items.map((item) => {
                   const desc = isAr ? item.descAr : item.descEn;
                   return (
-                    <article className="item" key={item.slug}>
-                      <h3 className="item-name">{isAr ? item.nameAr : item.nameEn}</h3>
-                      <span className="item-price">
-                        {formatAmount(item.price)}
-                        <small>SAR</small>
-                      </span>
-                      {desc && <p className="item-desc">{desc}</p>}
+                    <article className="card" key={item.slug}>
+                      <div className="card-top">
+                        <h3 className="card-name">{isAr ? item.nameAr : item.nameEn}</h3>
+                        <span className="price">
+                          {formatAmount(item.price)}
+                          <small>SAR</small>
+                        </span>
+                      </div>
+                      {desc && <p className="card-desc">{desc}</p>}
                       {(item.calories !== null || item.spicy) && (
-                        <div className="item-tags">
+                        <div className="tags">
                           {/* Calories are omitted where the printed figure is
-                              known to be wrong, rather than shown as a wrong
-                              number. Saudi labelling rules require accuracy. */}
+                              known wrong rather than shown as a wrong number.
+                              Saudi labelling rules require accuracy. */}
                           {item.calories !== null && (
                             <span className="tag">
                               {num(item.calories)} {t(locale, 'menu.calories')}

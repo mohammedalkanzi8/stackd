@@ -21,6 +21,26 @@ export function isLocale(value: string): value is Locale {
 }
 
 /**
+ * Rewrites a pathname to the same page in another locale.
+ *
+ *   /ar/menu/  -> en  =>  /en/menu/
+ *   /ar/       -> en  =>  /en/
+ *   /          -> ar  =>  /ar/
+ *
+ * The language switch has to keep the visitor where they are; sending them back
+ * to the home page every time they change language is the bug this replaces.
+ * Trailing slashes are preserved because the site is exported with
+ * `trailingSlash: true` and Apache serves directory indexes.
+ */
+export function localeSwapPath(pathname: string, target: Locale): string {
+  // Drop a leading locale segment if present, keep everything after it.
+  const rest = pathname.replace(/^\/(ar|en)(?=\/|$)/, '');
+  if (rest === '' || rest === '/') return `/${target}/`;
+  const withSlash = rest.endsWith('/') ? rest : `${rest}/`;
+  return `/${target}${withSlash.startsWith('/') ? '' : '/'}${withSlash}`;
+}
+
+/**
  * Narrows a route param to Locale. Next's typed routes hand back a plain
  * `string`, and the whole i18n layer depends on it actually being 'ar' | 'en' —
  * so validate rather than cast. Throwing at build time surfaces a bad

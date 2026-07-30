@@ -57,11 +57,23 @@ export function OpenStatus({ locale }: { locale: Locale }) {
 
   if (!state) {
     // Reserve the space so the layout does not jump when the pill appears.
-    return <div className="status" aria-hidden="true" style={{ visibility: 'hidden' }}>—</div>;
+    return (
+      <div
+        className="status"
+        data-openstatus=""
+        aria-hidden="true"
+        style={{ visibility: 'hidden' }}
+      >
+        —
+      </div>
+    );
   }
 
   return (
-    <div className="status" data-open={state.open} role="status">
+    // data-openstatus marks this as the LIVE pill. The .status class is shared
+    // with static badges elsewhere, so anything that rewrites this element must
+    // target the attribute, not the class.
+    <div className="status" data-openstatus="" data-open={state.open} role="status">
       <span className="status-dot" />
       <span>{t(locale, state.open ? 'status.open' : 'status.closed')}</span>
       {state.detail && <span className="status-detail">· {state.detail}</span>}
