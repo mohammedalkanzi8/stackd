@@ -64,7 +64,13 @@ export default async function HomePage({
               </a>
             </div>
 
-            <OpenStatus locale={locale} />
+            <div className="chips">
+              <div className="chip">
+                <span className="chip-v">3 PM – 3 AM</span>
+                <span className="chip-k">{t(locale, 'visit.everyDay')}</span>
+              </div>
+              <OpenStatus locale={locale} />
+            </div>
           </div>
 
           <div className="hero-art">

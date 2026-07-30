@@ -432,6 +432,49 @@ svg {
   align-items: center;
 }
 
+/* Hours chip. Sits beside the live status pill: the chip states the fixed
+   schedule, the pill states what is true right now. Together they carry the
+   hero's lower-left corner without needing photography. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 20px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+}
+.chip-v {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.chip-k {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+}
+[dir='ltr'] .chip-k {
+  text-transform: uppercase;
+}
+[dir='rtl'] .chip-k {
+  letter-spacing: 0.02em;
+}
+
 /* Hero artwork: the real illustrated rooster on a red halo. */
 .hero-art {
   position: relative;

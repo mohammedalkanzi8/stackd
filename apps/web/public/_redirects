@@ -1,0 +1,10 @@
+# Cloudflare Pages redirects. Must sit at the root of the build output, which is
+# why it lives in public/ — Next copies public/ into out/ verbatim.
+#
+# The bare `/` has no page: every route lives under a locale segment, and a
+# static export has no middleware. Without this rule the domain root 404s.
+#
+# Arabic is the default. `functions/index.js` runs BEFORE this and upgrades the
+# decision to Accept-Language detection; this line is the fallback for when
+# Functions are not deployed, so the root is never broken either way.
+/    /ar/    302
