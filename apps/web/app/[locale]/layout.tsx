@@ -72,7 +72,14 @@ export default async function LocaleLayout({
   const locale = assertLocale(raw);
 
   return (
-    <html lang={locale} dir={dir(locale)}>
+    // suppressHydrationWarning applies to THIS element's attributes only, one
+    // level deep — children are still fully hydration-checked.
+    //
+    // Browser extensions commonly stamp classes onto <html> before React loads
+    // (Modernizr-style `no-touch`, dark-mode forcers, password managers). The
+    // server cannot know about them, so React reports a mismatch it can never
+    // reconcile. This is the fix Next and React both recommend for the case.
+    <html lang={locale} dir={dir(locale)} suppressHydrationWarning>
       <head>
         {/* Preload only the two faces this locale actually renders. The
             @font-face rules carry unicode-range, so the browser would fetch the
