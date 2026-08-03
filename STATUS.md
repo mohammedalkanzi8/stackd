@@ -4,6 +4,39 @@
 **Live now:** https://stackd.com.sa — verified serving, `www` 301s to the apex
 **Email:** MXroute, live and working (SPF + DKIM + DMARC all present)
 **Repo:** `/home/kanzi/stackd` (git, all committed)
+**Theme:** dark for everyone; light only via the header toggle
+**Phone:** 054 755 7666 · **Contact email published:** info@stackd.com.sa
+
+---
+
+## Shipped 3 August 2026
+
+Live and verified on the real domain. Four commits: `c009538`, `c29a32b`,
+`bf49d39`, plus `a06ac88` / `4b54a5f` / `638fc5e` for the domain and DNS work.
+
+- Domain live: apex serves, `www` 301s to it, certificates active
+- All 8 dish photos wired up (see § 4 for the caveats — two are real problems)
+- Dark default + header theme toggle, and four WCAG failures fixed in light mode
+- Favicons — there were none, and `/favicon.ico` was throwing on every page load
+- `metadataBase` set so shared links render a preview
+- Vertical rhythm rebuilt on a named scale; section gaps roughly a third tighter
+- Phone → 054 755 7666; email card publishes `info@stackd.com.sa`
+- Em dashes gone from all visible copy, including the browser tab title
+
+**Three bugs found this session all failed silently while reporting success.**
+Worth remembering as a pattern: `node --test functions/` passed with a
+deliberately failing assertion, `wrangler pages deploy` reported success for
+deploys that went nowhere, and a Pages custom domain sat `pending` with a blank
+error message. Verification commands for each are in the sections below and in
+`docs/deploy/README.md`.
+
+**⚠ `info@stackd.com.sa` is published on the live site and in Google's
+structured data.** It must exist as a real mailbox or alias on MXroute or mail to
+it bounces. Send a test message.
+
+**Nothing has ever been reviewed visually by me** — this environment has no
+browser. Every visual judgement so far is the owner's. Run `npm run dev` and look
+before shipping design changes.
 
 ---
 
@@ -142,31 +175,82 @@ reads it from the environment.
 Its scope is Pages-only: it can read the zone list and deploy, but not read DNS
 records or write zone rulesets. That is enough for everything this project does.
 
-### 3. Six menu conflicts still open
+### 3. Menu conflicts — four left of six
 
-See `docs/DISCREPANCIES.md`. The blocking one:
+See `docs/DISCREPANCIES.md`. Two were closed on 3 Aug 2026 by STACKD's own
+launch posters, which gave the official Arabic names and confirmed both items are
+new rather than discontinued: `تورتيلا الدجاج` and `ستربس الدجاج`.
 
-**Real calorie figures for Soft Drink and Kenza.** Both printed menus copied
-the sauces column (67 / 62 / 75), which is why water was listed at 75 kcal.
-Those two are currently `null` — the site omits them rather than publishing
+**The blocking one: real calorie figures for Soft Drink and Kenza.** Both printed
+menus copied the sauces column (67 / 62 / 75), which is why water was listed at
+75 kcal. Those two are `null` — the site omits them rather than publishing
 numbers known to be wrong. Saudi menu-labelling rules require accuracy.
 
-Also unresolved: Giants calorie counts (1100/1200 digital vs 1500/1600
-in-store), Classic-Stackd calories (the in-store board disagrees with itself),
-and the Arabic names for Tortilla Strips and Chicken Strips (currently my
-translations, not confirmed).
+Also unresolved: Giants calorie counts (1100/1200 digital vs 1500/1600 in-store)
+and Classic-Stackd calories (the in-store board disagrees with itself).
 
-### 4. Food photography — the biggest visual gap
+### 4. Photography — eight of twelve dishes covered
 
-Slots are built and waiting. Drop files into `apps/web/public/menu/` named by
-slug, then set `image:` on the item in `packages/shared/src/menu.ts`.
+Every dish now has an image. Sources differ and it matters:
 
-Brief in `apps/web/public/menu/README.md`. Short version: 4:3, 1200px wide,
-natural light, shot about 30° above.
+| Item | Source | Quality |
+|---|---|---|
+| Tortilla Strips, Chicken Strips | July camera shoot | Good |
+| Fries | July camera shoot, plain not seasoned | Good |
+| Classic / Maple / Big-Stackd, Scoopy-Doo | Instagram post crops | **~3x upscaled, soft** |
+| Fire-Attack | **Composite, not a photograph** | See below |
 
-Could not be sourced automatically — Instagram serves a login wall, TikTok a
-bot-detection shell, and the photos embedded in the supplied menu image are
-about 120×90px.
+**Two things to fix when you can.**
+
+*Fire-Attack is not a photo of Fire-Attack.* It is the Scoopy-Doo plate,
+warm-graded to read spicier, with jalapeno slices drawn in — done at the owner's
+explicit instruction, asked for twice. The grade is defensible since the dish
+really is Nashville-seasoned. The jalapenos are not in the recipe. The full
+caveat sits above the `image:` field in `menu.ts`. One real photo of the dish
+removes the whole issue.
+
+*The five poster crops are soft.* Each source was a phone screenshot of an
+Instagram post; the food occupies only 333–480px, so it is upscaled with a light
+sharpen. Fine at card size, visibly soft on a large screen. **Getting the
+original files from whoever designed those posts is the single biggest remaining
+visual upgrade.** Still missing entirely: Coleslaw and Cheesy-Cheese.
+
+Adding one: drop a 4:3 file in `apps/web/public/menu/` named by slug, set
+`image:` on the item. Brief in `apps/web/public/menu/README.md`.
+
+Instagram cannot be scraped for these — the profile returns a JS shell with no
+image URLs and the API 401s without a login. Two posts in the folder the owner
+supplied carry Instagram's own `AI info` label; neither was used.
+
+### 5. Light mode was never designed — check it as you go
+
+It shipped hidden behind `prefers-color-scheme` for months, so nobody had looked
+at it. Measuring it on 3 Aug found four WCAG AA failures, all fixed:
+
+- brand gold as text was **1.96:1** on cream (9.24:1 on the dark ground) and was
+  carrying every eyebrow, the hero slogan, category counts and info-card titles
+- the 10.5px tag chips sat at 3.90:1, the spicy variant at 3.51:1
+- `--text-faint` at 3.90:1 was used for the footer copyright, ring label, chip keys
+- `.card-feature` paints a dark gradient in BOTH themes but only overrode
+  `.card-desc`, so the featured card's title and calorie tag vanished
+
+**Rule that came out of it: never set gold type with `var(--gold)`.** Use
+`var(--label)`, which darkens to `#7a5200` in light. `--gold` is for decoration
+on fixed backgrounds only. The same trap exists for any element with a fixed
+dark background — its text must be set explicitly, not left to inherit `--text`.
+
+Contrast is worth measuring rather than eyeballing:
+
+```python
+def lum(h):
+    h=h.lstrip('#'); c=[int(h[i:i+2],16)/255 for i in (0,2,4)]
+    c=[(v/12.92 if v<=0.03928 else ((v+0.055)/1.055)**2.4) for v in c]
+    return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2]
+cr=lambda a,b:(max(lum(a),lum(b))+0.05)/(min(lum(a),lum(b))+0.05)
+```
+
+Light ground is `#fbf8f2` (page) and `#fefefe` (cards). AA needs 4.5:1 for normal
+text, 3:1 for large. Nothing on the site is "large" except headings.
 
 ---
 
@@ -200,11 +284,16 @@ change to that line by breaking a test on purpose and confirming red.
 | Cloudflare Pages, not Hostinger | Cloudflare has a data centre in **Dammam**, ~20 min from the branch. Hostinger's nearest is Germany. Also free, and unlimited bandwidth for TikTok spikes |
 | **MXroute** for email, not Microsoft 365 | Set up and working 3 Aug 2026. Supersedes the earlier M365 plan — don't "fix" the DNS back to the Outlook records. Live values in `docs/deploy/README.md` |
 | Arabic is the default locale | Khobar restaurant; English is secondary |
+| **Dark is the default for every visitor** | `prefers-color-scheme: light` was removed 3 Aug 2026. Light exists only behind the header toggle. The media override meant months of review happened in a cream theme nobody designed |
+| Gold type uses `--label`, never `--gold` | `--gold` is 1.96:1 on cream. `--label` darkens to `#7a5200` in light. `--gold` is for decoration on fixed backgrounds only |
+| Vertical rhythm is three named steps | `--sp-section` / `--sp-block` / `--sp-group`. Section padding was `clamp(64px, 10vw, 132px)` on both edges — 240px between sections — patched with hand-written inline `paddingBlockStart: 0`. Use `.section + .section` instead |
+| The theme toggle picks its icon in CSS | A static export renders at build time and cannot know the visitor's theme. Choosing in JS mismatches on hydration or leaves the button blank until mount |
+| Poster-crop photos are accepted, softness and all | Owner's call. Five of eight images are ~3x upscaled Instagram crops. Replace with originals when available; do not re-crop from the screenshots |
+| Photos on dishes only | Sauces and drinks stay text cards; 17 placeholder tiles looked unfinished |
 | Money as integer halalas | `2700` = 27.00 SAR. Never floats |
 | **Prices are VAT-inclusive** | KSA requires it. 27 SAR *contains* its VAT. Never add 15% on top — see `splitVatInclusive` |
 | Loyalty as append-only ledger | Points are money; disputes need an audit trail |
 | Points earned on the pre-VAT net | A 60 SAR ticket earns 52, not 60 |
-| Photos on dishes only | Sauces and drinks stay text cards; 17 placeholder tiles looked unfinished |
 | Tajawal + Cairo for both locales | Both ship matched Arabic *and* Latin. A bilingual brand shouldn't change typeface when it changes language |
 
 ---
