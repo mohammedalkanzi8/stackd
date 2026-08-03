@@ -83,17 +83,52 @@ subdomains for `max-age`, so any future subdomain without a valid certificate
 becomes unreachable with no quick way back. Worth doing, but decide
 deliberately, and consider starting at `max-age=300` to test.
 
-### 1c. Consider turning on DNSSEC
+### 1c. DNSSEC — half done, waiting on DNET
 
-The domain has no `DS` record and no `DNSKEY` — DNSSEC is off, so nothing stops
-a resolver being fed forged records for `stackd.com.sa`. Enable it in
-**Cloudflare → DNS → Settings → Enable DNSSEC**, then add the `DS` record it
-gives you at **DNET**. Do those in that order and reasonably close together: a
-`DS` record at the registrar that does not match Cloudflare's key makes the
-domain unresolvable for every validating resolver, which is the one DNS failure
-that flushing caches does not fix.
+**Enabled at Cloudflare 3 Aug 2026.** The zone publishes a KSK (key tag 2371)
+and a ZSK (34505), both algorithm 13. Nothing validates yet because the
+`.com.sa` parent has no `DS` record, so this state is safe and can sit
+indefinitely.
 
-Worth doing before the loyalty program handles customer names and phone numbers.
+**Remaining step: publish this `DS` at DNET.** Verified against the live
+`DNSKEY` — the SHA-256 digest was recomputed per RFC 4034 and matches what the
+dashboard displayed, so these values are known good, not transcribed:
+
+| Field | Value |
+|---|---|
+| Key Tag | `2371` |
+| Algorithm | `13` (ECDSA P-256 / SHA-256) |
+| Digest Type | `2` (SHA-256) |
+| Digest | `4D4D5CC686D451A282FEE6757AB9750D446C15E1B8E324E336443954133FDB83` |
+
+One line, if the registrar wants that form:
+
+```
+stackd.com.sa. 3600 IN DS 2371 13 2 4D4D5CC686D451A282FEE6757AB9750D446C15E1B8E324E336443954133FDB83
+```
+
+`.sa` registrars do not always expose DNSSEC self-service; DNET may need a
+support ticket. The `DS` goes at the **registrar**, never in Cloudflare's own
+records — the parent zone is what vouches for the key.
+
+**Do not paste the public key (`mdsswUyr3DPW…`) into a digest field.** That is
+DNSKEY data, used only by registrars that ask for "key data" format instead of
+DS. Getting this wrong returns SERVFAIL from every validating resolver — the one
+DNS failure flushing caches cannot fix. Recovery is removing the `DS` at DNET
+and waiting out the parent TTL.
+
+Confirm once published — expect `Status 0` and `AD: true`:
+
+```bash
+curl -s -H "accept: application/dns-json" \
+  "https://cloudflare-dns.com/dns-query?name=stackd.com.sa&type=A&do=1" \
+  | python3 -c "import json,sys; d=json.load(sys.stdin); print('Status', d['Status'], '| AD', d.get('AD'))"
+```
+
+**While DNSSEC is armed, never change nameservers or disable DNSSEC at
+Cloudflare before removing the `DS` at DNET.** The parent keeps demanding a key
+that no longer exists and the domain goes fully dark. Order is always: remove
+`DS` → wait for TTL → then change.
 
 ### 2. Roll the Cloudflare API token
 
