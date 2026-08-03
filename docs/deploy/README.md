@@ -41,6 +41,14 @@ directory is resolved from there too.
 
 Add `www.stackd.com.sa` as well.
 
+**Check the production branch first.** Custom domains serve the *production*
+deployment only. If the project's `production_branch` does not match the branch
+you deploy from, every deploy lands as a **preview**, reports success, and
+changes nothing on the live domain. This project deploys from `master`, so
+`production_branch` is `master` and `npm run deploy` pins `--branch=master`.
+On 3 Aug 2026 it was set to `main` — a branch that does not exist here — and the
+live site stayed frozen on a week-old build through several "successful" deploys.
+
 **Use the dashboard, not the API.** Attaching a custom domain through the
 dashboard also creates the proxied `CNAME` that points the hostname at the Pages
 project. Attaching it through the API does not create that record unless the

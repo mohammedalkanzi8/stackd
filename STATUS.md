@@ -1,8 +1,7 @@
 # STACKD — where we left off
 
 **Last session:** 3 August 2026
-**Live now:** https://stackd-7bc.pages.dev
-**Custom domain:** `stackd.com.sa` attached but **not serving** — see item 1
+**Live now:** https://stackd.com.sa — verified serving, `www` 301s to the apex
 **Email:** MXroute, live and working (SPF + DKIM + DMARC all present)
 **Repo:** `/home/kanzi/stackd` (git, all committed)
 
@@ -10,40 +9,72 @@
 
 ## Pick up here
 
-### 1. Add two DNS records — the website is one step from live
+### 1. ~~Domain~~ — done and verified, 3 Aug 2026
 
-Nameservers are switched, the zone is **active**, and mail works. Both
-`stackd.com.sa` and `www.stackd.com.sa` are attached to the Pages project. The
-site still does not load because **the apex has no `A` or `CNAME` record** — the
-hostname resolves to nothing, so the HTTP certificate check can never pass and
-both domains sit at `pending` with a blank error message.
+`stackd.com.sa` serves the site; `www.stackd.com.sa` 301s to the apex via
+`functions/_middleware.js`. The apex is canonical because that is what the
+printed menu and the Instagram bio point at.
 
-Cause: the domains were attached through the **API** with a Pages-scoped token,
-which cannot write DNS. The dashboard creates that record for you; the API
-silently skips it. Full write-up in `docs/deploy/README.md` § 2.
+Two traps cost most of that session. Both are now fixed, but read this before
+touching deployment again — see also `docs/deploy/README.md` § 2.
 
-In **Cloudflare → DNS → Records**, add:
+**Trap 1 — the Pages project's production branch was `main`, which does not
+exist in this repo.** The only branch is `master`, and there is no remote.
+`wrangler pages deploy` labels a deployment with the current git branch, so
+every deploy since the first one landed as a **preview**. Custom domains serve
+*production*, so the live site was frozen on the 30 July deployment while each
+new deploy reported success. The first deploy to a new project becomes
+production automatically, which is why it looked fine initially.
+
+Fixed by setting `production_branch` to `master` and pinning `--branch=master`
+in the `deploy` script. **Keep that flag** — without it the label follows
+whatever branch is checked out, and deploying from a feature branch silently
+goes to preview again. To confirm a deploy actually went live:
+
+```bash
+# env should be "production" and the date should be now
+curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+  "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/stackd" \
+  | python3 -c "import json,sys; d=json.load(sys.stdin)['result']['canonical_deployment']; print(d['environment'], d['created_on'])"
+```
+
+**Trap 2 — attaching a custom domain via the API does not create the DNS
+record.** The dashboard does it for you; the API needs DNS edit permission,
+which the Pages-scoped token lacks. The domain then sits at `pending` with a
+**blank error message** forever, because HTTP certificate validation cannot
+resolve a hostname that points nowhere. Attach domains in the dashboard.
+
+The live records, for reference — website proxied, mail not:
 
 | Type | Name | Target | Proxy |
 |---|---|---|---|
-| CNAME | `@` | `stackd-7bc.pages.dev` | **Proxied** — orange cloud |
-| CNAME | `www` | `stackd-7bc.pages.dev` | **Proxied** — orange cloud |
+| CNAME | `@` | `stackd-7bc.pages.dev` | Proxied — orange |
+| CNAME | `www` | `stackd-7bc.pages.dev` | Proxied — orange |
+| MX / TXT | mail records | MXroute | DNS only — grey |
 
-Proxied is required; grey cloud will not serve Pages. This will **not** affect
-the MXroute mail — Cloudflare flattens apex CNAMEs, so `MX` and `CNAME` coexist
-at the root. Certificates issue a few minutes after the records appear.
+`MX` and a `CNAME` coexist at the apex because Cloudflare flattens apex CNAMEs.
+Changing the website record does not affect mail.
 
-Then verify:
+**Verifying from this machine needs `--resolve`.** WSL here has no IPv6 route
+but the resolver sometimes returns only `AAAA`, so `curl` fails with `000` on a
+site that is perfectly healthy. Pin the IP and bust the cache:
 
 ```bash
-curl -sI https://stackd.com.sa/          # expect 302 -> /ar/
-curl -sI https://www.stackd.com.sa/ar/   # expect 301 -> stackd.com.sa/ar/
+IP=$(curl -s -H "accept: application/dns-json" \
+  "https://cloudflare-dns.com/dns-query?name=stackd.com.sa&type=A" \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['Answer'][0]['data'])")
+curl -sI --resolve "stackd.com.sa:443:$IP"     "https://stackd.com.sa/"          # 302 -> /ar/
+curl -sI --resolve "www.stackd.com.sa:443:$IP" "https://www.stackd.com.sa/ar/?x=$RANDOM"  # 301 -> apex
 ```
 
-The apex is canonical because that is what the printed menu and the Instagram
-bio point at. `www` 301s to it via `functions/_middleware.js` — in the repo
-rather than a Cloudflare Redirect Rule so it is versioned and testable, and
-because the token cannot write zone rulesets either.
+### 1b. Consider turning on HSTS
+
+`apps/web/public/_headers` has HSTS commented out with the note "add once HTTPS
+is confirmed working on stackd.com.sa". It now is. Uncommenting it is a
+**one-year commitment** — browsers will refuse plain HTTP for the domain and all
+subdomains for `max-age`, so any future subdomain without a valid certificate
+becomes unreachable with no quick way back. Worth doing, but decide
+deliberately, and consider starting at `max-age=300` to test.
 
 ### 2. Roll the Cloudflare API token
 

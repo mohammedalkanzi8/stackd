@@ -17,7 +17,7 @@
     "build": "npm run build --workspace @stackd/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "preview": "npm run build && node scripts/preview.mjs",
-    "deploy": "npm run build && npx wrangler pages deploy apps/web/out --project-name=stackd",
+    "deploy": "npm run build && npx wrangler pages deploy apps/web/out --project-name=stackd --branch=master",
     "deploy:preview": "npm run build && npx wrangler pages deploy apps/web/out --project-name=stackd --branch=preview"
   }
 }
