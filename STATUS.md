@@ -67,6 +67,13 @@ curl -sI --resolve "stackd.com.sa:443:$IP"     "https://stackd.com.sa/"         
 curl -sI --resolve "www.stackd.com.sa:443:$IP" "https://www.stackd.com.sa/ar/?x=$RANDOM"  # 301 -> apex
 ```
 
+**Trap 3 — "server not found" after the records went in was stale negative DNS
+caching, not an outage.** The zone's negative-cache TTL is 1800s while the A
+records live 161s, so a cached "no such name" outlasts the fix tenfold. Verify
+against `cloudflare-dns.com` and `dns.google` before debugging anything; details
+in `docs/deploy/README.md` § 2. DNSSEC is not enabled, so a validation mismatch
+was ruled out as a cause — see § 1c below.
+
 ### 1b. Consider turning on HSTS
 
 `apps/web/public/_headers` has HSTS commented out with the note "add once HTTPS
@@ -75,6 +82,18 @@ is confirmed working on stackd.com.sa". It now is. Uncommenting it is a
 subdomains for `max-age`, so any future subdomain without a valid certificate
 becomes unreachable with no quick way back. Worth doing, but decide
 deliberately, and consider starting at `max-age=300` to test.
+
+### 1c. Consider turning on DNSSEC
+
+The domain has no `DS` record and no `DNSKEY` — DNSSEC is off, so nothing stops
+a resolver being fed forged records for `stackd.com.sa`. Enable it in
+**Cloudflare → DNS → Settings → Enable DNSSEC**, then add the `DS` record it
+gives you at **DNET**. Do those in that order and reasonably close together: a
+`DS` record at the registrar that does not match Cloudflare's key makes the
+domain unresolvable for every validating resolver, which is the one DNS failure
+that flushing caches does not fix.
+
+Worth doing before the loyalty program handles customer names and phone numbers.
 
 ### 2. Roll the Cloudflare API token
 

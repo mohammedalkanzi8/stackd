@@ -79,6 +79,30 @@ of the mail records, which must all be grey.
 site on both hostnames, which splits search ranking. The 301 comes from
 `functions/_middleware.js` in this repo.
 
+**Expect "server not found" for up to 30 minutes after adding the records, even
+though the site is live.** While the hostname had no `A` record, every resolver
+that was queried cached that *negative* answer, and this zone's negative-cache
+TTL is the SOA minimum — **1800 seconds**. The real records have a 161-second
+TTL, so the stale "no such name" outlives them by ten times over. If an ISP
+round-robins between cache nodes the site appears to work, then fail, then work
+again. This looked like an outage twice on 3 Aug 2026; both times nothing was
+wrong.
+
+Confirm the server is fine before touching anything — query a resolver directly
+instead of trusting the local one:
+
+```bash
+curl -s -H "accept: application/dns-json" \
+  "https://cloudflare-dns.com/dns-query?name=stackd.com.sa&type=A"
+curl -s "https://dns.google/resolve?name=stackd.com.sa&type=A"
+```
+
+If both return `104.21.x.x` / `172.67.x.x` addresses, DNS is correct and the
+problem is a cache between you and them. Flush the OS resolver, clear Chrome's
+separate cache at `chrome://net-internals/#dns`, and **reboot the router** — it
+caches for the whole network. Testing over mobile data uses a different resolver
+and settles the question immediately.
+
 ### 3. Point DNET at Cloudflare
 
 Cloudflare will show two nameservers, something like:
