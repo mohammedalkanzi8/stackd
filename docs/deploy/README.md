@@ -2,7 +2,7 @@
 
 **Host:** Cloudflare Pages (free)
 **Domain:** `stackd.com.sa`, registered at DNET
-**Email:** Microsoft 365 (set up later — DNS records below when you are ready)
+**Email:** MXroute — live and working as of 3 August 2026 (not Microsoft 365)
 
 Cloudflare was chosen over Hostinger because the site is a static export and
 Cloudflare has data centres in **Dammam, Jeddah and Riyadh**. Dammam is roughly
@@ -39,7 +39,37 @@ directory is resolved from there too.
 
 **Pages project → Custom domains → Set up a domain →** `stackd.com.sa`
 
-Add `www.stackd.com.sa` as well; Cloudflare will redirect it to the apex.
+Add `www.stackd.com.sa` as well.
+
+**Use the dashboard, not the API.** Attaching a custom domain through the
+dashboard also creates the proxied `CNAME` that points the hostname at the Pages
+project. Attaching it through the API does not create that record unless the
+token has DNS edit permission — and the project token is Pages-scoped only. The
+domain then sits at `status: pending` **with an empty error message**, because
+certificate validation is over HTTP and cannot complete while the hostname
+resolves to nothing. It waits forever and never explains why. This happened on
+3 Aug 2026.
+
+If a domain is stuck `pending`, check for the DNS record first:
+
+```bash
+curl -s -H "accept: application/dns-json" \
+  "https://cloudflare-dns.com/dns-query?name=stackd.com.sa&type=CNAME"
+```
+
+No `Answer` field means the record is missing. Add it by hand:
+
+| Type | Name | Target | Proxy |
+|---|---|---|---|
+| CNAME | `@` | `stackd-7bc.pages.dev` | **Proxied** — orange cloud |
+| CNAME | `www` | `stackd-7bc.pages.dev` | **Proxied** — orange cloud |
+
+Both must be proxied. Grey cloud does not serve Pages. Note this is the opposite
+of the mail records, which must all be grey.
+
+`www` does **not** redirect to the apex on its own — Cloudflare serves the same
+site on both hostnames, which splits search ranking. The 301 comes from
+`functions/_middleware.js` in this repo.
 
 ### 3. Point DNET at Cloudflare
 
@@ -110,27 +140,32 @@ quick way back.
 
 ---
 
-## Microsoft 365 email — for later
+## Email — MXroute, live since 3 August 2026
 
-Email is independent of hosting. Once DNS is on Cloudflare, add these in
-**Cloudflare → DNS**. Microsoft gives you the exact values during setup; the
-shapes are:
+Microsoft 365 was the earlier plan; **MXroute** is what was actually set up, and
+it is working. Recorded here so nobody "fixes" the DNS back to the Outlook
+records. What is live:
 
 | Type | Name | Value | Proxy |
 |---|---|---|---|
-| MX | `@` | `stackd-com-sa.mail.protection.outlook.com` (priority 0) | DNS only |
-| TXT | `@` | `v=spf1 include:spf.protection.outlook.com -all` | DNS only |
-| CNAME | `autodiscover` | `autodiscover.outlook.com` | DNS only |
-| TXT | `_dmarc` | `v=DMARC1; p=quarantine; rua=mailto:dmarc@stackd.com.sa` | DNS only |
-| CNAME | `selector1._domainkey` | (from Microsoft) | DNS only |
-| CNAME | `selector2._domainkey` | (from Microsoft) | DNS only |
+| MX | `@` | `sunfire.mxrouting.net` (priority 10) | DNS only |
+| MX | `@` | `sunfire-relay.mxrouting.net` (priority 20) | DNS only |
+| TXT | `@` | `v=spf1 include:mxroute.com -all` | DNS only |
+| TXT | `x._domainkey` | `v=DKIM1; k=rsa; p=…` (MXroute uses the `x` selector) | DNS only |
+| TXT | `_dmarc` | `v=DMARC1; p=none; rua=…@dmarc-reports.cloudflare.net` | DNS only |
 
 **Every mail record must be "DNS only" — grey cloud, not orange.** Proxying a
 mail record through Cloudflare breaks delivery. This is the single most common
 mistake when moving DNS to Cloudflare.
 
-Start DMARC at `p=quarantine`. Move to `p=reject` once you have watched the
-reports for a few weeks and confirmed nothing legitimate is failing.
+DMARC is at `p=none`, which only collects reports — a spoofed STACKD email is
+still delivered today. Reports go to Cloudflare's DMARC Management dashboard.
+Once a few weeks of reports show nothing legitimate failing, move to
+`p=quarantine`, then `p=reject`.
+
+Note the apex carries both `MX` records and the website's `CNAME`. That
+combination is illegal in plain DNS but valid here because Cloudflare flattens
+apex CNAMEs — adding or changing the website record does not affect mail.
 
 ---
 

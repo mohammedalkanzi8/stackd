@@ -2,25 +2,48 @@
 
 **Last session:** 3 August 2026
 **Live now:** https://stackd-7bc.pages.dev
-**Custom domain:** `stackd.com.sa` attached, certificate was still provisioning
-at end of session — check it serves before announcing the link anywhere
+**Custom domain:** `stackd.com.sa` attached but **not serving** — see item 1
+**Email:** MXroute, live and working (SPF + DKIM + DMARC all present)
 **Repo:** `/home/kanzi/stackd` (git, all committed)
 
 ---
 
 ## Pick up here
 
-### 1. ~~Point the domain~~ — done, 3 Aug 2026
+### 1. Add two DNS records — the website is one step from live
 
-The DNET nameservers were changed to `chuck` / `lilyana.ns.cloudflare.com` and
-the Cloudflare zone went **active**. Both `stackd.com.sa` and
-`www.stackd.com.sa` are attached to the Pages project, and `www` 301-redirects
-to the apex via `functions/_middleware.js`.
+Nameservers are switched, the zone is **active**, and mail works. Both
+`stackd.com.sa` and `www.stackd.com.sa` are attached to the Pages project. The
+site still does not load because **the apex has no `A` or `CNAME` record** — the
+hostname resolves to nothing, so the HTTP certificate check can never pass and
+both domains sit at `pending` with a blank error message.
+
+Cause: the domains were attached through the **API** with a Pages-scoped token,
+which cannot write DNS. The dashboard creates that record for you; the API
+silently skips it. Full write-up in `docs/deploy/README.md` § 2.
+
+In **Cloudflare → DNS → Records**, add:
+
+| Type | Name | Target | Proxy |
+|---|---|---|---|
+| CNAME | `@` | `stackd-7bc.pages.dev` | **Proxied** — orange cloud |
+| CNAME | `www` | `stackd-7bc.pages.dev` | **Proxied** — orange cloud |
+
+Proxied is required; grey cloud will not serve Pages. This will **not** affect
+the MXroute mail — Cloudflare flattens apex CNAMEs, so `MX` and `CNAME` coexist
+at the root. Certificates issue a few minutes after the records appear.
+
+Then verify:
+
+```bash
+curl -sI https://stackd.com.sa/          # expect 302 -> /ar/
+curl -sI https://www.stackd.com.sa/ar/   # expect 301 -> stackd.com.sa/ar/
+```
 
 The apex is canonical because that is what the printed menu and the Instagram
-bio point at. The redirect lives in the repo rather than as a Cloudflare
-Redirect Rule so it is versioned and testable — and because the stored API
-token is Pages-scoped and cannot write zone rulesets.
+bio point at. `www` 301s to it via `functions/_middleware.js` — in the repo
+rather than a Cloudflare Redirect Rule so it is versioned and testable, and
+because the token cannot write zone rulesets either.
 
 ### 2. Roll the Cloudflare API token
 
@@ -90,7 +113,7 @@ change to that line by breaking a test on purpose and confirming red.
 | Decision | Why |
 |---|---|
 | Cloudflare Pages, not Hostinger | Cloudflare has a data centre in **Dammam**, ~20 min from the branch. Hostinger's nearest is Germany. Also free, and unlimited bandwidth for TikTok spikes |
-| Microsoft 365 for email | Chosen by owner. Records ready in `docs/deploy/README.md`, not yet applied |
+| **MXroute** for email, not Microsoft 365 | Set up and working 3 Aug 2026. Supersedes the earlier M365 plan — don't "fix" the DNS back to the Outlook records. Live values in `docs/deploy/README.md` |
 | Arabic is the default locale | Khobar restaurant; English is secondary |
 | Money as integer halalas | `2700` = 27.00 SAR. Never floats |
 | **Prices are VAT-inclusive** | KSA requires it. 27 SAR *contains* its VAT. Never add 15% on top — see `splitVatInclusive` |
