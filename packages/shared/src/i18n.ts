@@ -65,6 +65,7 @@ const strings = {
     'nav.visit': 'زورونا',
     'nav.loyalty': 'برنامج الولاء',
     'nav.lang': 'EN',
+    'nav.theme': 'تبديل الوضع الليلي',
 
     'hero.order': 'اطلب الآن',
     'hero.viewMenu': 'شاهد المنيو',
@@ -111,6 +112,7 @@ const strings = {
     'nav.visit': 'Visit',
     'nav.loyalty': 'Rewards',
     'nav.lang': 'ع',
+    'nav.theme': 'Toggle dark mode',
 
     'hero.order': 'Order Now',
     'hero.viewMenu': 'View Menu',

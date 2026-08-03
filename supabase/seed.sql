@@ -22,7 +22,7 @@ values (
   '76X9+7P5, Al Khobar Al Shamalia',
   '76X9+7P5، الخبر الشمالية',
   'Al Khobar', 'الخبر',
-  '+966500338808',   -- displayed locally as 050 033 8808
+  '+966547557666',   -- displayed locally as 054 755 7666
   '31311',
   '76X9+7P5',
   15

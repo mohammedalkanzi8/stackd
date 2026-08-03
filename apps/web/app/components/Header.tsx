@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { t, type Locale } from '@stackd/shared';
 import { LangToggle } from './LangToggle';
+import { ThemeToggle } from './ThemeToggle';
 
 export function Header({ locale }: { locale: Locale }) {
   return (
@@ -17,6 +18,7 @@ export function Header({ locale }: { locale: Locale }) {
             {t(locale, 'nav.visit')}
           </Link>
           <LangToggle locale={locale} />
+          <ThemeToggle locale={locale} />
         </nav>
       </div>
     </header>

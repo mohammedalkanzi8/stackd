@@ -70,6 +70,10 @@ export const MENU: MenuCategory[] = [
         descAr: 'خبز برجر - صدر دجاج - سلطة كول سلو - مايونيز',
         price: 2700,
         calories: 550,
+        // Cropped out of the July 2026 launch post. The burger occupies only
+        // ~333px of that image, so it is upscaled and softer than the photos
+        // from the camera shoot — replace if a full-resolution original turns up.
+        image: '/menu/classic-stackd.webp',
       },
       {
         slug: 'maple-stackd',
@@ -79,6 +83,8 @@ export const MENU: MenuCategory[] = [
         descAr: 'خبز برجر - صدر دجاج - مايونيز - صلصة الميبل',
         price: 2900,
         calories: 685,
+        // Same provenance and caveat as classic-stackd.
+        image: '/menu/maple-stackd.webp',
       },
       {
         slug: 'big-stackd',
@@ -88,6 +94,8 @@ export const MENU: MenuCategory[] = [
         descAr: 'خبز برجر - صدر دجاج - لحم بريسكيت - مايونيز - صلصة الميبل',
         price: 4800,
         calories: 1200,
+        // Same provenance and caveat as classic-stackd.
+        image: '/menu/big-stackd.webp',
       },
       {
         slug: 'tortilla-strips',
@@ -124,10 +132,16 @@ export const MENU: MenuCategory[] = [
         slug: 'scoopy-doo',
         nameEn: 'Scoopy-Doo',
         nameAr: 'سكوبي - دو',
+        // No Nashville seasoning here — that is what separates this from
+        // Fire-Attack, and marking it would imply heat this dish does not have.
         descEn: "Mac n' cheese, chicken strips, Stackd sauce, cheddar sauce, coleslaw, pickles, seasoned fries",
         descAr: 'مكرونة بالجبنة - شرائح دجاج - صلصة ستاكد - صلصة شيدر - سلطة كول سلو - مخلل - بطاطا مقلية مبهرة',
         price: 2500,
         calories: 1100,
+        // From the Scoopy-Doo launch post rather than the camera shoot, at the
+        // owner's request — the poster plates it far better than the kraft bowl
+        // it is served in. Same upscale caveat as the burgers.
+        image: '/menu/scoopy-doo.webp',
       },
       {
         slug: 'fire-attack',
@@ -138,6 +152,16 @@ export const MENU: MenuCategory[] = [
         price: 2700,
         calories: 1200,
         spicy: true,
+        // NOT A PHOTOGRAPH OF THIS DISH. Fire-Attack has never been shot, so
+        // this is the Scoopy-Doo plate, warm-graded to read spicier, with
+        // jalapeno slices composited in — done at the owner's explicit
+        // instruction on 3 Aug 2026, twice asked for.
+        //
+        // Two things to know before touching it. The heat grade is fair: this
+        // dish really is Nashville-seasoned, so the mild original under-sold it.
+        // The jalapenos are not: they are drawn, and the recipe above does not
+        // list them. Replace this the moment a real Fire-Attack photo exists.
+        image: '/menu/fire-attack.webp',
       },
     ],
   },
@@ -147,7 +171,9 @@ export const MENU: MenuCategory[] = [
     nameEn: 'Sides',
     nameAr: 'أطباق جانبية',
     items: [
-      { slug: 'fries', nameEn: 'Fries', nameAr: 'بطاطس مقلية', price: 900, calories: 420 },
+      // Plain, not the seasoned fries that come with the Giants — confirmed by
+      // the owner, so this crop deliberately avoids the spiced ones.
+      { slug: 'fries', nameEn: 'Fries', nameAr: 'بطاطس مقلية', price: 900, calories: 420, image: '/menu/fries.webp' },
       { slug: 'coleslaw', nameEn: 'Coleslaw', nameAr: 'سلطة كول سلو', price: 400, calories: 384 },
       { slug: 'cheesy-cheese', nameEn: 'Cheesy-Cheese', nameAr: 'تشيزي - تشيز', price: 600, calories: 245 },
     ],
@@ -188,8 +214,8 @@ export const BRANCH = {
   cityEn: 'Al Khobar',
   cityAr: 'الخبر',
   /** E.164 for tel: links. */
-  phone: '+966500338808',
-  phoneDisplay: '050 033 8808',
+  phone: '+966547557666',
+  phoneDisplay: '054 755 7666',
   mapsUrl: 'https://maps.app.goo.gl/Kfi1PbLSJwn4LKcf9',
   instagram: 'stackdchicken',
   tiktok: 'Stackd',

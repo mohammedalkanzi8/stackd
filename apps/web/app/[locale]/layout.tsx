@@ -41,8 +41,17 @@ export async function generateMetadata({
   return {
     title,
     description,
-    // Rendered relative because the final domain (stackd.com.sa) is not live yet.
-    // Set metadataBase once DNS is pointed, so OG images resolve absolutely.
+    // stackd.com.sa went live 3 Aug 2026, so URLs can resolve absolutely now —
+    // WhatsApp and Instagram need absolute OG URLs to render a link preview.
+    metadataBase: new URL('https://stackd.com.sa'),
+    icons: {
+      icon: [
+        { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+        { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      ],
+      apple: '/apple-touch-icon.png',
+    },
     alternates: {
       canonical: `/${locale}/`,
       languages: { ar: '/ar/', en: '/en/' },
@@ -100,7 +109,22 @@ export default async function LocaleLayout({
           crossOrigin="anonymous"
           href={`/fonts/tajawal-${locale === 'ar' ? 'arabic' : 'latin'}-900.woff2`}
         />
+        {/* One value, not a pair keyed to prefers-color-scheme: the page is dark
+            for everyone unless the visitor opts into light, so a light entry
+            would tint the browser chrome against a dark page. */}
         <meta name="theme-color" content="#0e0f0d" />
+        {/* Applies a remembered theme choice BEFORE first paint. Without this a
+            visitor who picked light would get a frame of dark (or vice versa)
+            while React hydrates — the classic dark-mode flash. It must be inline
+            and synchronous for that reason; an external file would arrive too
+            late. No choice stored means we fall through to the CSS media query,
+            i.e. follow the device. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('stackd-theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t}}catch(e){}",
+          }}
+        />
       </head>
       <body>
         <RestaurantSchema locale={locale} />

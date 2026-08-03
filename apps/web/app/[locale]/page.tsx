@@ -26,7 +26,11 @@ export default async function HomePage({
   const isAr = locale === 'ar';
   const num = (v: number | string) => (isAr ? toArabicDigits(v) : String(v));
 
-  const featured = ['big-stackd', 'scoopy-doo', 'fire-attack']
+  // Big-Stackd sits in the MIDDLE, not first — it is the hero item and the
+  // centre column is where the eye lands in a three-up grid. The gradient
+  // treatment follows the slug rather than the index for the same reason.
+  const HERO_SLUG = 'big-stackd';
+  const featured = ['scoopy-doo', HERO_SLUG, 'fire-attack']
     .map((slug) => MENU.flatMap((c) => c.items).find((i) => i.slug === slug)!)
     .filter(Boolean);
 
@@ -63,9 +67,8 @@ export default async function HomePage({
               <a href={`tel:${BRANCH.phone}`} className="btn btn-ghost">
                 {t(locale, 'visit.call')}
               </a>
+              <OpenStatus locale={locale} />
             </div>
-
-            <OpenStatus locale={locale} />
           </div>
 
           <div className="hero-art">
@@ -82,16 +85,19 @@ export default async function HomePage({
           <div className="stack reveal">
             <p className="eyebrow">{isAr ? 'الأكثر طلباً' : 'Most ordered'}</p>
             <h2 className="display h-lg">{isAr ? 'ابدأ من هنا' : 'Start Here'}</h2>
-            <p className="lede">
+            <p className="lede lede-1">
               {isAr
-                ? 'ثلاثة أطباق تختصر ستاكد. لو أول مرة تزورنا، ابدأ بواحد منها.'
-                : 'Three dishes that sum us up. If it is your first visit, start with one of these.'}
+                ? 'ثلاثة أطباق تختصر ستاكد، ابدأ بواحد منها.'
+                : 'Three dishes that sum us up, start with one of these.'}
             </p>
           </div>
 
-          <div className="grid reveal" style={{ marginBlockStart: 32 }}>
-            {featured.map((item, i) => (
-              <article className={`card${i === 0 ? ' card-feature' : ''}`} key={item.slug}>
+          <div className="grid reveal" style={{ marginBlockStart: 26 }}>
+            {featured.map((item) => (
+              <article
+                className={`card${item.slug === HERO_SLUG ? ' card-feature' : ''}`}
+                key={item.slug}
+              >
                 <CardMedia item={item} locale={locale} />
                 <div className="card-top">
                   <h3 className="card-name">{isAr ? item.nameAr : item.nameEn}</h3>
@@ -115,16 +121,30 @@ export default async function HomePage({
             ))}
           </div>
 
-          <div className="link-row" style={{ marginBlockStart: 26 }}>
-            <Link href={`/${locale}/menu/`} className="btn btn-ghost btn-sm">
+          <div className="link-row link-row-center" style={{ marginBlockStart: 30 }}>
+            <Link href={`/${locale}/menu/`} className="btn btn-primary btn-cta">
               {t(locale, 'hero.viewMenu')}
+              <svg
+                className="btn-arrow"
+                viewBox="0 0 24 24"
+                width="17"
+                height="17"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 12h15M13 6l6 6-6 6" />
+              </svg>
             </Link>
           </div>
         </div>
       </section>
 
       {/* ---- Late night --------------------------------------------------- */}
-      <section className="section" style={{ paddingBlockStart: 0 }}>
+      <section className="section">
         <div className="wrap">
           <div className="night reveal">
             <p className="eyebrow" style={{ color: 'var(--gold-soft)' }}>
@@ -156,7 +176,7 @@ export default async function HomePage({
       </section>
 
       {/* ---- Loyalty ------------------------------------------------------ */}
-      <section className="section" style={{ paddingBlockStart: 0 }}>
+      <section className="section">
         <div className="wrap loyal reveal">
           <div className="stack">
             <p className="eyebrow">{t(locale, 'loyalty.title')}</p>

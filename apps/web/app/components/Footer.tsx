@@ -18,33 +18,23 @@ export function Footer({ locale }: { locale: Locale }) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div className="footer-links">
-              <a
-                href={`https://instagram.com/${BRANCH.instagram}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Instagram
-              </a>
-              <a
-                href={`https://tiktok.com/@${BRANCH.tiktok}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                TikTok
-              </a>
-              <a href={BRANCH.mapsUrl} target="_blank" rel="noopener noreferrer">
-                {t(locale, 'visit.directions')}
-              </a>
-            </div>
+          <div className="footer-links">
             <a
-              href={`tel:${BRANCH.phone}`}
-              className="footer-legal"
-              dir="ltr"
-              style={{ fontWeight: 700 }}
+              href={`https://instagram.com/${BRANCH.instagram}`}
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              {BRANCH.phoneDisplay}
+              Instagram
+            </a>
+            <a
+              href={`https://tiktok.com/@${BRANCH.tiktok}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              TikTok
+            </a>
+            <a href={BRANCH.mapsUrl} target="_blank" rel="noopener noreferrer">
+              {t(locale, 'visit.directions')}
             </a>
           </div>
         </div>

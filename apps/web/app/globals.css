@@ -74,27 +74,26 @@
   --maxw: 1200px;
   --gutter: clamp(18px, 4.5vw, 52px);
   --checker: 13px;
+
+  /* Vertical rhythm. Three named steps instead of a scatter of unrelated
+     clamps, so spacing is a system rather than a per-block guess.
+     The old section step was clamp(64px, 10vw, 132px) — at a 1200px viewport
+     that is 120px top AND bottom, putting 240px between two sections. Roughly
+     a third tighter now, and still generous. */
+  --sp-section: clamp(46px, 5.8vw, 84px);
+  --sp-block: clamp(26px, 3.4vw, 44px);
+  --sp-group: clamp(14px, 1.8vw, 22px);
 }
 
 /* No per-direction font override: Tajawal and Cairo cover Arabic and Latin, so
    both locales share one type system. RTL differences are metric only. */
 
-/* A light mode exists, but this identity lives in the dark. Light is a
-   considered alternative rather than an inversion. */
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme='dark']) {
-    --bg: var(--cream);
-    --surface: var(--paper);
-    --surface-2: #f2eee5;
-    --text: var(--ink);
-    --text-dim: #5b5d52;
-    --text-faint: #7c7e72;
-    --line: rgba(27, 28, 25, 0.1);
-    --line-strong: rgba(27, 28, 25, 0.2);
-    --accent: var(--red);
-    --glow: rgba(184, 39, 18, 0.2);
-  }
-}
+/* Dark is the default for EVERY visitor, not just those whose device asks for
+   it. The `prefers-color-scheme: light` override that used to live here is gone
+   deliberately: this identity lives in the dark, and a visitor on a light-mode
+   phone was silently getting a theme that was never the approved design.
+   Light is still available — but only when someone chooses it with the header
+   toggle, which sets `data-theme` below. */
 :root[data-theme='light'] {
   --bg: var(--cream);
   --surface: var(--paper);
@@ -169,8 +168,15 @@ svg {
 }
 
 .section {
-  padding-block: clamp(64px, 10vw, 132px);
+  padding-block: var(--sp-section);
   position: relative;
+}
+/* Two sections in a row would otherwise stack their padding and double the gap.
+   This replaces the inline `paddingBlockStart: 0` that used to be applied by
+   hand on individual sections — a `.band` or `.checker` between two sections
+   correctly stops it matching, so those keep their full opening space. */
+.section + .section {
+  padding-block-start: 0;
 }
 
 /* Display type. Tight tracking at large sizes is what separates a modern
@@ -220,11 +226,35 @@ svg {
   margin: 0;
 }
 
+/* For a lede that must hold a single line. `max-width` alone was not enough —
+   Cairo is a wide face, so the string still wrapped at some desktop widths.
+   nowrap is applied only from 820px up; forcing one line on a phone would push
+   the text far too small to read. */
+.lede-1 {
+  max-width: 72ch;
+}
+@media (min-width: 820px) {
+  .lede-1 {
+    white-space: nowrap;
+  }
+}
+
+/* Section header group. The gap is deliberately uneven: an eyebrow is a label
+   for the heading beneath it, so it sits tight — a uniform 20px made it read as
+   a separate line of text. The lede then gets air, because it is a new thought. */
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 10px;
   align-items: flex-start;
+}
+.stack > .lede {
+  margin-block-start: 6px;
+}
+/* A pill after prose is an object, not a line of text, so it needs more than
+   the text gap — otherwise it crowds the lede above it. */
+.stack > .status {
+  margin-block-start: 8px;
 }
 
 /* Radial brand glow. The device that gives the dark ground depth. */
@@ -359,13 +389,61 @@ svg {
   box-shadow: 0 2px 10px var(--glow);
 }
 
+/* Theme switch — same pill treatment as the language switch beside it. */
+.themesw {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-inline-start: 6px;
+  padding: 0;
+  border-radius: var(--r-pill);
+  background: var(--line);
+  border: 1px solid var(--line-strong);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.18s, background 0.18s, border-color 0.18s;
+}
+.themesw:hover {
+  color: var(--text);
+  border-color: var(--red);
+}
+.themesw:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
+/* Exactly one icon is visible, and CSS decides which — see ThemeToggle.tsx for
+   why this is not done in JS. Each icon shows the theme you would switch TO, so
+   the sun appears while the ground is dark.
+   These blocks mirror the theme selectors above; keep them in step. */
+.themesw-i {
+  display: none;
+}
+.themesw-sun {
+  display: block; /* the default ground is dark, so offer the sun */
+}
+:root[data-theme='light'] .themesw-sun {
+  display: none;
+}
+:root[data-theme='light'] .themesw-moon {
+  display: block;
+}
+:root[data-theme='dark'] .themesw-sun {
+  display: block;
+}
+:root[data-theme='dark'] .themesw-moon {
+  display: none;
+}
+
 /* ==========================================================================
    Hero
    ========================================================================== */
 
 .hero {
   position: relative;
-  padding-block: clamp(48px, 8vw, 104px) clamp(56px, 9vw, 112px);
+  padding-block: clamp(34px, 4.6vw, 68px) clamp(40px, 5.2vw, 78px);
   overflow: hidden;
 }
 
@@ -383,7 +461,7 @@ svg {
 .hero-copy {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 18px;
   align-items: flex-start;
 }
 
@@ -420,6 +498,22 @@ svg {
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+}
+/* All three items in this row are the same object, sized identically, so the row
+   reads as one set. `.status` is a smaller pill by default (10px/13px) because
+   elsewhere it is a caption; here it has to match the buttons beside it.
+   Height comes from min-height rather than padding-block so every item lands on
+   the same baseline no matter its font size. */
+.hero-actions > .btn,
+.hero-actions > .status {
+  min-height: 54px;
+  padding-block: 0;
+  border-radius: var(--r-pill);
+}
+.hero-actions > .status {
+  padding-inline: 26px;
+  font-size: 15px;
+  border-width: 2px;
 }
 
 /* Hours chip. Sits beside the live status pill: the chip states the fixed
@@ -626,6 +720,35 @@ svg {
   font-size: 13.5px;
 }
 
+/* Section-closing call to action. Bigger than a nav button and gradient-filled,
+   so it reads as the next step rather than a footnote. */
+.btn-cta {
+  padding: 17px 40px;
+  font-size: 16px;
+  gap: 12px;
+}
+/* The arrow leads the eye toward the page being linked to, and nudges on hover.
+   Mirrored in RTL — an arrow pointing away from the reading direction reads as
+   "back". */
+.btn-arrow {
+  transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+[dir='rtl'] .btn-arrow {
+  transform: scaleX(-1);
+}
+.btn-cta:hover .btn-arrow {
+  transform: translateX(4px);
+}
+[dir='rtl'] .btn-cta:hover .btn-arrow {
+  transform: scaleX(-1) translateX(4px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-arrow,
+  .btn-cta:hover .btn-arrow {
+    transition: none;
+  }
+}
+
 /* ==========================================================================
    Status pill
    ========================================================================== */
@@ -672,7 +795,7 @@ svg {
    ========================================================================== */
 
 .cat {
-  margin-block-end: clamp(44px, 7vw, 80px);
+  margin-block-end: clamp(34px, 4.4vw, 58px);
 }
 
 .cat-head {
@@ -872,8 +995,19 @@ svg {
   background: linear-gradient(150deg, var(--red-deep), var(--ink-2) 72%);
   border-color: rgba(232, 57, 28, 0.34);
 }
+/* The gradient is dark in BOTH themes, so everything on top of it has to be
+   light explicitly. Without this the name and tags inherit `--text`, which is
+   near-black in light mode — the title disappeared into the card. */
 .card-feature .card-desc {
   color: rgba(254, 254, 254, 0.74);
+}
+.card-feature .card-name {
+  color: var(--paper);
+}
+.card-feature .tag {
+  color: rgba(254, 254, 254, 0.82);
+  background: rgba(254, 254, 254, 0.1);
+  border-color: rgba(254, 254, 254, 0.22);
 }
 .card-feature .price {
   font-family: var(--font-display);
@@ -1010,7 +1144,7 @@ svg {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
   gap: clamp(14px, 2vw, 20px);
-  margin-block-start: clamp(28px, 4vw, 44px);
+  margin-block-start: var(--sp-block);
 }
 .info .card:hover {
   transform: none;
@@ -1089,6 +1223,9 @@ svg {
   margin-block-start: auto;
   padding-block-start: 6px;
 }
+.link-row-center {
+  justify-content: center;
+}
 
 /* ==========================================================================
    Footer
@@ -1130,6 +1267,18 @@ svg {
   border-color: var(--text);
   background: var(--line);
 }
+/* Logo and copyright sit side by side, not stacked. The shared `.footer img`
+   rule adds bottom margin for the stacked case, which would throw the
+   baseline off here. */
+.footer-mark {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.footer-mark img {
+  margin-block-end: 0;
+}
+
 .footer-legal {
   color: var(--text-faint);
   font-size: 12.5px;
