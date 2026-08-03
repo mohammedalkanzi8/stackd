@@ -14,7 +14,7 @@ American street food · الخبر الشمالية (North Khobar), KSA
 | Data model (`supabase/schema.sql`) | Written — **not yet executed against a database** |
 | Menu seed (`supabase/seed.sql`) | Written — 17 items, official Arabic names |
 | Design tokens (`packages/shared/src/tokens.ts`) | Done |
-| Hours / money / VAT logic | Done — **40 unit tests passing** |
+| Hours / money / VAT logic | Done — **59 unit tests passing** |
 | Website | **Builds and exports** — 6 pages, AR + EN. Needs real photos |
 | Typography | Self-hosted Tajawal + Cairo (SIL OFL), Arabic + Latin subsets |
 | Mobile app | Not started |
@@ -30,7 +30,7 @@ both printed menus. (Water price is resolved: 2 SAR.)
 
 ```bash
 npm install
-npm test          # 40 tests: hours logic, VAT math, i18n paths, menu integrity
+npm test          # 59 tests: hours logic, VAT math, i18n paths, menu integrity, redirects
 npm run dev       # http://localhost:3000/ar/
 npm run build     # static export into apps/web/out/
 ```

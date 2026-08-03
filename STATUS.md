@@ -1,35 +1,38 @@
 # STACKD — where we left off
 
-**Last session:** 30 July 2026
+**Last session:** 3 August 2026
 **Live now:** https://stackd-7bc.pages.dev
+**Custom domain:** `stackd.com.sa` attached, certificate was still provisioning
+at end of session — check it serves before announcing the link anywhere
 **Repo:** `/home/kanzi/stackd` (git, all committed)
 
 ---
 
 ## Pick up here
 
-### 1. Point the domain (blocked on you, 5 minutes)
+### 1. ~~Point the domain~~ — done, 3 Aug 2026
 
-`stackd.com.sa` is registered at **DNET** and added to Cloudflare, but the zone
-is still `pending` because the nameservers have not been changed.
+The DNET nameservers were changed to `chuck` / `lilyana.ns.cloudflare.com` and
+the Cloudflare zone went **active**. Both `stackd.com.sa` and
+`www.stackd.com.sa` are attached to the Pages project, and `www` 301-redirects
+to the apex via `functions/_middleware.js`.
 
-Log into DNET and replace:
-
-```
-ns10.dnetns.com          ->   chuck.ns.cloudflare.com
-ns11.dnetns.com          ->   lilyana.ns.cloudflare.com
-```
-
-Once Cloudflare reports the zone active, attach the custom domain to the Pages
-project and it goes live on `stackd.com.sa`. Cloudflare writes the DNS records
-itself — nothing to type by hand.
+The apex is canonical because that is what the printed menu and the Instagram
+bio point at. The redirect lives in the repo rather than as a Cloudflare
+Redirect Rule so it is versioned and testable — and because the stored API
+token is Pages-scoped and cannot write zone rulesets.
 
 ### 2. Roll the Cloudflare API token
 
 The token was pasted into a chat transcript, so treat it as exposed.
 
 **Cloudflare → My Profile → API Tokens → Roll**, then update
-`~/.stackd-cf-token` (gitignored, chmod 600).
+`~/.stackd-cf-token` (gitignored, chmod 600). The file holds a shell-sourceable
+line, `CLOUDFLARE_API_TOKEN=…`, not a bare token — keep that shape, wrangler
+reads it from the environment.
+
+Its scope is Pages-only: it can read the zone list and deploy, but not read DNS
+records or write zone rulesets. That is enough for everything this project does.
 
 ### 3. Six menu conflicts still open
 
@@ -63,7 +66,7 @@ about 120×90px.
 
 ```bash
 npm run dev       # http://localhost:3000/ar/
-npm test          # 50 tests
+npm test          # 59 tests (40 shared + 19 functions)
 npm run build     # static export to apps/web/out/
 npm run deploy    # build + push to Cloudflare Pages
 npm run preview   # single-file shareable preview
@@ -72,6 +75,13 @@ npm run preview   # single-file shareable preview
 **Never run `npm run build` while `npm run dev` is running.** They share
 `.next` and the production build corrupts the dev server (500s on every route).
 Recovery: `pkill -f "next dev" && rm -rf apps/web/.next && npm run dev`
+
+**Keep the glob in the test script.** `node --test functions/` — a bare
+directory — silently ran nothing on Node 22: it reported `ok 1 - functions`,
+`# pass 1`, and exit code 0 even with a deliberately failing assertion in the
+file. The functions tests had never actually run. `node --test
+"functions/*.test.js"` reports all 19 and exits non-zero on failure. Verify any
+change to that line by breaking a test on purpose and confirming red.
 
 ---
 
