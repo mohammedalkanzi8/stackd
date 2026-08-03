@@ -14,8 +14,8 @@ import { RestaurantSchema } from '../components/RestaurantSchema';
  * one layout may render <html>/<body>, and `lang`/`dir` differ per locale, so the
  * locale segment has to own it.
  *
- * The bare `/` path is redirected to a locale by .htaccess (see public/.htaccess),
- * because a static export has no middleware.
+ * The bare `/` path is redirected to a locale by functions/index.js, because a
+ * static export has no middleware. public/_redirects carries a plain fallback.
  */
 
 export function generateStaticParams() {
@@ -31,9 +31,11 @@ export async function generateMetadata({
   const locale = assertLocale(raw);
   const isAr = locale === 'ar';
 
+  // No em dash: the owner does not want it in visible copy, and this string is
+  // the browser tab title, so it is the most visible copy on the site.
   const title = isAr
-    ? `${BRAND.nameAr} | ${BRAND.nameEn} — الخبر الشمالية`
-    : `${BRAND.nameEn} — Al Khobar Al Shamalia`;
+    ? `${BRAND.nameAr} | ${BRAND.nameEn}، الخبر الشمالية`
+    : `${BRAND.nameEn}, Al Khobar Al Shamalia`;
   const description = isAr
     ? `${BRAND.taglineAr} مطعم دجاج ومأكولات شارع أمريكية في الخبر الشمالية. برجر، ستربس، وأطباق العماليق.`
     : `${BRAND.taglineEn} American street food and fried chicken in Al Khobar. Burgers, strips, and Giants.`;
@@ -117,8 +119,8 @@ export default async function LocaleLayout({
             visitor who picked light would get a frame of dark (or vice versa)
             while React hydrates — the classic dark-mode flash. It must be inline
             and synchronous for that reason; an external file would arrive too
-            late. No choice stored means we fall through to the CSS media query,
-            i.e. follow the device. */}
+            late. No choice stored means the CSS default applies, which is dark
+            for everyone — the device preference is deliberately not consulted. */}
         <script
           dangerouslySetInnerHTML={{
             __html:

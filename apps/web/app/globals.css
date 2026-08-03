@@ -57,6 +57,10 @@
   --line-strong: rgba(254, 254, 254, 0.18);
   --accent: var(--red-hot);
   --glow: rgba(232, 57, 28, 0.42);
+  /* Gold as TEXT. On the dark ground --gold reaches 9.2:1, but on cream it is
+     1.96:1 — unreadable. Anything that sets gold type must use this token so it
+     darkens with the theme, never --gold directly. */
+  --label: var(--gold);
 
   --r-sm: 10px;
   --r-md: 16px;
@@ -100,13 +104,18 @@
   --surface-2: #f2eee5;
   --text: var(--ink);
   --text-dim: #5b5d52;
-  --text-faint: #7c7e72;
+  /* Was #7c7e72 — only 3.90:1 on cream, and every use of it is small text
+     (footer copyright 12.5px, ring label and chip keys 11px). Now 5.35:1. */
+  --text-faint: #66685d;
   --line: rgba(27, 28, 25, 0.1);
   --line-strong: rgba(27, 28, 25, 0.2);
   --accent: var(--red);
   --glow: rgba(184, 39, 18, 0.2);
+  /* Brand gold, darkened to carry type on a pale ground: 6.53:1 on cream. */
+  --label: #7a5200;
 }
 :root[data-theme='dark'] {
+  --label: var(--gold);
   --bg: var(--ink-0);
   --surface: var(--ink-1);
   --surface-2: var(--ink-3);
@@ -142,7 +151,7 @@ body {
 }
 
 :focus-visible {
-  outline: 3px solid var(--gold);
+  outline: 3px solid var(--label);
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -209,7 +218,7 @@ svg {
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.22em;
-  color: var(--gold);
+  color: var(--label);
   margin: 0;
 }
 [dir='ltr'] .eyebrow {
@@ -485,7 +494,7 @@ svg {
   font-size: clamp(15px, 2.4vw, 22px);
   font-weight: 900;
   letter-spacing: -0.02em;
-  color: var(--gold);
+  color: var(--label);
   margin: 0;
 }
 [dir='ltr'] .hero-slogan {
@@ -820,7 +829,7 @@ svg {
   font-size: 11.5px;
   font-weight: 800;
   letter-spacing: 0.16em;
-  color: var(--gold);
+  color: var(--label);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -977,7 +986,7 @@ svg {
   font-weight: 800;
   letter-spacing: 0.1em;
   background: var(--line);
-  color: var(--text-faint);
+  color: var(--text-dim);
   border: 1px solid transparent;
   font-variant-numeric: tabular-nums;
 }
@@ -986,7 +995,7 @@ svg {
 }
 .tag-spicy {
   background: rgba(232, 57, 28, 0.14);
-  color: var(--red-hot);
+  color: var(--accent);
   border-color: rgba(232, 57, 28, 0.32);
 }
 
@@ -1157,7 +1166,7 @@ svg {
   font-size: 11.5px;
   font-weight: 800;
   letter-spacing: 0.18em;
-  color: var(--gold);
+  color: var(--label);
   margin: 0;
 }
 [dir='ltr'] .info-title {
@@ -1177,6 +1186,14 @@ svg {
   direction: ltr;
   unicode-bidi: isolate;
   font-variant-numeric: tabular-nums;
+}
+/* An address is far longer than a phone number: 18 characters at the size above
+   overflows a 250px card, which is the narrowest this grid produces. Smaller,
+   and allowed to break as a last resort so it can never widen the card. */
+.info-email {
+  font-size: clamp(15px, 2vw, 19px);
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
 }
 
 .hours-row {

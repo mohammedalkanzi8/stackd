@@ -205,7 +205,7 @@ export const MENU: MenuCategory[] = [
 ];
 
 export const BRANCH = {
-  nameEn: 'STACKD — North Khobar',
+  nameEn: 'STACKD, North Khobar',
   nameAr: 'ستاكد - الخبر الشمالية',
   addressEn: 'Al Khobar Al Shamalia, Al Khobar 31311',
   addressAr: 'الخبر الشمالية، الخبر ٣١٣١١',
@@ -216,6 +216,8 @@ export const BRANCH = {
   /** E.164 for tel: links. */
   phone: '+966547557666',
   phoneDisplay: '054 755 7666',
+  /** Must exist as a real mailbox or alias on MXroute, or mail to it bounces. */
+  email: 'info@stackd.com.sa',
   mapsUrl: 'https://maps.app.goo.gl/Kfi1PbLSJwn4LKcf9',
   instagram: 'stackdchicken',
   tiktok: 'Stackd',

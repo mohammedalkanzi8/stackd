@@ -29,6 +29,7 @@ export function RestaurantSchema({ locale }: { locale: Locale }) {
       addressCountry: 'SA',
     },
     telephone: BRANCH.phone,
+    email: BRANCH.email,
     hasMap: BRANCH.mapsUrl,
     sameAs: [
       `https://instagram.com/${BRANCH.instagram}`,

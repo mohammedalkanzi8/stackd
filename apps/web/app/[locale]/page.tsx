@@ -11,6 +11,7 @@ import {
 import { OpenStatus } from '../components/OpenStatus';
 import { SloganBand } from '../components/SloganBand';
 import { CardMedia } from '../components/CardMedia';
+import { ArrowIcon } from '../components/ArrowIcon';
 
 export function generateStaticParams() {
   return [{ locale: 'ar' }, { locale: 'en' }];
@@ -124,20 +125,7 @@ export default async function HomePage({
           <div className="link-row link-row-center" style={{ marginBlockStart: 30 }}>
             <Link href={`/${locale}/menu/`} className="btn btn-primary btn-cta">
               {t(locale, 'hero.viewMenu')}
-              <svg
-                className="btn-arrow"
-                viewBox="0 0 24 24"
-                width="17"
-                height="17"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M4 12h15M13 6l6 6-6 6" />
-              </svg>
+              <ArrowIcon />
             </Link>
           </div>
         </div>
@@ -184,7 +172,9 @@ export default async function HomePage({
               {isAr ? 'كل ريال يرجع لك' : 'Every Riyal Comes Back'}
             </h2>
             <p className="lede">{t(locale, 'loyalty.lead')}</p>
-            <span className="status" style={{ borderColor: 'var(--gold)', color: 'var(--gold)' }}>
+            {/* --label, not --gold: this pill sits on the page background, and
+                raw gold on cream is 1.96:1. */}
+            <span className="status" style={{ borderColor: 'var(--label)', color: 'var(--label)' }}>
               {t(locale, 'loyalty.comingSoon')}
             </span>
           </div>
@@ -233,21 +223,28 @@ export default async function HomePage({
               </div>
             </div>
 
+            {/* Email, not opening hours. The late-night block above already
+                states 3 PM – 3 AM in far bigger type, so this card was repeating
+                it; the address and phone cards beside it are contact details, so
+                email belongs here. Full hours still live on the visit page,
+                where they are computed per weekday rather than hardcoded. */}
             <div className="card">
-              <h3 className="info-title">{t(locale, 'visit.hours')}</h3>
-              <div className="hours-row">
-                <span>{t(locale, 'visit.everyDay')}</span>
-                <span className="hours-time">3 PM – 3 AM</span>
-              </div>
+              <h3 className="info-title">{t(locale, 'visit.email')}</h3>
+              <span className="info-big info-email" dir="ltr">
+                {BRANCH.email}
+              </span>
               <div className="link-row">
-                <OpenStatus locale={locale} />
+                <a href={`mailto:${BRANCH.email}`} className="btn btn-primary btn-sm">
+                  {t(locale, 'visit.emailUs')}
+                </a>
               </div>
             </div>
           </div>
 
-          <div className="link-row" style={{ marginBlockStart: 24 }}>
-            <Link href={`/${locale}/visit/`} className="btn btn-ghost btn-sm">
+          <div className="link-row link-row-center" style={{ marginBlockStart: 30 }}>
+            <Link href={`/${locale}/visit/`} className="btn btn-primary btn-cta">
               {t(locale, 'nav.visit')}
+              <ArrowIcon />
             </Link>
           </div>
         </div>
