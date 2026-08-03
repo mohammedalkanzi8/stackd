@@ -51,14 +51,26 @@ block when the artwork was made, on both the digital menu and the in-store board
 **Water at 75 kcal is the tell.** Seeded water at 0 and left soft drink / Kenza
 as NULL rather than publish known-bad figures. Needs real values.
 
-## 5. Two items missing from the in-store board
+## 5. ~~Two items missing from the in-store board~~ — RESOLVED 3 Aug 2026
 
-`Tortilla Strips` (19 SAR) and `Chicken Strips` (23 SAR) appear on the digital
-menu only. Are these new additions, discontinued, or is the board simply out of
-date? Their **Arabic names are my translations, not yours** — they need review:
+`Tortilla Strips` (19 SAR) and `Chicken Strips` (23 SAR) appeared on the digital
+menu only, with Arabic names that were my translations rather than yours.
 
-- Tortilla Strips → `تورتيلا ستربس`
-- Chicken Strips → `ستربس دجاج`
+STACKD's own launch posters (July 2026) settle both questions. They are **new
+additions**, not discontinued — the posters read `طبق جديد` and `جديد ولذيذ`
+("new dish" / "new and delicious"). And they carry the official Arabic names,
+which differ from what I had guessed:
+
+| Item | My translation | Official (poster) |
+|---|---|---|
+| Tortilla Strips | `تورتيلا ستربس` | `تورتيلا الدجاج` |
+| Chicken Strips | `ستربس دجاج` | `ستربس الدجاج` |
+
+Note the Arabic names are *Chicken Tortilla* and *Chicken Strips* — the poster
+does not translate "Tortilla Strips" literally. `menu.ts` now uses the poster
+wording and the `arabicNeedsReview` flags are gone.
+
+Still worth confirming the in-store board gets updated to match.
 
 ## 6. Wordmark inconsistency
 

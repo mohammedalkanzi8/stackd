@@ -92,22 +92,25 @@ export const MENU: MenuCategory[] = [
       {
         slug: 'tortilla-strips',
         nameEn: 'Tortilla Strips',
-        nameAr: 'تورتيلا ستربس',
+        // Arabic name taken from STACKD's own launch poster (July 2026), which
+        // reads "تورتيلا الدجاج" — not a translation of the English.
+        nameAr: 'تورتيلا الدجاج',
         descEn: 'Tortilla bread, Stackd sauce, lettuce, crispy fresh chicken, cheese, fries',
         descAr: 'خبز تورتيلا - صلصة ستاكد - خس - دجاج طازج مقرمش - جبنة - بطاطس',
         price: 1900,
         calories: 890,
-        arabicNeedsReview: true,
+        image: '/menu/tortilla-strips.webp',
       },
       {
         slug: 'chicken-strips',
         nameEn: 'Chicken Strips',
-        nameAr: 'ستربس دجاج',
+        // Likewise from the launch poster: "ستربس الدجاج".
+        nameAr: 'ستربس الدجاج',
         descEn: '4 pcs of fresh, crispy chicken strips with fries and dipping sauce',
         descAr: '٤ قطع من شرائح الدجاج الطازجة المقرمشة مع البطاطس وصلصة الغمس',
         price: 2300,
         calories: 950,
-        arabicNeedsReview: true,
+        image: '/menu/chicken-strips.webp',
       },
     ],
   },
