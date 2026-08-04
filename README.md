@@ -11,18 +11,19 @@ American street food · الخبر الشمالية (North Khobar), KSA
 
 | Piece | State |
 |---|---|
-| Data model (`supabase/schema.sql`) | Written — **not yet executed against a database** |
-| Menu seed (`supabase/seed.sql`) | Written — 17 items, official Arabic names |
+| Data model (`supabase/schema.sql`) | **Applies and is tested** — RLS on every table, loyalty ledger, walk-in orders |
+| Menu seed (`supabase/seed.sql`) | Source of truth — 17 items; the website is generated from it |
 | Design tokens (`packages/shared/src/tokens.ts`) | Done |
-| Hours / money / VAT logic | Done — **59 unit tests passing** |
+| Hours / money / VAT logic | Done — **79 tests passing** (40 shared + 19 functions + 20 schema) |
 | Website | **Builds and exports** — 6 pages, AR + EN. Needs real photos |
 | Typography | Self-hosted Tajawal + Cairo (SIL OFL), Arabic + Latin subsets |
 | Mobile app | Not started |
 | Kitchen display | Not started |
 
-⚠ **Read [`docs/DISCREPANCIES.md`](docs/DISCREPANCIES.md) first.** Six conflicts
+⚠ **Read [`docs/DISCREPANCIES.md`](docs/DISCREPANCIES.md) first.** Four conflicts
 between the two supplied menus remain unresolved, including wrong calorie data on
-both printed menus. (Water price is resolved: 2 SAR.)
+both printed menus. (Water price is resolved: 2 SAR. Both Arabic names were
+resolved from STACKD's own launch posters on 3 Aug 2026.)
 
 ---
 
@@ -30,10 +31,17 @@ both printed menus. (Water price is resolved: 2 SAR.)
 
 ```bash
 npm install
-npm test          # 59 tests: hours logic, VAT math, i18n paths, menu integrity, redirects
+npm run db:reset  # rebuild the local database from supabase/*.sql
+npm test          # hours logic, VAT math, i18n paths, menu integrity, redirects, schema
 npm run dev       # http://localhost:3000/ar/
 npm run build     # static export into apps/web/out/
 ```
+
+`npm test` includes the schema tests, which need a running local Postgres (see
+below). They **fail loudly** rather than skipping when the database is
+unreachable — a schema test that quietly passes because nothing ran is worse than
+no test. To run everything else without a database:
+`STACKD_SKIP_DB_TESTS=1 npm test`.
 
 ## Deploying to Hostinger
 
@@ -64,30 +72,72 @@ transitively via Next. Both are build-time only, and image optimisation is
 disabled for the static export, so nothing ships to the browser. Worth clearing
 on a Next upgrade regardless.
 
-### Postgres (optional — for local schema testing)
+### Postgres — required for the schema tests
 
-The schema targets Supabase, so you can apply it in the Supabase SQL editor
-without installing anything locally. For offline work:
+One-time setup. WSL2 has no systemd here, so it's `service`, not `systemctl`:
 
 ```bash
-sudo apt install -y postgresql-client   # psql only
-# or the full local stack:
-npm i -g supabase && supabase init && supabase start   # needs Docker
+sudo apt install -y postgresql
+sudo service postgresql start
+sudo -u postgres createuser --superuser "$USER"   # peer auth over the unix socket
 ```
+
+`sudo service postgresql start` again after each WSL restart.
+
+`npm run db:reset` connects over the **unix socket**, not TCP. Debian ships
+`local all all peer` in `pg_hba.conf`, so a role named after the OS user needs no
+password; the same connection over TCP hits `scram-sha-256` and fails with
+"password authentication failed" for a role that has no password — an error that
+reads like a permissions problem and is really a transport one. Override with
+`DATABASE_URL` to point at a real server.
 
 ---
 
-## Applying the schema
+## The database
 
-Against a Supabase project:
+`supabase/schema.sql` is canonical and is applied as a whole. Nothing has run
+against production yet, so there is no migration chain — **the day it first does,
+freeze the file and start `supabase/migrations/0001_*.sql`.** Editing it in place
+after that point silently diverges from what is deployed.
+
+```bash
+npm run db:reset                  # drop, rebuild, seed, add dev fixtures
+npm run db:reset -- --no-dev-data # menu only, no fake users
+npm run test:db                   # just the schema tests
+```
+
+| File | Ships to production? |
+|---|---|
+| `supabase/schema.sql` | Yes — the model |
+| `supabase/seed.sql` | Yes — the real menu, branch and rewards |
+| `supabase/local/00_shim.sql` | **No** — fakes the Supabase platform (`auth` schema, PostgREST roles) |
+| `supabase/local/10_dev_data.sql` | **No** — test users, staff logins, a customer to earn points |
+
+The shim exists so `schema.sql` stays byte-identical to what a real Supabase
+project would receive. Never edit the schema to accommodate local Postgres; edit
+the shim.
+
+Against a real Supabase project, the shim is unnecessary:
 
 ```bash
 psql "$SUPABASE_DB_URL" -f supabase/schema.sql
 psql "$SUPABASE_DB_URL" -f supabase/seed.sql
 ```
 
-`schema.sql` references `auth.users`, which only exists inside Supabase. On a
-plain Postgres instance, stub it first or strip the `customers.id` FK.
+### The menu is generated from the database
+
+```bash
+npm run sync:menu   # database → packages/shared/src/menu.ts
+```
+
+Only the region between the `<generated:menu>` markers is rewritten. `BRANCH`,
+`BRAND`, the types and the helpers in that file are hand-written and stay put.
+
+To change the menu: edit `supabase/seed.sql` → `npm run db:reset` →
+`npm run sync:menu` → `npm test`. Editing `menu.ts` directly gets overwritten.
+
+Photo provenance notes live in `menu_items.photo_note` and are re-emitted as
+comments on each run, so the caveats in `STATUS.md` § 4 survive regeneration.
 
 ---
 
@@ -122,6 +172,13 @@ the customer is standing there watching for "ready".
 | VAT stored on the order | Rate changes must not alter history |
 | Loyalty inside the main app | A separate app triples cost; customers won't install two |
 | Green+gold kept as seasonal override | It's National Day 94 artwork, not the core identity |
+| The VAT **rate** is stored, not just the amount | Storing `vat_total` alone half-keeps the rule: after a rate change nobody can tell what an old row was computed at |
+| RLS on every table, no exceptions | Behind PostgREST, RLS off means world-**writable** with the anon key. On with no policy is the correct deny-all for server-only tables |
+| Points minted only by `mint_loyalty_points()` | The grant is the control. "Server-side only" as a comment is not one |
+| Rolling point expiry, not per-lot | Expiring each lot on its anniversary needs FIFO consumption tracking and a second table. Rolling inactivity is one query and is explainable at the counter |
+| Walk-in (POS) orders modelled now | The cashier scan flow ships in Phase 2, before app ordering. Adding it later means reshaping `orders` after it holds data |
+| Gapless invoice numbers come from a counter table | Sequences deliberately don't roll back — a failed insert burns its number, which ZATCA does not allow |
+| `orders.service_date` is stored, not derived | `created_at::date` is STABLE, not IMMUTABLE, so Postgres rejects it in an index. Storing it also gets the 03:00 trading-day boundary right |
 
 ---
 

@@ -1,11 +1,123 @@
 # STACKD — where we left off
 
-**Last session:** 3 August 2026
+**Last session:** 4 August 2026
 **Live now:** https://stackd.com.sa — verified serving, `www` 301s to the apex
 **Email:** MXroute, live and working (SPF + DKIM + DMARC all present)
 **Repo:** `/home/kanzi/stackd` (git, all committed)
 **Theme:** dark for everyone; light only via the header toggle
 **Phone:** 054 755 7666 · **Contact email published:** info@stackd.com.sa
+
+---
+
+## 4 August 2026 — the data model is real
+
+**Postgres 18 installed locally; the schema applies clean and 79 tests pass**
+(40 shared + 19 functions + 20 schema). `npm run sync:menu` regenerates the
+website menu from the database and reports no semantic change, which is the proof
+that the model covers everything the site renders.
+
+Setup is a one-time three lines, and needs a real terminal — `sudo` cannot prompt
+for a password through the agent's shell:
+
+```bash
+sudo apt install -y postgresql
+sudo service postgresql start
+sudo -u postgres createuser --superuser "$USER"   # role for peer auth on the socket
+```
+
+`sudo service postgresql start` again after each WSL restart; there is no systemd
+here to do it. Then `npm run db:reset && npm test`.
+
+**The model changed shape in four ways.** Full reasoning is in the file comments.
+
+1. **RLS on every table, no exceptions.** The previous revision enabled it on
+   nine tables and missed seven — `branch_hours`, `branch_menu_availability`,
+   `modifier_groups`, `modifiers`, `menu_item_modifier_groups`,
+   `order_item_modifiers` and `tax_invoices`, the last of which holds the ZATCA
+   hash chain. Behind PostgREST a table with RLS off is not merely readable, it
+   is **world-writable with the anon key**, which ships inside the app bundle.
+   `supabase/schema.test.mjs` now asserts `relrowsecurity` across the whole
+   schema, so the eighth one someone adds cannot quietly miss it.
+2. **Staff exist.** There was no way to tell a cashier from a customer, so the
+   kitchen display could not read the orders it exists to display. New `staff`
+   table plus an `is_staff_at()` helper, which **must** stay `security definer` —
+   a policy on `orders` that reads `staff` directly needs `staff` readable, and
+   the policy permitting that reads `staff` again. That recursion is a runtime
+   error, so it surfaces as a broken kitchen display, not a failed migration.
+3. **Walk-in tickets are modelled.** `orders.customer_id` is now nullable and
+   `source` is `app` or `pos`. The Phase 2 cashier-scan flow ships *before* app
+   ordering, and it could not be represented at all. Customers carry a
+   `member_code` for the QR — deliberately not the `auth.users` UUID, which
+   authenticates elsewhere and should not be printed on a receipt.
+4. **Points are minted by a function, not by a comment.** `mint_loyalty_points()`
+   is security definer and revoked from `anon`/`authenticated`; the grant is the
+   control. Partial unique indexes make a double-mint a constraint violation
+   rather than free money.
+
+**Four bugs found, and only executing the SQL could have found any of them.**
+This is the whole argument for doing this before the app exists.
+
+*Redemption could never have worked.* The loyalty balance trigger — unchanged
+from the first revision — was one `insert ... on conflict (customer_id) do
+update`. Postgres evaluates CHECK constraints on the **proposed** row before it
+detects the conflict, and the proposed row carries the raw delta. So redeeming 50
+points builds a speculative row with `balance = -50`, trips `check (balance >=
+0)`, and raises before the DO UPDATE branch is ever considered — *even when the
+balance row plainly exists with enough points in it*. Reproduced at top level,
+outside any function. It is now split: an `insert ... on conflict do nothing` to
+ensure the row, then an UPDATE that does the arithmetic, whose check runs against
+the final row. **Do not fold it back into an upsert**; there is a comment on it
+saying so.
+
+*The schema could never have been created.* `create unique index ... on orders
+(branch_id, pickup_code, (created_at::date))` is rejected outright by Postgres:
+casting a timestamptz to date reads the session TimeZone, making it `STABLE`, and
+index expressions must be `IMMUTABLE`. Replaced with a stored `service_date`,
+which also fixes the semantics — the trading day runs to 03:00, so a 01:30 order
+belongs to the previous evening's ticket numbering, not to the calendar date.
+
+*`seed.sql` had already drifted from `menu.ts`.* The two Arabic names resolved
+from STACKD's own launch posters on 3 Aug (`تورتيلا الدجاج`, `ستربس الدجاج`)
+landed in the TypeScript and never went back into the SQL. That is the drift
+`npm run sync:menu` now exists to stop.
+
+*Anonymous access broke after any earlier impersonation.* `current_setting(...,
+true)` reverts a custom GUC to the **empty string**, not to unset, once it has
+been `SET LOCAL` and the transaction has ended — so `auth.uid()` hit `''::json`
+and raised "invalid input syntax for type json". It works in a fresh session and
+fails the moment a previous transaction set a JWT claim, which is a horrible
+thing to debug. Fixed in the local shim, which now guards the empty string before
+the cast.
+
+**Two lessons about the tests themselves, both the same shape as the
+`node --test functions/` trap below.** A `reset role` in a `finally` masked every
+real assertion error behind "current transaction is aborted", because the tests
+that expect a query to raise leave the transaction aborted. And `asRole()`
+originally opened a bare `begin` inside an already-open transaction — Postgres
+treats that as a warning-only no-op, so the inner `rollback` silently discarded
+the outer test's setup and looked exactly like a policy bug. It nests via
+savepoints now.
+
+The schema tests were verified by breaking an assertion on purpose and confirming
+red (1 fail, exit 1), then restoring. Do that for any new test entry point.
+They also **fail loudly rather than skip** when the database is unreachable;
+`STACKD_SKIP_DB_TESTS=1` is the only, explicit, opt-out.
+
+**The menu is generated from the database from here on.**
+`packages/shared/src/menu.ts` is rewritten between its `<generated:menu>` markers
+by `npm run sync:menu`. Hand edits inside that region are overwritten. Everything
+outside it — the types, `BRANCH`, `BRAND`, the helpers — is hand-written and
+stays. Photo provenance notes live in `menu_items.photo_note` and are re-emitted
+as comments each run, so the § 4 caveats below survive regeneration.
+
+To change the menu: edit `supabase/seed.sql` → `db:reset` → `sync:menu` → `test`.
+
+**What is not in this pass:** the Moyasar integration itself (the `payments`
+table is there, the edge function is Phase 3), ZATCA XML and hash chaining (table
+and gapless counter are there, UBL 2.1 is Phase 3 and still gated on the missing
+CR and VAT numbers), and the in-Kingdom hosting decision, which stays open — see
+"The app backend needs rethinking" below. The schema is plain Postgres and does
+not change with that decision; only where it runs does.
 
 ---
 

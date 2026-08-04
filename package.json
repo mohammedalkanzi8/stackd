@@ -11,8 +11,14 @@
   "engines": {
     "node": ">=22"
   },
+  "devDependencies": {
+    "pg": "^8.13.1"
+  },
   "scripts": {
-    "test": "npm run test --workspaces --if-present && node --test \"functions/*.test.js\"",
+    "test": "npm run test --workspaces --if-present && node --test \"functions/*.test.js\" && node --test \"supabase/*.test.mjs\"",
+    "test:db": "node --test \"supabase/*.test.mjs\"",
+    "db:reset": "node scripts/db-reset.mjs",
+    "sync:menu": "node scripts/sync-menu.mjs",
     "dev": "npm run dev --workspace @stackd/web",
     "build": "npm run build --workspace @stackd/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
