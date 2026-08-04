@@ -1,9 +1,80 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
-import { query } from '@/lib/db.ts';
+import { query, queryOne, transaction } from '@/lib/db.ts';
 
 export const metadata = { title: 'Members · STACKD admin' };
 export const dynamic = 'force-dynamic';
+
+/**
+ * Signs somebody up at the counter.
+ *
+ * Phone-first, because that is how KSA customers expect to be identified and it
+ * is what the app's OTP login will key on later. Email is optional and rarely
+ * given.
+ *
+ * Any staff member can do this — it is the whole point of a counter signup, and
+ * a cashier not being able to enrol the person in front of them would make the
+ * programme useless at the moment it matters.
+ */
+async function addMember(formData: FormData): Promise<void> {
+  'use server';
+  const { requireStaff } = await import('@/lib/auth.ts');
+  await requireStaff();
+
+  const name = String(formData.get('fullName') ?? '').trim();
+  const rawPhone = String(formData.get('phone') ?? '').trim();
+  const locale = String(formData.get('locale') ?? 'ar');
+
+  const fail = (m: string) => redirect(`/members?error=${encodeURIComponent(m)}`);
+
+  if (!name) fail('Enter their name.');
+
+  // Accept 0547557666, 547557666, +966547557666, or with spaces — store E.164.
+  const digits = rawPhone.replace(/[^0-9]/g, '');
+  let phone: string;
+  if (/^9665\d{8}$/.test(digits)) phone = `+${digits}`;
+  else if (/^05\d{8}$/.test(digits)) phone = `+966${digits.slice(1)}`;
+  else if (/^5\d{8}$/.test(digits)) phone = `+966${digits}`;
+  else fail(`"${rawPhone}" is not a Saudi mobile number — try 054 755 7666.`);
+
+  if (!['ar', 'en'].includes(locale)) fail('Pick a language.');
+
+  if (await queryOne('select 1 from customers where phone = $1', [phone!])) {
+    fail(`${phone!} is already a member.`);
+  }
+
+  const settings = await queryOne<{ signup_bonus: number }>(
+    'select signup_bonus from loyalty_settings',
+  );
+
+  const code = await transaction(async (c) => {
+    // The customer row hangs off auth.users, so both go in together.
+    const { rows } = await c.query('insert into auth.users (phone) values ($1) returning id', [phone!]);
+    const id = rows[0].id;
+    const created = await c.query(
+      `insert into customers (id, full_name, phone, locale)
+       values ($1, $2, $3, $4) returning member_code`,
+      [id, name, phone!, locale],
+    );
+    if (settings && settings.signup_bonus > 0) {
+      await c.query(
+        `insert into loyalty_transactions (customer_id, delta, reason, note)
+         values ($1, $2, 'signup_bonus', 'Signed up at the counter')`,
+        [id, settings.signup_bonus],
+      );
+    }
+    return created.rows[0].member_code as string;
+  });
+
+  redirect(
+    `/members?q=${code}&ok=${encodeURIComponent(
+      `${name} is member ${code}${
+        settings && settings.signup_bonus > 0 ? ` with ${settings.signup_bonus} bonus points` : ''
+      }.`,
+    )}`,
+  );
+}
 
 interface MemberRow {
   id: string;
@@ -19,9 +90,9 @@ interface MemberRow {
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; ok?: string; error?: string }>;
 }) {
-  const { q = '' } = await searchParams;
+  const { q = '', ok, error } = await searchParams;
   const term = q.trim();
 
   // Matches a scanned member code, a phone number however it was typed, or a
@@ -56,6 +127,9 @@ export default async function MembersPage({
         Scan or type a member code, or search by name or phone number. The code is
         what is on the customer&rsquo;s QR.
       </p>
+
+      {ok ? <div className="banner ok">{ok}</div> : null}
+      {error ? <div className="banner bad">{error}</div> : null}
 
       <form className="card row" style={{ marginBlockEnd: 20 }}>
         <div className="field">
@@ -117,6 +191,36 @@ export default async function MembersPage({
             </table>
           </div>
         )}
+      </div>
+
+      <div className="card" style={{ marginBlockStart: 22 }}>
+        <h2>Sign someone up</h2>
+        <p className="lede" style={{ marginBlockEnd: 16 }}>
+          For a customer joining at the counter. They get a member code straight
+          away — read it out, or let them scan the QR on their next receipt.
+        </p>
+        <form action={addMember} className="row">
+          <div className="field">
+            <label htmlFor="fullName">Name</label>
+            <input id="fullName" name="fullName" type="text" required />
+          </div>
+          <div className="field">
+            <label htmlFor="phone">
+              Mobile <span className="hint">— 054 755 7666</span>
+            </label>
+            <input id="phone" name="phone" type="text" inputMode="tel" required />
+          </div>
+          <div className="field field-sm">
+            <label htmlFor="locale">Language</label>
+            <select id="locale" name="locale" defaultValue="ar">
+              <option value="ar">العربية</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+          <button type="submit" className="primary">
+            Add member
+          </button>
+        </form>
       </div>
     </>
   );

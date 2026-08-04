@@ -121,6 +121,77 @@ not change with that decision; only where it runs does.
 
 ---
 
+## 4 August 2026 — points per dish, and the bill QR
+
+**The loyalty model changed shape.** Points were computed from the order total.
+They are now computed **line by line**: each line earns either its item's fixed
+`points_award` (times quantity) or the per-riyal rate on that line. Mixing the
+two is the point — most of the menu earns by value, while a dish being pushed can
+be worth a flat number regardless of price. A Scoopy-Doo set to 200 earns 200,
+not the 21 its 25 SAR would otherwise give.
+
+Blank means earn by value. **`0` means earns nothing**, which is a different
+thing and is what you want on a bottle of water.
+
+An order with **no line items falls back to its ticket total.** Every POS
+integration until someone writes one sends a total and nothing else, and that
+must not silently earn zero.
+
+The earn rate, expiry window, sign-up bonus and claim window are now rows in
+`loyalty_settings`, editable on the portal's **Points** page, not constants.
+
+**Reward discounts are deliberately not deducted before earning.** The customer
+already paid for that discount in points; shrinking what the visit earns would
+take the same points twice.
+
+### The bill QR
+
+The counterpart to a cashier scanning a member's code. Most walk-ins are
+anonymous at the till, so the receipt carries a QR instead: the customer scans it
+later, the points land, and the sale is linked to them retroactively — which is
+the only moment that link can ever be made for a cash purchase.
+
+`order_claims` holds the token. It is a **bearer token**: whoever holds the
+receipt can claim it, like a paper voucher, exactly once. The alternative is
+asking someone to prove they made a cash purchase, which nobody can do.
+
+Two things the database enforces rather than trusting the app with:
+
+- **Reprinting reissues the same code.** `issue_order_claim()` is idempotent on
+  `order_id`, so a reprint cannot mint a second claim on one sale.
+- **An order that already credited a member cannot also issue a QR.** Otherwise
+  one sale pays out twice — once at the till, and again to whoever picks the
+  receipt up off the table.
+
+⚠ **`STACKD_CLAIM_BASE_URL` must be set before a single receipt is printed.** It
+is the address the QR encodes, it defaults to `http://localhost:3001`, and paper
+cannot be corrected afterwards.
+
+### Also new in the portal
+
+- **Orders** — the day's trade by trading day and source, per-order detail with
+  line items, VAT breakdown, points, and the QR to print.
+- **Staff** — add people, change roles, reset passwords, deactivate. Owner only:
+  a manager who could promote themselves to owner is not a manager. Staff are
+  **deactivated, never deleted**, because `loyalty_transactions.actor_id` points
+  at them and those names are the whole reason the column exists.
+- **Sign someone up** — any staff member can enrol a customer at the counter,
+  which is the moment it matters. Phones normalise to E.164 from `054 755 7666`,
+  `0512345678` or `+9665…`.
+- **Item photos** — upload and replace from the portal. They write into
+  `apps/web/public/menu/` named by slug, because the site is a static export and
+  images must be real files at build time; a new photo needs `npm run build`
+  before anyone sees it. The filename never contains request input — it comes
+  from the item's slug, which is `[a-z0-9-]` — and the photo route reads only what
+  the database says the file is.
+
+A test-harness lesson worth keeping: `rejects()` in the schema tests now runs
+inside its own savepoint. A failed statement aborts the whole transaction, so a
+second expectation in one test was reporting "current transaction is aborted"
+instead of whatever it was actually checking.
+
+---
+
 ## 4 August 2026 — the admin portal
 
 `npm run admin` → **http://localhost:3001**. Sign in `owner@stackd.local` /

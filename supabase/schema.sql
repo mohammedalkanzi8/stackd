@@ -225,6 +225,13 @@ create table menu_items (
   -- `npm run sync:menu` regenerating menu.ts. See STATUS.md § 4: five of these
   -- are ~3x upscaled Instagram crops and one is not a photograph of the dish.
   photo_note    text,
+  -- Fixed points this item is worth, overriding the per-riyal rate.
+  --
+  -- NULL means "use the rate", which is the default and keeps a 27 SAR burger
+  -- worth roughly 23 points. Setting it makes the item worth exactly this many
+  -- points per unit however it is priced — the lever for pushing a specific dish
+  -- without discounting it. See points_for_order().
+  points_award  int check (points_award is null or points_award >= 0),
   calories      int,
   -- Saudi menu-labelling rules require calories to be displayed; keep it nullable
   -- during data entry but flag items still missing it. NULL means "we know the
@@ -597,6 +604,25 @@ create table rewards (
   )
 );
 
+-- Programme-wide dials, editable from the admin portal.
+--
+-- A single row, pinned by a check constraint rather than by convention — a
+-- second row would silently double the earn rate for whichever one a query
+-- happened to read first.
+create table loyalty_settings (
+  id                 boolean primary key default true check (id),
+  points_per_riyal   numeric(6,2) not null default 1 check (points_per_riyal >= 0),
+  -- Months of inactivity before a balance lapses. See expire_stale_points().
+  expiry_months      int not null default 12 check (expiry_months > 0),
+  -- How long a bill QR stays claimable. Long enough to find the receipt in a
+  -- pocket, short enough that the liability does not sit open forever.
+  claim_window_days  int not null default 30 check (claim_window_days > 0),
+  signup_bonus       int not null default 0 check (signup_bonus >= 0),
+  updated_at         timestamptz not null default now()
+);
+
+insert into loyalty_settings (id) values (true);
+
 create type loyalty_reason as enum (
   'earn_purchase',
   'redeem_reward',
@@ -701,12 +727,51 @@ create trigger loyalty_tx_apply
 create or replace function points_for_amount(
   p_gross          int,
   p_vat_rate       numeric default 0.15,
-  p_points_per_riyal int default 1
+  p_points_per_riyal numeric default 1
 ) returns int
 language sql immutable as $$
   select floor(
     ((p_gross - round(p_gross - p_gross / (1 + p_vat_rate))) / 100.0) * p_points_per_riyal
   )::int
+$$;
+
+-- What an order earns, line by line.
+--
+-- Each line earns either its item's fixed `points_award` (times the quantity) or
+-- the per-riyal rate on that line's total. Mixing the two is the point: most of
+-- the menu earns by value, while a dish being pushed can be worth a flat number
+-- regardless of what it costs.
+--
+-- An order with NO line items falls back to its grand total. A till that sends
+-- only a ticket total — which is every POS integration until one is written —
+-- still earns correctly.
+--
+-- Reward discounts are deliberately NOT deducted before earning. The customer
+-- already paid for that discount in points; charging them a second time by
+-- shrinking what the visit earns would be taking the same points twice.
+create or replace function points_for_order(p_order_id uuid)
+returns int
+language sql stable as $$
+  with s as (select points_per_riyal from loyalty_settings),
+       o as (select grand_total, vat_rate from orders where id = p_order_id),
+       lines as (
+         select case
+                  when mi.points_award is not null then mi.points_award * oi.quantity
+                  else points_for_amount(oi.line_total, o.vat_rate, s.points_per_riyal)
+                end as pts
+         from order_items oi
+         -- left join: menu_item_id is nullable, because an item can be deleted
+         -- long after the order that sold it. Those lines earn by value.
+         left join menu_items mi on mi.id = oi.menu_item_id
+         cross join o
+         cross join s
+         where oi.order_id = p_order_id
+       )
+  select coalesce(
+    (select sum(pts)::int from lines),
+    (select points_for_amount(o.grand_total, o.vat_rate, s.points_per_riyal) from o, s),
+    0
+  )
 $$;
 
 -- Mints the purchase points for an order. The ONLY sanctioned way points come
@@ -735,7 +800,7 @@ begin
     raise exception 'order % is %, not eligible to earn', p_order_id, o.status;
   end if;
 
-  pts := points_for_amount(o.grand_total, o.vat_rate);
+  pts := points_for_order(o.id);
   if pts <= 0 then
     return 0;
   end if;
@@ -791,11 +856,14 @@ end $$;
 -- explain to a customer at the counter, which is where it actually gets argued.
 --
 -- Run from a scheduled job. Returns the number of customers zeroed.
-create or replace function expire_stale_points(p_months int default 12)
+create or replace function expire_stale_points(p_months int default null)
 returns int
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare n int;
 begin
+  -- Null means "whatever the portal is set to". Passing a number overrides it,
+  -- which is how the tests exercise expiry without editing the settings.
+  p_months := coalesce(p_months, (select expiry_months from loyalty_settings));
   with stale as (
     select customer_id, balance
     from loyalty_balances
@@ -810,6 +878,141 @@ begin
   )
   select count(*) into n from inserted;
   return n;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Bill QR: claiming points after the fact
+--
+-- The counterpart to the cashier scanning a member's code. When nobody was
+-- identified at the till — which is most walk-ins — the receipt carries a QR
+-- instead. The customer scans it whenever they get round to it and the points
+-- land in their account.
+--
+-- It is a bearer token: whoever holds the receipt can claim it, exactly like a
+-- paper voucher, and it can only be claimed once. That is the intended
+-- trade-off. The alternative is a claim that requires proving you were the one
+-- who bought it, which nobody can do for a cash sale.
+-- ---------------------------------------------------------------------------
+
+create table order_claims (
+  -- Short, unambiguous, and printed on a receipt that may be creased or faded:
+  -- the alphabet omits 0/O/1/I/L so the code can be typed if the scan fails.
+  token       text primary key,
+  order_id    uuid not null unique references orders(id) on delete cascade,
+  points      int  not null check (points > 0),
+  expires_at  timestamptz not null,
+  claimed_at  timestamptz,
+  claimed_by  uuid references customers(id),
+  created_at  timestamptz not null default now(),
+
+  constraint claim_is_whole
+    check ((claimed_at is null) = (claimed_by is null))
+);
+
+create index order_claims_unclaimed on order_claims (expires_at)
+  where claimed_at is null;
+
+create or replace function generate_claim_token()
+returns text
+language sql volatile as $$
+  select string_agg(
+    substr('23456789ABCDEFGHJKMNPQRSTUVWXYZ', (floor(random() * 31)::int) + 1, 1), ''
+  )
+  from generate_series(1, 10)
+$$;
+
+-- Issues the claim for an order, or returns the existing one.
+--
+-- Idempotent by the unique constraint on order_id: reprinting a receipt must
+-- reprint the SAME code, not mint a second claim on the same sale.
+create or replace function issue_order_claim(p_order_id uuid)
+returns text
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  o      orders%rowtype;
+  pts    int;
+  window_days int;
+  tok    text;
+begin
+  select * into o from orders where id = p_order_id for update;
+  if not found then
+    raise exception 'order % not found', p_order_id;
+  end if;
+
+  select token into tok from order_claims where order_id = p_order_id;
+  if found then
+    return tok;
+  end if;
+
+  -- An order that already credited a member has nothing left to give away.
+  if exists (select 1 from loyalty_transactions
+              where order_id = p_order_id and reason = 'earn_purchase') then
+    raise exception 'order % already earned points for a member', p_order_id;
+  end if;
+
+  pts := points_for_order(p_order_id);
+  if pts <= 0 then
+    return null;
+  end if;
+
+  select claim_window_days into window_days from loyalty_settings;
+
+  loop
+    tok := generate_claim_token();
+    begin
+      insert into order_claims (token, order_id, points, expires_at)
+      values (tok, p_order_id, pts, now() + make_interval(days => window_days));
+      return tok;
+    exception when unique_violation then
+      -- A token collision, not an order collision. Try again.
+      if exists (select 1 from order_claims where order_id = p_order_id) then
+        raise;
+      end if;
+    end;
+  end loop;
+end $$;
+
+-- Redeems a bill QR into a member's account.
+--
+-- Everything happens in one statement-level transaction: the claim is locked,
+-- checked, marked, and the ledger row written. Two phones scanning the same code
+-- at once means the second waits and then finds it claimed.
+create or replace function claim_order_points(p_token text, p_customer_id uuid)
+returns int
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare c order_claims%rowtype;
+begin
+  select * into c from order_claims
+   where token = upper(trim(p_token)) for update;
+
+  if not found then
+    raise exception 'that code is not one of ours';
+  end if;
+  if c.claimed_at is not null then
+    raise exception 'those points have already been claimed';
+  end if;
+  if c.expires_at < now() then
+    raise exception 'that code expired on %', to_char(c.expires_at, 'DD Mon YYYY');
+  end if;
+  if not exists (select 1 from customers where id = p_customer_id) then
+    raise exception 'no such member';
+  end if;
+
+  update order_claims
+     set claimed_at = now(), claimed_by = p_customer_id
+   where token = c.token;
+
+  insert into loyalty_transactions (customer_id, delta, reason, order_id)
+  values (p_customer_id, c.points, 'earn_purchase', c.order_id);
+
+  -- Attach the sale to the member now that we know who they are. The order was
+  -- anonymous when it was rung up; this is the only moment that link exists.
+  update orders
+     set customer_id = coalesce(customer_id, p_customer_id),
+         points_earned = c.points
+   where id = c.order_id;
+
+  return c.points;
 end $$;
 
 -- ---------------------------------------------------------------------------
@@ -903,6 +1106,8 @@ alter table order_item_modifiers      enable row level security;
 alter table payments                  enable row level security;
 alter table pickup_code_counters      enable row level security;
 alter table rewards                   enable row level security;
+alter table loyalty_settings          enable row level security;
+alter table order_claims              enable row level security;
 alter table loyalty_transactions      enable row level security;
 alter table loyalty_balances          enable row level security;
 alter table invoice_counters          enable row level security;
@@ -919,6 +1124,9 @@ create policy "public read" on modifiers  for select using (is_active);
 create policy "public read" on menu_item_modifier_groups for select using (true);
 create policy "public read" on branch_menu_availability for select using (true);
 create policy "public read" on rewards    for select using (is_active);
+-- The earn rate is printed on the menu and told to customers at the counter.
+-- There is nothing to hide, and the app needs it to show a projected balance.
+create policy "public read" on loyalty_settings for select using (true);
 
 -- An item is public only if its category is too. Checking is_active alone lets a
 -- deactivated category keep serving its items to anyone who asks for them by id.
@@ -1015,12 +1223,16 @@ revoke all on function expire_stale_points(int)           from public;
 revoke all on function redeem_reward(uuid, uuid)          from public;
 revoke all on function next_invoice_number(uuid, timestamptz) from public;
 revoke all on function next_pickup_code(uuid, date)       from public;
+revoke all on function issue_order_claim(uuid)            from public;
+revoke all on function claim_order_points(text, uuid)     from public;
 
 grant execute on function mint_loyalty_points(uuid)          to service_role;
 grant execute on function expire_stale_points(int)           to service_role;
 grant execute on function redeem_reward(uuid, uuid)          to service_role;
 grant execute on function next_invoice_number(uuid, timestamptz) to service_role;
 grant execute on function next_pickup_code(uuid, date)       to service_role;
+grant execute on function issue_order_claim(uuid)            to service_role;
+grant execute on function claim_order_points(text, uuid)     to service_role;
 
 -- generate_member_code is deliberately NOT revoked. It is the DEFAULT on
 -- customers.member_code, and a column default executes as the INSERTING role —
@@ -1031,7 +1243,8 @@ grant execute on function next_pickup_code(uuid, date)       to service_role;
 -- Safe for clients: read-only, and they can already see the branch.
 grant execute on function is_branch_open(uuid, timestamptz) to anon, authenticated;
 grant execute on function riyadh_service_date(timestamptz)  to anon, authenticated;
-grant execute on function points_for_amount(int, numeric, int) to anon, authenticated;
+grant execute on function points_for_amount(int, numeric, numeric) to anon, authenticated;
+grant execute on function points_for_order(uuid)            to authenticated;
 
 -- Staff-facing, and gated internally on the caller being active staff.
 grant execute on function find_member(text) to authenticated;

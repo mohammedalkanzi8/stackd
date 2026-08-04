@@ -257,6 +257,25 @@ table.data td.right, table.data th.right { text-align: end; padding-inline-end: 
 .muted { color: var(--faint); }
 .empty { color: var(--faint); padding: 24px 0; text-align: center; font-size: 14px; }
 
+/* ---------- bill QR ----------
+   White ground in both themes: a QR is scanned off paper and printed from this
+   page, and inverting it in dark mode makes it unreadable to half the scanners
+   that meet it. */
+.qr {
+  background: #fff;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--rule);
+  width: 190px;
+  max-width: 100%;
+}
+.qr svg { display: block; width: 100%; height: auto; }
+
+@media print {
+  .topbar, form, .banner, nav { display: none !important; }
+  body { background: #fff; color: #000; }
+}
+
 /* ---------- login ---------- */
 .login-wrap {
   min-height: 100dvh;

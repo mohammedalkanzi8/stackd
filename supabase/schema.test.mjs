@@ -114,19 +114,34 @@ function asRole(role, uid, fn) {
   });
 }
 
-/** Asserts a query raises, and that the message mentions `contains`. */
+/**
+ * Asserts a query raises, and that the message mentions `contains`.
+ *
+ * Runs inside its own savepoint when already in a transaction. A failed
+ * statement aborts the whole transaction, so a second expectation in the same
+ * test would otherwise report 25P02 — "current transaction is aborted" — instead
+ * of whatever it was actually checking.
+ */
 async function rejects(sql, params, contains) {
+  const nested = depth > 0;
+  if (nested) await beginNested();
+
+  let raised;
   try {
     await db.query(sql, params);
   } catch (err) {
-    assert.match(
-      err.message,
-      new RegExp(contains, 'i'),
-      `raised, but with an unexpected message: ${err.message}`,
-    );
-    return err;
+    raised = err;
+  } finally {
+    if (nested) await rollbackNested();
   }
-  assert.fail(`expected the query to raise (${contains}), but it succeeded`);
+
+  if (!raised) assert.fail(`expected the query to raise (${contains}), but it succeeded`);
+  assert.match(
+    raised.message,
+    new RegExp(contains, 'i'),
+    `raised, but with an unexpected message: ${raised.message}`,
+  );
+  return raised;
 }
 
 // ---------------------------------------------------------------------------
@@ -159,11 +174,11 @@ dbTest('server-only tables have RLS on and deliberately no policy', async () => 
     left join pg_policy p on p.polrelid = c.oid
     where n.nspname = 'public'
       and c.relname in ('tax_invoices','invoice_counters','payments',
-                        'pickup_code_counters','staff_credentials')
+                        'pickup_code_counters','staff_credentials','order_claims')
     group by c.relname
     order by c.relname
   `);
-  assert.equal(rows.length, 5);
+  assert.equal(rows.length, 6);
   // Zero policies plus RLS on means deny-all except bypassrls. That is the
   // intended posture, so assert it rather than leaving it looking forgotten.
   for (const r of rows) {
@@ -388,6 +403,136 @@ dbTest('expiry does not reset the inactivity clock it fired on', async () => {
   } finally {
     await rollbackNested();
   }
+});
+
+// ---------------------------------------------------------------------------
+// 4b. Per-item points and the bill QR
+// ---------------------------------------------------------------------------
+
+/** Adds one unit of `slug` to an order at the menu price. */
+async function addLine(orderId, slug, quantity = 1) {
+  await db.query(
+    `insert into order_items (order_id, menu_item_id, name_en, name_ar,
+                              unit_price, quantity, line_total)
+     select $1, id, name_en, name_ar, price, $3, price * $3
+       from menu_items where slug = $2`,
+    [orderId, slug, quantity],
+  );
+}
+
+dbTest('a fixed points_award overrides the per-riyal rate, per line', async () => {
+  await withRollback(async () => {
+    await db.query(`update menu_items set points_award = 200 where slug = 'scoopy-doo'`);
+    const order = await makeOrder({ customer: null, source: 'pos', gross: 7300 });
+    await addLine(order.id, 'scoopy-doo'); // flat 200
+    await addLine(order.id, 'big-stackd'); // 48.00 by value
+
+    const { rows } = await db.query('select points_for_order($1) as pts', [order.id]);
+    // The flat award ignores the 25.00 price entirely; the other line does not.
+    assert.equal(rows[0].pts, 200 + pointsForOrder(4800));
+  });
+});
+
+dbTest('quantity multiplies a fixed award', async () => {
+  await withRollback(async () => {
+    await db.query(`update menu_items set points_award = 50 where slug = 'fries'`);
+    const order = await makeOrder({ customer: null, source: 'pos', gross: 2700 });
+    await addLine(order.id, 'fries', 3);
+    const { rows } = await db.query('select points_for_order($1) as pts', [order.id]);
+    assert.equal(rows[0].pts, 150);
+  });
+});
+
+dbTest('an order with no line items still earns on its total', async () => {
+  await withRollback(async () => {
+    // Every POS integration until someone writes one sends a ticket total and
+    // nothing else. That must not silently earn zero.
+    const order = await makeOrder({ customer: null, source: 'pos', gross: 6000 });
+    const { rows } = await db.query('select points_for_order($1) as pts', [order.id]);
+    assert.equal(rows[0].pts, pointsForOrder(6000));
+  });
+});
+
+dbTest('the earn rate is a setting, not a constant', async () => {
+  await withRollback(async () => {
+    const order = await makeOrder({ customer: null, source: 'pos', gross: 6000 });
+    await db.query('update loyalty_settings set points_per_riyal = 2');
+    const { rows } = await db.query('select points_for_order($1) as pts', [order.id]);
+    assert.equal(rows[0].pts, pointsForOrder(6000, 2));
+  });
+});
+
+dbTest('reprinting a receipt reissues the same code, never a second claim', async () => {
+  await withRollback(async () => {
+    const order = await makeOrder({ customer: null, source: 'pos', gross: 6000 });
+    const first = (await db.query('select issue_order_claim($1) as t', [order.id])).rows[0].t;
+    const again = (await db.query('select issue_order_claim($1) as t', [order.id])).rows[0].t;
+    assert.equal(first, again, 'a reprint must not mint a second claim on one sale');
+    assert.match(first, /^[2-9A-HJ-NP-Z]{10}$/, 'no 0/O/1/I/L — it gets typed off a creased receipt');
+
+    const { rows } = await db.query('select count(*)::int as n from order_claims where order_id = $1', [
+      order.id,
+    ]);
+    assert.equal(rows[0].n, 1);
+  });
+});
+
+dbTest('claiming a bill QR credits the member and links the sale to them', async () => {
+  await withRollback(async () => {
+    const order = await makeOrder({ customer: null, source: 'pos', gross: 6000 });
+    const token = (await db.query('select issue_order_claim($1) as t', [order.id])).rows[0].t;
+
+    const claimed = (
+      await db.query('select claim_order_points($1, $2) as pts', [token, CUSTOMER_2])
+    ).rows[0].pts;
+    assert.equal(claimed, pointsForOrder(6000));
+
+    const after = (
+      await db.query(
+        `select o.customer_id, b.balance
+           from orders o join loyalty_balances b on b.customer_id = $2
+          where o.id = $1`,
+        [order.id, CUSTOMER_2],
+      )
+    ).rows[0];
+    // The sale was anonymous when it was rung up. Claiming is the only moment
+    // the link between ticket and member can be made.
+    assert.equal(after.customer_id, CUSTOMER_2);
+    assert.equal(after.balance, claimed);
+  });
+});
+
+dbTest('a bill QR can only be claimed once', async () => {
+  await withRollback(async () => {
+    const order = await makeOrder({ customer: null, source: 'pos', gross: 6000 });
+    const token = (await db.query('select issue_order_claim($1) as t', [order.id])).rows[0].t;
+    await db.query('select claim_order_points($1, $2)', [token, CUSTOMER_2]);
+    await rejects(
+      'select claim_order_points($1, $2)',
+      [token, CUSTOMER_1],
+      'already been claimed',
+    );
+  });
+});
+
+dbTest('an expired or unknown code is refused', async () => {
+  await withRollback(async () => {
+    const order = await makeOrder({ customer: null, source: 'pos', gross: 6000 });
+    const token = (await db.query('select issue_order_claim($1) as t', [order.id])).rows[0].t;
+    await db.query(`update order_claims set expires_at = now() - interval '1 day'`);
+    await rejects('select claim_order_points($1, $2)', [token, CUSTOMER_2], 'expired');
+    await rejects('select claim_order_points($1, $2)', ['NOTATOKEN1', CUSTOMER_2], 'not one of ours');
+  });
+});
+
+dbTest('an order that already credited a member cannot also issue a QR', async () => {
+  await withRollback(async () => {
+    const order = await makeOrder({ customer: CUSTOMER_1, gross: 6000 });
+    await db.query('select mint_loyalty_points($1)', [order.id]);
+    // Otherwise one sale pays out twice: once to the member at the till, and
+    // again to whoever picks the receipt up off the table.
+    await rejects('select issue_order_claim($1)', [order.id], 'already earned');
+  });
 });
 
 // ---------------------------------------------------------------------------

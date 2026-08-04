@@ -154,9 +154,40 @@ Sign in with `owner@stackd.local` / `stackd-dev` — one of three fixtures seede
 | Page | Does |
 |---|---|
 | Overview | Points outstanding, members, recent ledger movements |
-| Members | Look up by member code, name or phone; view the ledger; adjust points |
+| Orders | The day's trade; per-order detail and the bill QR |
+| Members | Look up by code, name or phone; view the ledger; adjust points; sign someone up |
+| Points | Earn rate, expiry, sign-up bonus, and a fixed award per dish |
 | Rewards | Add, edit and retire the catalogue |
-| Menu | Prices, calories, spicy flag, on-menu and in-stock |
+| Menu | Prices, calories, spicy flag, availability, and item photos |
+| Staff | Add people, change roles, reset passwords, deactivate (owner only) |
+
+### How points are earned
+
+Every riyal spent earns at the rate on the **Points** page, calculated on the
+pre-VAT net. Any dish can override that with a fixed award — a Scoopy-Doo can be
+worth exactly 200 points whatever it costs, which is how you push one item
+without discounting it. Blank means "earn by value"; `0` means "earns nothing",
+and those are not the same thing.
+
+An order with no line items falls back to its ticket total, because every POS
+integration until someone writes one sends a total and nothing else.
+
+### The bill QR
+
+Most walk-ins are anonymous at the till. Instead of losing the points, the
+receipt carries a QR: the customer scans it whenever they like and the points
+land in their account, which also links that sale to them retroactively.
+
+It is a **bearer token** — whoever holds the receipt can claim it, exactly like a
+paper voucher, and only once. That is the trade-off, and the alternative is
+asking someone to prove they made a cash purchase, which nobody can do.
+
+Reprinting a receipt reissues the *same* code, never a second claim on one sale.
+An order that already credited a member at the till cannot also issue a QR.
+
+⚠ **Set `STACKD_CLAIM_BASE_URL` before a single receipt is printed.** It is the
+address the QR points at, it defaults to `http://localhost:3001`, and paper
+cannot be corrected afterwards.
 
 **It runs a server, unlike the website.** `apps/web` is a static export with no
 runtime; `apps/admin` is deliberately the opposite — server components talk to
@@ -179,6 +210,11 @@ Three things worth knowing before extending it:
 Names and descriptions are deliberately **not** editable in the portal. They are
 bilingual and the Arabic came off STACKD's own menu board and launch posters —
 `supabase/seed.sql` is the right place to change those, carefully.
+
+**Photos upload into `apps/web/public/menu/`**, named by slug, because the
+website is a static export and every image has to be a real file at build time.
+That is also why a new photo needs `npm run build` before anyone sees it. Crop to
+4:3 first; anything else is cropped to fit and you lose control of what gets cut.
 
 ---
 

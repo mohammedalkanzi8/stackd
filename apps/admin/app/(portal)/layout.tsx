@@ -22,9 +22,12 @@ export default async function PortalLayout({ children }: { children: React.React
           </Link>
           <nav className="main">
             <Link href="/">Overview</Link>
+            <Link href="/orders">Orders</Link>
             <Link href="/members">Members</Link>
+            <Link href="/points">Points</Link>
             <Link href="/rewards">Rewards</Link>
             <Link href="/menu">Menu</Link>
+            {staff.role === 'owner' ? <Link href="/staff">Staff</Link> : null}
           </nav>
           <div className="whoami">
             <span>

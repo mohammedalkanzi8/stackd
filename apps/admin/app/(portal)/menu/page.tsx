@@ -1,8 +1,11 @@
+import { writeFile, mkdir, unlink } from 'node:fs/promises';
+import path from 'node:path';
+
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { MANAGERIAL, requireRole, requireStaff } from '@/lib/auth.ts';
-import { query } from '@/lib/db.ts';
+import { query, queryOne } from '@/lib/db.ts';
 import { formatSar, parseRiyals, toRiyalInput } from '@/lib/money.ts';
 
 export const metadata = { title: 'Menu · STACKD admin' };
@@ -22,7 +25,29 @@ interface Item {
   category: string;
   category_slug: string;
   sort_order: number;
+  image_url: string | null;
+  photo_note: string | null;
+  show_photos: boolean;
 }
+
+/**
+ * Where item photos live.
+ *
+ * They are static build assets, not blobs in a column: the website is a static
+ * export, so every image has to be a real file under apps/web/public/ at build
+ * time. That is why this writes to the other app's folder — and why a new photo
+ * needs `npm run build` before anyone sees it.
+ */
+const PHOTO_DIR = path.resolve(process.cwd(), '../web/public/menu');
+
+/** webp first — that is what the eight existing photos are. */
+const ALLOWED: Record<string, string> = {
+  'image/webp': 'webp',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+};
+
+const MAX_BYTES = 4 * 1024 * 1024;
 
 const BACK = '/menu';
 
@@ -91,6 +116,74 @@ async function saveItem(formData: FormData): Promise<void> {
   done(`Saved ${rows[0].name_en}.`);
 }
 
+/**
+ * Replaces an item's photo.
+ *
+ * Named by slug, so uploading again overwrites in place and no stale file is
+ * left behind. The filename carries no user input at all — a slug comes from the
+ * database and matches [a-z0-9-], which is what keeps a crafted upload from
+ * escaping the folder.
+ */
+async function uploadPhoto(formData: FormData): Promise<void> {
+  'use server';
+  await requireRole(...MANAGERIAL);
+
+  const id = String(formData.get('id') ?? '');
+  const file = formData.get('photo');
+
+  const item = await queryOne<{ slug: string; name_en: string; image_url: string | null }>(
+    'select slug, name_en, image_url from menu_items where id = $1',
+    [id],
+  );
+  if (!item) fail('That item no longer exists.');
+  if (!/^[a-z0-9-]+$/.test(item.slug)) fail('That item has an unusable slug.');
+
+  if (!(file instanceof File) || file.size === 0) fail('Choose an image to upload.');
+  const ext = ALLOWED[file.type];
+  if (!ext) fail(`${file.type || 'That file'} is not an image we can use — webp, jpg or png.`);
+  if (file.size > MAX_BYTES) {
+    fail(`That image is ${(file.size / 1024 / 1024).toFixed(1)} MB. Keep it under 4 MB.`);
+  }
+
+  await mkdir(PHOTO_DIR, { recursive: true });
+  const filename = `${item.slug}.${ext}`;
+  await writeFile(path.join(PHOTO_DIR, filename), Buffer.from(await file.arrayBuffer()));
+
+  // Uploading a jpg over an existing webp would otherwise leave the old file
+  // sitting in public/ forever, still served to anyone with the URL.
+  const previous = item.image_url?.split('/').pop();
+  if (previous && previous !== filename) {
+    await unlink(path.join(PHOTO_DIR, previous)).catch(() => {});
+  }
+
+  await query('update menu_items set image_url = $2, photo_note = $3 where id = $1', [
+    id,
+    `/menu/${filename}`,
+    `Uploaded through the admin portal on ${new Date().toISOString().slice(0, 10)}.`,
+  ]);
+
+  done(`New photo for ${item.name_en}. Run npm run sync:menu and rebuild to publish it.`);
+}
+
+async function removePhoto(formData: FormData): Promise<void> {
+  'use server';
+  await requireRole(...MANAGERIAL);
+
+  const id = String(formData.get('id') ?? '');
+  const item = await queryOne<{ name_en: string; image_url: string | null }>(
+    'select name_en, image_url from menu_items where id = $1',
+    [id],
+  );
+  if (!item) fail('That item no longer exists.');
+
+  const filename = item.image_url?.split('/').pop();
+  if (filename && /^[a-z0-9-]+\.(webp|jpg|png)$/.test(filename)) {
+    await unlink(path.join(PHOTO_DIR, filename)).catch(() => {});
+  }
+  await query('update menu_items set image_url = null, photo_note = null where id = $1', [id]);
+  done(`${item.name_en} is back to the branded placeholder.`);
+}
+
 export default async function MenuPage({
   searchParams,
 }: {
@@ -103,7 +196,8 @@ export default async function MenuPage({
   const items = await query<Item>(`
     select mi.id, mi.slug, mi.name_en, mi.name_ar, mi.price, mi.calories,
            mi.spicy, mi.is_active, mi.category_id, mi.sort_order,
-           c.name_en as category, c.slug as category_slug,
+           mi.image_url, mi.photo_note,
+           c.name_en as category, c.slug as category_slug, c.show_photos,
            coalesce(a.is_available, true) as available
       from menu_items mi
       join categories c on c.id = mi.category_id
@@ -222,6 +316,93 @@ export default async function MenuPage({
               </a>
             </div>
           </form>
+
+          <hr style={{ border: 0, borderBlockStart: '1px solid var(--rule)', margin: '20px 0' }} />
+
+          <h2 style={{ fontSize: 15 }}>Photo</h2>
+          {!editing.show_photos ? (
+            <p className="muted" style={{ fontSize: 13 }}>
+              {editing.category} are text cards on the website — a 3 SAR sauce does
+              not earn a photo, and seventeen placeholder tiles read as unfinished.
+              An image uploaded here would be stored but never shown.
+            </p>
+          ) : null}
+
+          <div className="row" style={{ alignItems: 'flex-start', gap: 20 }}>
+            <div style={{ flex: '0 0 180px' }}>
+              {editing.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`/photo/${editing.slug}?v=${Date.now()}`}
+                  alt={editing.name_en}
+                  style={{
+                    width: 180,
+                    aspectRatio: '4 / 3',
+                    objectFit: 'cover',
+                    borderRadius: 6,
+                    border: '1px solid var(--rule)',
+                    display: 'block',
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 180,
+                    aspectRatio: '4 / 3',
+                    borderRadius: 6,
+                    border: '1px dashed var(--rule-strong)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: 'var(--faint)',
+                    fontSize: 13,
+                  }}
+                >
+                  No photo
+                </div>
+              )}
+            </div>
+
+            <div className="field">
+              <form action={uploadPhoto} className="stack">
+                <input type="hidden" name="id" value={editing.id} />
+                <div>
+                  <label htmlFor="photo">
+                    Replace it <span className="hint">— webp, jpg or png, under 4 MB</span>
+                  </label>
+                  <input
+                    id="photo"
+                    name="photo"
+                    type="file"
+                    accept="image/webp,image/jpeg,image/png"
+                    required
+                  />
+                </div>
+                <div className="row">
+                  <button type="submit" className="primary">
+                    Upload
+                  </button>
+                  {editing.image_url ? (
+                    <button type="submit" formAction={removePhoto} className="quiet">
+                      Remove photo
+                    </button>
+                  ) : null}
+                </div>
+              </form>
+
+              <p className="muted" style={{ fontSize: 13, marginBlockStart: 12 }}>
+                <b>Crop to 4:3 before uploading.</b> Anything else is cropped to fit
+                and you lose control of what gets cut. The file is saved into{' '}
+                <code>apps/web/public/menu/</code> as <code>{editing.slug}.webp</code>{' '}
+                — it reaches the site on the next <code>npm run build</code>, not
+                immediately.
+              </p>
+              {editing.photo_note ? (
+                <p className="muted" style={{ fontSize: 13 }}>
+                  <b>Note on the current photo:</b> {editing.photo_note}
+                </p>
+              ) : null}
+            </div>
+          </div>
         </div>
       ) : null}
 
