@@ -17,6 +17,7 @@ American street food · الخبر الشمالية (North Khobar), KSA
 | Hours / money / VAT logic | Done — **79 tests passing** (40 shared + 19 functions + 20 schema) |
 | Website | **Builds and exports** — 6 pages, AR + EN. Needs real photos |
 | Typography | Self-hosted Tajawal + Cairo (SIL OFL), Arabic + Latin subsets |
+| Admin portal (`apps/admin`) | **Runs locally** — members, points, rewards, menu prices |
 | Mobile app | Not started |
 | Kitchen display | Not started |
 
@@ -138,6 +139,46 @@ To change the menu: edit `supabase/seed.sql` → `npm run db:reset` →
 
 Photo provenance notes live in `menu_items.photo_note` and are re-emitted as
 comments on each run, so the caveats in `STATUS.md` § 4 survive regeneration.
+
+---
+
+## The admin portal
+
+```bash
+npm run admin     # http://localhost:3001
+```
+
+Sign in with `owner@stackd.local` / `stackd-dev` — one of three fixtures seeded by
+`db:reset`. Set a real password with `npm run admin:passwd -- <email>`.
+
+| Page | Does |
+|---|---|
+| Overview | Points outstanding, members, recent ledger movements |
+| Members | Look up by member code, name or phone; view the ledger; adjust points |
+| Rewards | Add, edit and retire the catalogue |
+| Menu | Prices, calories, spicy flag, on-menu and in-stock |
+
+**It runs a server, unlike the website.** `apps/web` is a static export with no
+runtime; `apps/admin` is deliberately the opposite — server components talk to
+Postgres directly and nothing about the connection reaches the browser. It
+listens on **3001** so it can run alongside `npm run dev` without the two
+corrupting each other's `.next`.
+
+Three things worth knowing before extending it:
+
+- **It bypasses RLS.** The portal connects as the database owner, the same
+  posture `service_role` has. That is right for an admin tool, but it means RLS
+  is not a safety net here: every mutation must go through a server action that
+  has already called `requireStaff()` or `requireRole()`.
+- **Menu edits do not reach the live site on their own.** Run `npm run sync:menu`
+  then `npm run deploy`. The portal says so on the page.
+- **Set `STACKD_ADMIN_SECRET` before deploying.** Without it, sessions are signed
+  with a per-boot random key, so every restart signs everyone out. In production
+  the app refuses to sign a session at all rather than fall back to a default.
+
+Names and descriptions are deliberately **not** editable in the portal. They are
+bilingual and the Arabic came off STACKD's own menu board and launch posters —
+`supabase/seed.sql` is the right place to change those, carefully.
 
 ---
 

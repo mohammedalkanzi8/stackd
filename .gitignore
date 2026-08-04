@@ -14,3 +14,6 @@ next-env.d.ts
 preview.html
 .stackd-cf-token
 .wrangler/
+
+# Admin portal build output
+apps/admin/.next/

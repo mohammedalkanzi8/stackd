@@ -1,0 +1,272 @@
+/* STACKD admin portal.
+   Palette from packages/shared/src/tokens.ts — the artwork's own values.
+   Neutrals are warm because the brand ground is cream, not grey. */
+
+:root {
+  --bg: #faf8f4;
+  --card: #fefefe;
+  --text: #1b1c19;
+  --dim: #645c50;
+  --faint: #8a8175;
+  --rule: #e4ddd1;
+  --rule-strong: #cfc5b6;
+  --accent: #b82712;
+  --accent-ink: #fefefe;
+  /* Gold as TYPE is 1.96:1 on cream. Labels use the darkened value; --gold is
+     for decoration on fixed grounds only. See STATUS.md. */
+  --label: #7a5200;
+  --gold: #eca70f;
+  --chip: #f1ece3;
+  --ok: #2f6b45;
+  --ok-bg: #e8f2ea;
+  --warn: #8a5a00;
+  --warn-bg: #fbf1dd;
+  --danger: #b82712;
+  --danger-bg: #fbeae7;
+  --focus: #1b64d8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141512;
+    --card: #1f211d;
+    --text: #f0ede7;
+    --dim: #a9a296;
+    --faint: #7e776b;
+    --rule: #2f322c;
+    --rule-strong: #41453d;
+    --accent: #e2664f;
+    --accent-ink: #1b1c19;
+    --label: #eca70f;
+    --chip: #282b25;
+    --ok: #6fb98a;
+    --ok-bg: #1e2b23;
+    --warn: #e0ac4c;
+    --warn-bg: #2c2519;
+    --danger: #e2664f;
+    --danger-bg: #2e1e1b;
+    --focus: #7ba7f0;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #141512; --card: #1f211d; --text: #f0ede7; --dim: #a9a296;
+  --faint: #7e776b; --rule: #2f322c; --rule-strong: #41453d;
+  --accent: #e2664f; --accent-ink: #1b1c19; --label: #eca70f; --chip: #282b25;
+  --ok: #6fb98a; --ok-bg: #1e2b23; --warn: #e0ac4c; --warn-bg: #2c2519;
+  --danger: #e2664f; --danger-bg: #2e1e1b; --focus: #7ba7f0;
+}
+
+:root[data-theme='light'] {
+  --bg: #faf8f4; --card: #fefefe; --text: #1b1c19; --dim: #645c50;
+  --faint: #8a8175; --rule: #e4ddd1; --rule-strong: #cfc5b6;
+  --accent: #b82712; --accent-ink: #fefefe; --label: #7a5200; --chip: #f1ece3;
+  --ok: #2f6b45; --ok-bg: #e8f2ea; --warn: #8a5a00; --warn-bg: #fbf1dd;
+  --danger: #b82712; --danger-bg: #fbeae7; --focus: #1b64d8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono, code, .num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+code {
+  background: var(--chip);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ---------- shell ---------- */
+.topbar {
+  border-block-end: 1px solid var(--rule);
+  background: var(--card);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topbar-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: 56px;
+  flex-wrap: wrap;
+}
+.brand {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 17px;
+  text-decoration: none;
+  color: var(--text);
+}
+.brand span { color: var(--accent); }
+nav.main { display: flex; gap: 4px; margin-inline-end: auto; flex-wrap: wrap; }
+nav.main a {
+  padding: 6px 11px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--dim);
+  font-size: 14px;
+  font-weight: 500;
+}
+nav.main a:hover { background: var(--chip); color: var(--text); }
+nav.main a[aria-current='page'] { background: var(--chip); color: var(--text); }
+.whoami { font-size: 13px; color: var(--faint); display: flex; align-items: center; gap: 10px; }
+.whoami b { color: var(--text); font-weight: 600; }
+
+main { max-width: 1080px; margin: 0 auto; padding: 28px 20px 80px; }
+
+/* ---------- headings ---------- */
+h1 { font-size: 24px; letter-spacing: -0.015em; margin: 0 0 4px; text-wrap: balance; }
+h2 { font-size: 17px; margin: 0 0 4px; letter-spacing: -0.01em; }
+.lede { color: var(--dim); margin: 0 0 22px; max-width: 64ch; font-size: 14.5px; }
+.eyebrow {
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--label); margin: 0 0 8px; font-weight: 600;
+}
+
+/* ---------- cards ---------- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 18px 20px;
+}
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.spread { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+
+/* ---------- stats ---------- */
+.stat .k { font-size: 12px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.08em; }
+.stat .v { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-block-start: 2px; }
+.stat .sub { font-size: 13px; color: var(--dim); }
+
+/* ---------- forms ---------- */
+label { display: block; font-size: 13px; font-weight: 600; margin-block-end: 5px; }
+label .hint { font-weight: 400; color: var(--faint); }
+input[type='text'], input[type='email'], input[type='password'],
+input[type='number'], input[type='date'], select, textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+textarea { min-height: 70px; resize: vertical; }
+.field { flex: 1 1 180px; min-width: 0; }
+.field-sm { flex: 0 0 130px; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.check input { width: auto; }
+
+button, .btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--rule-strong);
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+button:hover, .btn:hover { border-color: var(--faint); }
+button.primary, .btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+button.primary:hover { filter: brightness(1.08); }
+button.quiet { background: transparent; border-color: transparent; color: var(--dim); }
+button.quiet:hover { background: var(--chip); color: var(--text); }
+
+/* ---------- tables ---------- */
+.table-wrap { overflow-x: auto; }
+table.data { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.data th {
+  text-align: start;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 600;
+  padding: 0 10px 8px 0;
+  border-block-end: 1px solid var(--rule-strong);
+  white-space: nowrap;
+}
+table.data td {
+  padding: 9px 10px 9px 0;
+  border-block-end: 1px solid var(--rule);
+  vertical-align: middle;
+}
+table.data tr:last-child td { border-block-end: 0; }
+table.data td.right, table.data th.right { text-align: end; padding-inline-end: 0; }
+
+/* ---------- chips + banners ---------- */
+.chip {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--dim);
+  white-space: nowrap;
+}
+.chip.on { background: var(--ok-bg); color: var(--ok); }
+.chip.off { background: var(--chip); color: var(--faint); }
+.chip.hot { background: var(--danger-bg); color: var(--danger); }
+.chip.warn { background: var(--warn-bg); color: var(--warn); }
+
+.banner {
+  padding: 11px 14px;
+  border-radius: 7px;
+  font-size: 14px;
+  border: 1px solid;
+  margin-block-end: 18px;
+}
+.banner.ok { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.banner.bad { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+.banner.note { background: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
+.banner b { font-weight: 700; }
+
+.pos { color: var(--ok); }
+.neg { color: var(--danger); }
+.muted { color: var(--faint); }
+.empty { color: var(--faint); padding: 24px 0; text-align: center; font-size: 14px; }
+
+/* ---------- login ---------- */
+.login-wrap {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.login-card { width: 100%; max-width: 380px; }
+.login-card .card { padding: 26px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  button, .btn, nav.main a { transition: background 0.12s ease, border-color 0.12s ease; }
+}

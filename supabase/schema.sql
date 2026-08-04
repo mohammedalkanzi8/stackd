@@ -151,6 +151,21 @@ create table staff (
 
 create index staff_branch on staff (branch_id) where is_active;
 
+-- Staff sign-in for the admin portal.
+--
+-- Kept out of `staff` so that table stays about roles and branches, and so a row
+-- describing who someone is can be selected without a password hash riding
+-- along. It is also the piece most likely to be deleted: if staff ever move to
+-- GoTrue like customers, this table drops and nothing else changes.
+--
+-- RLS on with no policy — only the portal's server role reads it, and it never
+-- leaves the server. Hashes are scrypt, written by scripts/admin-passwd.mjs.
+create table staff_credentials (
+  staff_id      uuid primary key references staff(id) on delete cascade,
+  password_hash text not null,
+  updated_at    timestamptz not null default now()
+);
+
 -- Policy helper. This MUST be security definer: a policy on `orders` that reads
 -- `staff` directly needs `staff` itself readable by the caller, and adding a
 -- policy to `staff` to permit that makes it read `staff` again. That recursion
@@ -873,6 +888,7 @@ alter table branches                  enable row level security;
 alter table branch_hours              enable row level security;
 alter table branch_closures           enable row level security;
 alter table staff                     enable row level security;
+alter table staff_credentials         enable row level security;
 alter table categories                enable row level security;
 alter table menu_items                enable row level security;
 alter table branch_menu_availability  enable row level security;

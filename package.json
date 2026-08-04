@@ -24,6 +24,9 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "preview": "npm run build && node scripts/preview.mjs",
     "deploy": "npm run build && npx wrangler pages deploy apps/web/out --project-name=stackd --branch=master",
-    "deploy:preview": "npm run build && npx wrangler pages deploy apps/web/out --project-name=stackd --branch=preview"
+    "deploy:preview": "npm run build && npx wrangler pages deploy apps/web/out --project-name=stackd --branch=preview",
+    "admin": "npm run dev --workspace @stackd/admin",
+    "admin:passwd": "node scripts/admin-passwd.mjs",
+    "admin:build": "npm run build --workspace @stackd/admin"
   }
 }

@@ -158,11 +158,12 @@ dbTest('server-only tables have RLS on and deliberately no policy', async () => 
     join pg_namespace n on n.oid = c.relnamespace
     left join pg_policy p on p.polrelid = c.oid
     where n.nspname = 'public'
-      and c.relname in ('tax_invoices','invoice_counters','payments','pickup_code_counters')
+      and c.relname in ('tax_invoices','invoice_counters','payments',
+                        'pickup_code_counters','staff_credentials')
     group by c.relname
     order by c.relname
   `);
-  assert.equal(rows.length, 4);
+  assert.equal(rows.length, 5);
   // Zero policies plus RLS on means deny-all except bypassrls. That is the
   // intended posture, so assert it rather than leaving it looking forgotten.
   for (const r of rows) {

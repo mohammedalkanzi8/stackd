@@ -121,6 +121,66 @@ not change with that decision; only where it runs does.
 
 ---
 
+## 4 August 2026 — the admin portal
+
+`npm run admin` → **http://localhost:3001**. Sign in `owner@stackd.local` /
+`stackd-dev`. Four pages: overview, members, rewards, menu.
+
+**Deliberately local-only for now, and that is the whole design.** A hosted
+portal means answering the question deferred twice below — where the database
+lives, given Supabase has no Middle East region and PDPL expects Saudi personal
+data to stay in the Kingdom. A loyalty portal is names, phones and order history,
+so it is exactly what that decision gates. Running it against `stackd_dev` gets a
+real working tool with zero exposure; deploying it later changes a connection
+string, not the app.
+
+**It is the first thing here that runs a server.** `apps/web` is
+`output: 'export'` — no runtime, no secrets, no database, correct for a menu and
+useless for a portal. `apps/admin` is the opposite. It listens on **3001** so it
+never shares `.next` with `npm run dev`; see the warning below about what that
+corruption looks like.
+
+**The portal bypasses RLS.** It connects as the database owner, the same posture
+`service_role` has, which is right for an admin tool and means **RLS is not a
+safety net in this app**. `requireStaff()` / `requireRole()` at the top of every
+page and every server action is the only check there is. Adding a page without
+one adds a hole.
+
+Roles: everyone signed in can look members up; only `manager` and `owner` can
+change points, rewards or prices. A cashier sees no Edit buttons and the action
+throws if called anyway — verified by posting to it as a cashier.
+
+**Point adjustments write to the ledger, never to the balance.** The balance is a
+cached projection and would be overwritten by the next transaction, leaving no
+record of who did what. `manual_adjust` rows carry the actor, which the database
+insists on. Over-drawing is refused with "That would take the balance below
+zero", not a raw constraint name.
+
+**Staff passwords are scrypt in `staff_credentials`,** kept out of `staff` so a
+row saying who someone is can be selected without a hash riding along, and so the
+whole table drops cleanly if staff ever move to GoTrue like customers. The login
+verifies a dummy hash when the account does not exist, so timing and wording do
+not reveal which emails are real.
+
+⚠ **Set `STACKD_ADMIN_SECRET` before this is ever deployed.** Without it, session
+cookies are signed with a per-boot random key. Locally that just means a restart
+signs you out; in production the app refuses to sign a session at all rather than
+fall back to a shared default that would make every cookie forgeable.
+
+**Menu edits do not reach the live site on their own** — `npm run sync:menu`, then
+`npm run deploy`. The page says so in a banner. Item names and descriptions are
+deliberately not editable there: they are bilingual and the Arabic came off
+STACKD's own board and posters, so `seed.sql` is the place to change them.
+
+Two things found while testing it, both worth remembering. `next build` imports
+every module to collect page data, so a secret checked at module scope fails the
+BUILD on a machine with no runtime secret — resolve lazily. And the first
+`$ACTION_ID_` in a page's HTML belongs to the layout's **sign out** form, not to
+the form you meant; posting to it silently logs you out and looks exactly like a
+broken session.
+
+---
+
 ## Shipped 3 August 2026
 
 Live and verified on the real domain. Four commits: `c009538`, `c29a32b`,
