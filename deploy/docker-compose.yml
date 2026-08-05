@@ -27,9 +27,14 @@ services:
       # Applied in filename order, once, when the volume is empty. The platform
       # shim MUST come first: schema.sql references auth.users, which it creates.
       # Dev fixtures are deliberately absent — no fake staff in production.
-      - ../supabase/01_platform_shim.sql:/docker-entrypoint-initdb.d/01_platform_shim.sql:ro
-      - ../supabase/schema.sql:/docker-entrypoint-initdb.d/02_schema.sql:ro
-      - ../supabase/seed.sql:/docker-entrypoint-initdb.d/03_seed.sql:ro
+      # `:z` relabels for SELinux, which Oracle Linux and RHEL enforce by
+      # default. Docker ignores it where SELinux is absent, so it is free
+      # insurance — without it the container gets permission denied on files
+      # that plainly exist with correct Unix permissions, which reads as a
+      # missing-file bug rather than a labelling one.
+      - ../supabase/01_platform_shim.sql:/docker-entrypoint-initdb.d/01_platform_shim.sql:ro,z
+      - ../supabase/schema.sql:/docker-entrypoint-initdb.d/02_schema.sql:ro,z
+      - ../supabase/seed.sql:/docker-entrypoint-initdb.d/03_seed.sql:ro,z
     # Never published to the host. Only the app containers reach it.
     expose:
       - '5432'
@@ -84,7 +89,7 @@ services:
       # Menu photos uploaded through admin have to survive a redeploy, and the
       # website's build needs to see them. Bind-mounted from the checkout so
       # `npm run build` on the host picks up whatever was uploaded.
-      - ../apps/web/public/menu:/app/apps/web/public/menu
+      - ../apps/web/public/menu:/app/apps/web/public/menu:z
 
   caddy:
     image: caddy:2-alpine
@@ -101,7 +106,7 @@ services:
       ADMIN_ALLOW_CIDR: ${ADMIN_ALLOW_CIDR:-0.0.0.0/0}
       TLS_EMAIL: ${TLS_EMAIL:?set TLS_EMAIL in .env}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro,z
       - caddy_data:/data
       - caddy_config:/config
 
