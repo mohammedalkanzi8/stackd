@@ -90,7 +90,8 @@ Create an instance in Riyadh:
 
 - **Shape:** Ampere A1 (`VM.Standard.A1.Flex`), **2 OCPU / 12 GB** — the current
   Always Free ceiling. Asking for more silently costs money, or gets refused.
-- **Image:** Canonical Ubuntu 24.04 (aarch64).
+- **Image:** Canonical Ubuntu 24.04 Minimal aarch64. The `aarch64` part is not
+  optional — Ampere A1 is ARM and an x86 image will not boot.
 - **Boot volume:** 50 GB is inside the free allowance (200 GB total across all
   volumes).
 - Save the SSH private key when it is offered. It is shown once.
@@ -99,6 +100,18 @@ If the console says **"Out of host capacity"**, that is Ampere A1 being busy in
 that region, not a mistake on your part. Either retry over a few hours, or switch
 the shape to paid — roughly $15/month for 2 cores. Do **not** solve it by moving
 to a region outside the Kingdom.
+
+### Minimal images ship without the basics
+
+The Minimal image is a deliberately stripped Ubuntu. `git` in particular is
+absent, and § 4 clones the repo with it. Do this first, before anything else:
+
+```bash
+sudo apt update
+sudo apt install -y git curl ca-certificates iptables-persistent
+```
+
+Everything after this point is identical to the full image.
 
 ### ⚠ Oracle blocks ports in two places, and one of them is invisible
 
