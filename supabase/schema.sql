@@ -339,6 +339,21 @@ language sql stable security definer set search_path = public, pg_temp as $$
     and exists (select 1 from staff s where s.id = auth.uid() and s.is_active)
 $$;
 
+-- Customer sign-in for the loyalty portal.
+--
+-- Same shape and reasoning as staff_credentials: kept out of `customers` so a
+-- row describing a person can be read without a password hash riding along, and
+-- so it drops cleanly the day customers move to phone OTP, which is what
+-- PLAN.md specifies for the mobile app. Passwords are the interim because a web
+-- portal with no SMS provider has nothing else to authenticate with.
+--
+-- RLS on, no policy: only the portal's server role reads it.
+create table customer_credentials (
+  customer_id   uuid primary key references customers(id) on delete cascade,
+  password_hash text not null,
+  updated_at    timestamptz not null default now()
+);
+
 -- Push notification targets. Phase 2 pushes reward milestones; Phase 3 pushes
 -- "your order is ready", which is the whole point of pickup.
 create table device_tokens (
@@ -1099,6 +1114,7 @@ alter table modifier_groups           enable row level security;
 alter table modifiers                 enable row level security;
 alter table menu_item_modifier_groups enable row level security;
 alter table customers                 enable row level security;
+alter table customer_credentials      enable row level security;
 alter table device_tokens             enable row level security;
 alter table orders                    enable row level security;
 alter table order_items               enable row level security;

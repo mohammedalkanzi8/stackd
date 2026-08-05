@@ -26,6 +26,7 @@ export default async function PortalLayout({ children }: { children: React.React
             <Link href="/members">Members</Link>
             <Link href="/points">Points</Link>
             <Link href="/rewards">Rewards</Link>
+            <Link href="/signup-qr">Signup QR</Link>
             <Link href="/menu">Menu</Link>
             {staff.role === 'owner' ? <Link href="/staff">Staff</Link> : null}
           </nav>

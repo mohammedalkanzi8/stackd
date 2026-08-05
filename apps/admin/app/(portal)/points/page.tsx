@@ -1,9 +1,8 @@
+import { formatSar, query, queryOne } from '@stackd/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { MANAGERIAL, requireRole, requireStaff } from '@/lib/auth.ts';
-import { query, queryOne } from '@/lib/db.ts';
-import { formatSar } from '@/lib/money.ts';
 
 export const metadata = { title: 'Points · STACKD admin' };
 export const dynamic = 'force-dynamic';

@@ -1,3 +1,5 @@
+import { SubmitButton } from '@/app/SubmitButton.tsx';
+import { formatSar, parseRiyals, query, queryOne, toRiyalInput } from '@stackd/server';
 import { writeFile, mkdir, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -5,8 +7,6 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { MANAGERIAL, requireRole, requireStaff } from '@/lib/auth.ts';
-import { query, queryOne } from '@/lib/db.ts';
-import { formatSar, parseRiyals, toRiyalInput } from '@/lib/money.ts';
 
 export const metadata = { title: 'Menu · STACKD admin' };
 export const dynamic = 'force-dynamic';
@@ -378,9 +378,7 @@ export default async function MenuPage({
                   />
                 </div>
                 <div className="row">
-                  <button type="submit" className="primary">
-                    Upload
-                  </button>
+                  <SubmitButton className="primary" pendingLabel="Uploading…">Upload</SubmitButton>
                   {editing.image_url ? (
                     <button type="submit" formAction={removePhoto} className="quiet">
                       Remove photo

@@ -1,9 +1,8 @@
+import { formatSar, parseRiyals, query, toRiyalInput } from '@stackd/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { MANAGERIAL, requireRole, requireStaff } from '@/lib/auth.ts';
-import { query } from '@/lib/db.ts';
-import { formatSar, parseRiyals, toRiyalInput } from '@/lib/money.ts';
 
 export const metadata = { title: 'Rewards · STACKD admin' };
 export const dynamic = 'force-dynamic';

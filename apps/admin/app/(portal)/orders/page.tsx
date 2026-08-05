@@ -1,7 +1,6 @@
+import { formatSar, query } from '@stackd/server';
 import Link from 'next/link';
 
-import { query } from '@/lib/db.ts';
-import { formatSar } from '@/lib/money.ts';
 
 export const metadata = { title: 'Orders · STACKD admin' };
 export const dynamic = 'force-dynamic';

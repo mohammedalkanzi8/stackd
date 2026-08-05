@@ -11,7 +11,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { requireStaff } from '@/lib/auth.ts';
-import { queryOne } from '@/lib/db.ts';
+import { queryOne } from '@stackd/server';
 
 const PHOTO_DIR = path.resolve(process.cwd(), '../web/public/menu');
 

@@ -12,7 +12,7 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['@stackd/shared'],
+  transpilePackages: ['@stackd/shared', '@stackd/server'],
   typescript: { ignoreBuildErrors: false },
   // `pg` is a native-ish Node module; keep it out of the bundler's hands.
   serverExternalPackages: ['pg'],

@@ -121,6 +121,86 @@ not change with that decision; only where it runs does.
 
 ---
 
+## 4 August 2026 — the customer portal, and a session bug worth remembering
+
+### ⚠ The bug: navigating the admin nav signed you out
+
+**Cause: a module-scoped fallback secret.** `next dev` compiles each route
+separately and hands the new bundle its own module registry, so the per-boot
+random signing key was **different per route**. Sign in, two or three pages work,
+then the nav logs you out — because that page was compiled later, against another
+key.
+
+Setting `STACKD_ADMIN_SECRET` hides it completely, which is exactly why every
+test I ran missed it: they all pinned the env var. Reproduced only by running
+`npm run admin` the way a person actually does.
+
+**Fix: the dev fallback lives on `globalThis`**, like the pg pool already did.
+The rule generalises — anything in a Next app that must survive dev module
+reloading goes on `globalThis`, not in a module variable.
+
+### apps/portal — the customer loyalty portal
+
+`npm run portal` → **http://localhost:3002**. Register, sign in, see points, show
+the member QR, claim rewards, read the history. Fixture login `0555000001` /
+`stackd-dev`.
+
+**A third app, deliberately, not a route group inside admin.** One misconfigured
+route in a shared app puts customers on the staff pages. It also carries its own
+cookie name: a shared one would mean signing into one portal silently signed you
+into the other.
+
+The claim page **moved here from admin**, which is where it always belonged —
+the person scanning a receipt is a customer, not staff. Signed in, claiming is
+one tap; signed out, they enter their member code or follow a link to join.
+
+`customer_credentials` mirrors `staff_credentials`, for the same reasons, and
+drops just as cleanly the day customers move to phone OTP as PLAN.md specifies.
+
+**`packages/server` now holds what both portals share** — db, password hashing,
+money parsing, QR, and the session factory. It is separate from
+`packages/shared` because everything in it touches Node, and `packages/shared` is
+bundled into the browser for the website. Importing it from a client component is
+a build error, which is the point.
+
+### Website header
+
+Home and **My points** icons, both locales. My points is an ordinary outbound
+link, not a route: the site is a static export and cannot hold an account. On a
+phone the labels are visually hidden and only the glyphs remain, but
+`aria-label` keeps them announced.
+
+`NEXT_PUBLIC_PORTAL_URL` must be set before a production build or that link
+points at localhost on the live site.
+
+### Getting it onto stackd.com.sa
+
+The site is static on Cloudflare Pages and **cannot serve `/registration` or
+`/login` itself.** Reaching those exact paths needs either a Pages Function
+proxying them to the portal, or a subdomain like `my.stackd.com.sa`. Both need
+the portal hosted somewhere first — the same PDPL decision still open below.
+
+### Environment that must be set before anything is printed or deployed
+
+| Variable | Consequence of leaving it |
+|---|---|
+| `STACKD_PORTAL_SECRET` / `STACKD_ADMIN_SECRET` | Restart signs everyone out; production refuses to sign at all |
+| `STACKD_PORTAL_URL` | Every printed QR encodes `localhost` and does nothing on a phone |
+| `NEXT_PUBLIC_PORTAL_URL` | The website's My points link points at localhost |
+
+The Signup QR page shows a warning banner while the URL still says localhost, so
+this is hard to print by accident.
+
+### Submit buttons show they are working
+
+Server actions navigate on completion, so between the click and the new page
+there was no feedback at all — long enough on shop wifi for someone to press
+again and submit twice. `SubmitButton` disables while pending, spins, and sets a
+`progress` cursor. `useFormStatus` only reports the form it is rendered *inside*,
+which is why it is a component and not a hook call in the page.
+
+---
+
 ## 4 August 2026 — points per dish, and the bill QR
 
 **The loyalty model changed shape.** Points were computed from the order total.

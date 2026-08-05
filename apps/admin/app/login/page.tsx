@@ -1,7 +1,7 @@
+import { SubmitButton } from '../SubmitButton.tsx';
+import { queryOne, verifyPassword } from '@stackd/server';
 import { redirect } from 'next/navigation';
 
-import { queryOne } from '@/lib/db.ts';
-import { verifyPassword } from '@/lib/password.ts';
 import { currentStaff, startSession } from '@/lib/session.ts';
 
 export const metadata = { title: 'Sign in · STACKD admin' };
@@ -76,9 +76,9 @@ export default async function LoginPage({
                 autoComplete="current-password"
               />
             </div>
-            <button type="submit" className="primary">
+            <SubmitButton className="primary" pendingLabel="Signing in…">
               Sign in
-            </button>
+            </SubmitButton>
           </form>
         </div>
 

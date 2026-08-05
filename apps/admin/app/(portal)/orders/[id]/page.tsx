@@ -1,11 +1,9 @@
+import { claimUrl, formatSar, qrSvg, query, queryOne } from '@stackd/server';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { MANAGERIAL, requireRole, requireStaff } from '@/lib/auth.ts';
-import { query, queryOne } from '@/lib/db.ts';
-import { formatSar } from '@/lib/money.ts';
-import { claimQrSvg, claimUrl } from '@/lib/qr.ts';
 
 export const dynamic = 'force-dynamic';
 
@@ -114,7 +112,7 @@ export default async function OrderPage({
     [id],
   );
 
-  const qr = claim && !claim.claimed_at ? await claimQrSvg(claim.token) : null;
+  const qr = claim && !claim.claimed_at ? await qrSvg(claimUrl(claim.token)) : null;
   const alreadyEarned = order.points_earned > 0;
   const canIssue = [...MANAGERIAL, 'cashier'].includes(staff.role);
 

@@ -17,7 +17,8 @@ American street food · الخبر الشمالية (North Khobar), KSA
 | Hours / money / VAT logic | Done — **79 tests passing** (40 shared + 19 functions + 20 schema) |
 | Website | **Builds and exports** — 6 pages, AR + EN. Needs real photos |
 | Typography | Self-hosted Tajawal + Cairo (SIL OFL), Arabic + Latin subsets |
-| Admin portal (`apps/admin`) | **Runs locally** — members, points, rewards, menu prices |
+| Admin portal (`apps/admin`) | **Runs locally** — orders, members, points, rewards, menu, staff |
+| Customer portal (`apps/portal`) | **Runs locally** — register, sign in, points, redeem |
 | Mobile app | Not started |
 | Kitchen display | Not started |
 
@@ -34,9 +35,20 @@ resolved from STACKD's own launch posters on 3 Aug 2026.)
 npm install
 npm run db:reset  # rebuild the local database from supabase/*.sql
 npm test          # hours logic, VAT math, i18n paths, menu integrity, redirects, schema
-npm run dev       # http://localhost:3000/ar/
+npm run dev       # website          → http://localhost:3000/ar/
+npm run admin     # staff portal     → http://localhost:3001
+npm run portal    # customer rewards → http://localhost:3002
 npm run build     # static export into apps/web/out/
 ```
+
+Three apps, three ports, deliberately. They must not share a port or a `.next`
+directory — see the warning below about what that corruption looks like.
+
+| App | What it is | Runtime |
+|---|---|---|
+| `apps/web` | The public website | Static export, no server |
+| `apps/admin` | Staff: orders, members, menu, staff | Server, internal |
+| `apps/portal` | Customers: points and rewards | Server, public-facing |
 
 `npm test` includes the schema tests, which need a running local Postgres (see
 below). They **fail loudly** rather than skipping when the database is
@@ -206,6 +218,63 @@ Three things worth knowing before extending it:
 - **Set `STACKD_ADMIN_SECRET` before deploying.** Without it, sessions are signed
   with a per-boot random key, so every restart signs everyone out. In production
   the app refuses to sign a session at all rather than fall back to a default.
+
+---
+
+## The customer portal
+
+```bash
+npm run portal    # http://localhost:3002
+```
+
+Sign in as `0555000001` or `one@stackd.local`, password `stackd-dev` — a fixture
+seeded by `db:reset`. Customers reach it three ways: the **My points** link in the
+website header, the printed **signup QR** by the till (admin → Signup QR), or the
+QR on their receipt.
+
+| Route | Does |
+|---|---|
+| `/registration` | Name, email, mobile, password. Signs you straight in. |
+| `/login` | Mobile *or* email, plus password |
+| `/points` | Balance, the member QR to show at the counter, rewards to claim, history |
+| `/claim/[token]` | The bill QR lands here. One tap when signed in. |
+
+It is a **third app, not a route group inside admin**. One misconfigured route in
+a shared app puts customers on the staff pages, and that boundary is worth the
+extra process. It also gets its own cookie name — a shared one would mean signing
+into one portal silently signed you into the other.
+
+⚠ **This is the app that puts customer personal data on the public internet**,
+which is exactly what the PDPL hosting question gates. Local until that is
+answered.
+
+### Environment before it goes anywhere
+
+| Variable | Why |
+|---|---|
+| `STACKD_PORTAL_SECRET` | Signs customer sessions. Without it, a restart signs everyone out; in production the app refuses to sign at all rather than use a default. |
+| `STACKD_ADMIN_SECRET` | The same, for staff. |
+| `STACKD_PORTAL_URL` | The portal's public address. Every printed QR encodes it. |
+| `NEXT_PUBLIC_PORTAL_URL` | Where the website's **My points** link points. Baked in at build time. |
+
+The two portal URLs are separate on purpose: one is read by a server at runtime,
+the other is compiled into a static site. They should hold the same value.
+
+### Putting it at stackd.com.sa
+
+The website is a static export on Cloudflare Pages and cannot serve
+`/registration` or `/login` itself — those need a server and a database. Reaching
+them at those exact paths needs one of:
+
+- a **Pages Function** proxying `/registration`, `/login`, `/points` and `/claim/*`
+  through to the portal, or
+- a **subdomain** such as `my.stackd.com.sa` pointed straight at it.
+
+The subdomain is simpler and is what the QR should encode; the paths above are
+what the design assumes. Either way the portal has to be hosted somewhere first,
+which is the same blocked decision.
+
+---
 
 Names and descriptions are deliberately **not** editable in the portal. They are
 bilingual and the Arabic came off STACKD's own menu board and launch posters —

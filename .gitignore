@@ -17,3 +17,6 @@ preview.html
 
 # Admin portal build output
 apps/admin/.next/
+
+# Portal build output
+apps/portal/.next/

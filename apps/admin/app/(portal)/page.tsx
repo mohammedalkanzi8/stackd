@@ -1,7 +1,6 @@
+import { formatSar, query, queryOne } from '@stackd/server';
 import Link from 'next/link';
 
-import { query, queryOne } from '@/lib/db.ts';
-import { formatSar } from '@/lib/money.ts';
 
 export const metadata = { title: 'Overview · STACKD admin' };
 export const dynamic = 'force-dynamic';

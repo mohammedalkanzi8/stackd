@@ -369,6 +369,37 @@ svg {
   background: var(--line);
 }
 
+/* Home and My points carry an icon. On a phone the label is dropped and only
+   the glyph remains, because five text links plus two toggles will not fit —
+   aria-label on the anchor keeps them named for screen readers regardless. */
+.nav-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding-inline: 12px;
+}
+.nav-icon svg {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  display: block;
+}
+@media (max-width: 640px) {
+  .nav-icon-label {
+    /* Visually hidden, still announced. `display: none` would remove it from
+       the accessibility tree along with the pixels. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .nav-icon {
+    padding-inline: 10px;
+  }
+}
+
 /* Segmented language switch. Both locales always visible. */
 .langsw {
   display: inline-flex;

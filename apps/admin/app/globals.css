@@ -276,6 +276,22 @@ table.data td.right, table.data th.right { text-align: end; padding-inline-end: 
   body { background: #fff; color: #000; }
 }
 
+/* ---------- pending state ----------
+   Between the click and the navigation a server action does there is no
+   feedback at all, which on a slow connection is long enough for someone to
+   press the button twice. */
+form:has(button[data-pending='true']) { cursor: progress; }
+button[data-pending='true'] { cursor: progress; }
+
+.spinner {
+  display: inline-block; width: 12px; height: 12px; margin-inline-end: 7px;
+  border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%;
+  vertical-align: -2px;
+  animation: spin 0.65s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+
 /* ---------- login ---------- */
 .login-wrap {
   min-height: 100dvh;

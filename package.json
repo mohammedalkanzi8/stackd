@@ -27,6 +27,8 @@
     "deploy:preview": "npm run build && npx wrangler pages deploy apps/web/out --project-name=stackd --branch=preview",
     "admin": "npm run dev --workspace @stackd/admin",
     "admin:passwd": "node scripts/admin-passwd.mjs",
-    "admin:build": "npm run build --workspace @stackd/admin"
+    "admin:build": "npm run build --workspace @stackd/admin",
+    "portal": "npm run dev --workspace @stackd/portal",
+    "portal:build": "npm run build --workspace @stackd/portal"
   }
 }

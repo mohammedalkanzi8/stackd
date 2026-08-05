@@ -1,10 +1,10 @@
+import { SubmitButton } from '@/app/SubmitButton.tsx';
+import { formatSar, query, queryOne } from '@stackd/server';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { MANAGERIAL, requireRole, requireStaff } from '@/lib/auth.ts';
-import { query, queryOne } from '@/lib/db.ts';
-import { formatSar } from '@/lib/money.ts';
 
 export const dynamic = 'force-dynamic';
 
@@ -211,9 +211,7 @@ export default async function MemberPage({
                 required
               />
             </div>
-            <button type="submit" className="primary">
-              Apply
-            </button>
+            <SubmitButton className="primary" pendingLabel="Applying…">Apply</SubmitButton>
           </form>
         </div>
       ) : null}

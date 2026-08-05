@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { query, queryOne, transaction } from '@/lib/db.ts';
+import { query, queryOne, transaction } from '@stackd/server';
 
 export const metadata = { title: 'Members · STACKD admin' };
 export const dynamic = 'force-dynamic';

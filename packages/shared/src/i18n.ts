@@ -61,6 +61,8 @@ export const WEEKDAY_NAMES: Record<Locale, string[]> = {
 
 const strings = {
   ar: {
+    'nav.home': 'الرئيسية',
+    'nav.login': 'حسابي',
     'nav.menu': 'المنيو',
     'nav.visit': 'زورونا',
     'nav.loyalty': 'برنامج الولاء',
@@ -110,6 +112,8 @@ const strings = {
     'footer.follow': 'تابعونا',
   },
   en: {
+    'nav.home': 'Home',
+    'nav.login': 'My points',
     'nav.menu': 'Menu',
     'nav.visit': 'Visit',
     'nav.loyalty': 'Rewards',

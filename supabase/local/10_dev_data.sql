@@ -37,6 +37,15 @@ insert into staff_credentials (staff_id, password_hash) values
 
 -- member_code is pinned rather than generated so the RLS and loyalty tests can
 -- scan a known code.
-insert into customers (id, member_code, full_name, phone, locale) values
-  ('c0000000-0000-0000-0000-000000000001', 'DEV22222', 'Dev Customer One', '+966555000001', 'ar'),
-  ('c0000000-0000-0000-0000-000000000002', 'DEV33333', 'Dev Customer Two', '+966555000002', 'en');
+insert into customers (id, member_code, full_name, phone, email, locale) values
+  ('c0000000-0000-0000-0000-000000000001', 'DEV22222', 'Dev Customer One', '+966555000001', 'one@stackd.local',  'ar'),
+  ('c0000000-0000-0000-0000-000000000002', 'DEV33333', 'Dev Customer Two', '+966555000002', 'two@stackd.local', 'en');
+
+-- Loyalty portal logins for the two dev customers. Password `stackd-dev`, same
+-- as the staff fixtures. Sign in at localhost:3002 with either the mobile
+-- number or the email.
+insert into customer_credentials (customer_id, password_hash) values
+  ('c0000000-0000-0000-0000-000000000001',
+   'scrypt$65536$8$1$ejMWb4Y0zKUhGku7Kz4Lkg==$zRPNrAOt8q2J9aW+h27tPMcvTU74L0B/AoMT/l1eQPY='),
+  ('c0000000-0000-0000-0000-000000000002',
+   'scrypt$65536$8$1$ejMWb4Y0zKUhGku7Kz4Lkg==$zRPNrAOt8q2J9aW+h27tPMcvTU74L0B/AoMT/l1eQPY=');

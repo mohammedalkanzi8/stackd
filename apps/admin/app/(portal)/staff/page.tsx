@@ -1,9 +1,9 @@
+import { SubmitButton } from '@/app/SubmitButton.tsx';
+import { hashPassword, query, queryOne, transaction } from '@stackd/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { ROLE_LABEL, requireRole, requireStaff, type Role } from '@/lib/auth.ts';
-import { query, queryOne, transaction } from '@/lib/db.ts';
-import { hashPassword } from '@/lib/password.ts';
 
 export const metadata = { title: 'Staff · STACKD admin' };
 export const dynamic = 'force-dynamic';
@@ -325,9 +325,7 @@ export default async function StaffPage({
                   autoComplete="new-password"
                 />
               </div>
-              <button type="submit" className="primary">
-                Add
-              </button>
+              <SubmitButton className="primary" pendingLabel="Adding…">Add</SubmitButton>
             </div>
           </form>
           <p className="muted" style={{ fontSize: 13, marginBlockStart: 14, marginBlockEnd: 0 }}>
