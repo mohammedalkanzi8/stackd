@@ -86,26 +86,64 @@ Leave the existing apex and `www` records alone.
 
 ## 3. The VM
 
-Ubuntu 24.04 or later. On Oracle Cloud pick an **Ampere A1** shape in Riyadh or
-Jeddah.
+Create an instance in Riyadh:
+
+- **Shape:** Ampere A1 (`VM.Standard.A1.Flex`), **2 OCPU / 12 GB** — the current
+  Always Free ceiling. Asking for more silently costs money, or gets refused.
+- **Image:** Canonical Ubuntu 24.04 (aarch64).
+- **Boot volume:** 50 GB is inside the free allowance (200 GB total across all
+  volumes).
+- Save the SSH private key when it is offered. It is shown once.
+
+If the console says **"Out of host capacity"**, that is Ampere A1 being busy in
+that region, not a mistake on your part. Either retry over a few hours, or switch
+the shape to paid — roughly $15/month for 2 cores. Do **not** solve it by moving
+to a region outside the Kingdom.
+
+### ⚠ Oracle blocks ports in two places, and one of them is invisible
+
+This is the single most common way an OCI deployment appears broken. Both must
+be opened or the site is simply unreachable, with nothing in any log on the box.
+
+**1. The VCN security list** (in the Oracle console — Networking → your VCN →
+Security Lists → default). Add ingress rules:
+
+| Source | Protocol | Port |
+|---|---|---|
+| `0.0.0.0/0` | TCP | 80 |
+| `0.0.0.0/0` | TCP | 443 |
+
+**2. The host firewall inside the instance.** Oracle's Ubuntu images ship with
+iptables rules that reject everything except SSH, and they persist across
+reboots. `ufw` does not manage them, so `ufw allow 80` looks like it worked and
+changes nothing.
 
 ```bash
-# Docker
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker "$USER"   # log out and back in
+# See the REJECT rules that are already there
+sudo iptables -L INPUT -n --line-numbers
 
-# Firewall: only 80 and 443. Postgres is never exposed — the app containers
-# reach it over the internal Compose network.
-sudo ufw allow OpenSSH
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw enable
+# Allow HTTP and HTTPS, before the catch-all REJECT
+sudo iptables -I INPUT 6 -p tcp --dport 80  -j ACCEPT
+sudo iptables -I INPUT 7 -p tcp --dport 443 -j ACCEPT
+
+# Persist, or a reboot silently undoes it
+sudo apt install -y iptables-persistent
+sudo netfilter-persistent save
 ```
 
-Oracle Cloud also has a **security list** in the VCN that blocks everything by
-default, independently of `ufw`. Open 80 and 443 there too, or the site is
-unreachable with no error anywhere on the box — a good hour of confusion if you
-forget.
+Check the line numbers from the first command — insert **above** the final
+`REJECT`, not after it, or the rules never match.
+
+### Then Docker
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker "$USER"   # log out and back in for this to apply
+docker --version
+```
+
+Postgres is never exposed to the host or the internet — the app containers reach
+it over the internal Compose network, which is why only 80 and 443 are open.
 
 ---
 
