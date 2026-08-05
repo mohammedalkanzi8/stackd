@@ -20,11 +20,26 @@ Hostinger has data centres in eight places — USA, UK, France, Netherlands,
 Lithuania, India, Singapore, Brazil — **none in the Middle East**. Either one
 disqualifies it for anything holding customer data.
 
-**Recommended: Oracle Cloud Riyadh or Jeddah.** In-Kingdom, two live regions, and
-the Always Free tier (4 ARM cores, 24 GB) runs the whole stack for one branch.
-Google Cloud Dammam is the alternative and is ~20 minutes from the shop. AWS's
-Saudi region was announced for 2026 and is still not GA; Azure's is targeted Q4
-2026. Bahrain and UAE are **not** Saudi.
+**Recommended: Oracle Cloud Riyadh (`me-riyadh-1`) or Jeddah.** In-Kingdom and
+the cheapest option. Google Cloud Dammam is the alternative and is ~20 minutes
+from the shop. AWS's Saudi region was announced for 2026 and is still not GA;
+Azure's is targeted Q4 2026. Bahrain and UAE are **not** Saudi.
+
+⚠ **Correction to what was written earlier in this session: Oracle's Always Free
+tier is 2 ARM cores and 12 GB, not 4 and 24.** Oracle halved the Ampere A1
+allowance on **15 June 2026** with no announcement — the docs just changed, and
+free accounts over the new limit had instances shut down until resized. A
+terminated instance above the limit may not be recreatable.
+
+2 cores and 12 GB still runs the whole stack comfortably for one branch; it only
+makes building the images on the box slow, so build one app at a time.
+
+Two things remain **unverified and only a signup attempt settles them**: whether
+a Saudi region is offered as a home region for a free account, and whether A1
+capacity is obtainable there at all ("out of host capacity" is a long-standing
+complaint in busy regions). The home region is permanent, so it is chosen once.
+If free capacity is unavailable, a paid A1 pair is roughly $15/month — take it
+rather than bending the architecture.
 
 **The customer portal hostname must stay DNS-only (grey cloud).** Proxying
 `my.stackd.com.sa` would terminate TLS at Cloudflare's edge, putting customer

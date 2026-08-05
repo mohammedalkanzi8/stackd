@@ -25,7 +25,7 @@ paperwork entirely is to not transfer anything.
 
 | Provider | Regions | Notes |
 |---|---|---|
-| **Oracle Cloud** | Riyadh, Jeddah | Always Free tier: 4 ARM cores, 24 GB. Runs this whole stack. Recommended. |
+| **Oracle Cloud** | Riyadh (`me-riyadh-1`), Jeddah | Cheapest in-Kingdom option. See the free-tier caveats below. |
 | Google Cloud | Dammam (`me-central2`) | ~20 min from the branch. Managed Postgres available. Costs money. |
 | STC Cloud, SITE, Mobily | Saudi | Saudi-owned. Usually a sales conversation, not a signup form. |
 | ~~AWS~~ | Bahrain, UAE | **Not Saudi.** The in-country region was announced for 2026 and is not GA. |
@@ -33,6 +33,32 @@ paperwork entirely is to not transfer anything.
 | ~~Hostinger~~ | 8 sites, none in the Middle East | Cannot be used for this. |
 
 A single VM is plenty. One branch, a few hundred orders a day.
+
+### ⚠ Oracle's Always Free tier, accurately
+
+**It is now 2 ARM cores and 12 GB, not 4 and 24.** Oracle halved the Ampere A1
+allowance on **15 June 2026** — no blog post, no email, the documentation simply
+changed. Free accounts running larger instances had them **shut down** until
+manually resized, and a terminated instance above the new limit may not be
+recreatable.
+
+2 cores and 12 GB still runs this stack comfortably: Postgres, two Next servers
+and Caddy idle well under 1 GB for a single branch. Building the images on the
+box will be slow on two ARM cores, so build one app at a time.
+
+**What is confirmed:** Riyadh and Jeddah are live commercial regions, and Oracle
+states the Free Tier is available in all commercial regions. Always Free compute
+only exists in your tenancy's **home region**, and the home region is permanent —
+choose Riyadh or Jeddah at signup and never again.
+
+**What is not confirmed, and can only be settled by trying:** whether a Saudi
+region is offered as a home region on the signup form, and whether A1 capacity is
+actually obtainable there. "Out of host capacity" on Ampere A1 is a common and
+long-standing complaint in busy regions.
+
+**If free capacity is not available,** a paid A1 instance is roughly $0.01 per
+core-hour — about **$15/month for 2 cores**, plus a few dollars for storage. That
+is the fallback, and it is not worth twisting the architecture to avoid.
 
 ---
 
