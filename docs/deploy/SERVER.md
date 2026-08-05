@@ -126,26 +126,25 @@ Security Lists → default). Add ingress rules:
 | `0.0.0.0/0` | TCP | 80 |
 | `0.0.0.0/0` | TCP | 443 |
 
-**2. The host firewall inside the instance.** Oracle's Ubuntu images ship with
+**2. The host firewall inside the instance.** Oracle's Ubuntu images ship
 iptables rules that reject everything except SSH, and they persist across
 reboots. `ufw` does not manage them, so `ufw allow 80` looks like it worked and
 changes nothing.
 
+### Do both of these with one script
+
+`deploy/bootstrap.sh` installs what a Minimal image lacks, opens 80 and 443 in
+the host firewall, and installs Docker:
+
 ```bash
-# See the REJECT rules that are already there
-sudo iptables -L INPUT -n --line-numbers
-
-# Allow HTTP and HTTPS, before the catch-all REJECT
-sudo iptables -I INPUT 6 -p tcp --dport 80  -j ACCEPT
-sudo iptables -I INPUT 7 -p tcp --dport 443 -j ACCEPT
-
-# Persist, or a reboot silently undoes it
-sudo apt install -y iptables-persistent
-sudo netfilter-persistent save
+git clone <your repo> /opt/stackd && cd /opt/stackd
+bash deploy/bootstrap.sh
 ```
 
-Check the line numbers from the first command — insert **above** the final
-`REJECT`, not after it, or the rules never match.
+It finds the catch-all REJECT rule and inserts **above** it rather than assuming
+a line number — a rule added below the REJECT is never reached, and looks
+identical to having added nothing. It is safe to run twice, and it does not touch
+the VCN security list, which only the console can change.
 
 ### Then Docker
 
