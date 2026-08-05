@@ -1,16 +1,22 @@
--- STACKD — local development shim. NOT part of the deployed schema.
+-- STACKD — platform shim. REQUIRED on every plain-Postgres deployment.
 --
--- `schema.sql` targets Supabase, which supplies an `auth` schema, an
--- `auth.uid()` function, and the three PostgREST roles out of the box. A bare
--- Postgres has none of them, so applying `schema.sql` locally fails on the
--- `customers.id -> auth.users(id)` foreign key.
+-- ⚠ This is NOT a development-only file. It used to live in supabase/local/ back
+-- when Supabase was still the plan; it is not, because Supabase has no Middle
+-- East region and PDPL expects Saudi personal data to stay in the Kingdom. We
+-- run our own Postgres, which means we supply what Supabase would have.
 --
--- Rather than keeping a stripped-down copy of the schema for local work — which
--- would drift, and drift silently — this file fakes just enough of the Supabase
--- platform that `schema.sql` applies BYTE-IDENTICAL to what a real project would
--- receive. Never edit schema.sql to accommodate local Postgres. Edit this.
+-- `schema.sql` expects an `auth` schema, an `auth.uid()` function and the three
+-- PostgREST roles. A bare Postgres has none of them, so applying `schema.sql`
+-- without this fails on the `customers.id -> auth.users(id)` foreign key.
 --
--- Applied only by scripts/db-reset.mjs. Never ship it.
+-- Keeping it separate rather than folding it into schema.sql means schema.sql
+-- stays byte-identical to what a managed Supabase project would accept, so that
+-- door is still open. Never edit schema.sql to accommodate plain Postgres — edit
+-- this.
+--
+-- Applied first, before schema.sql, everywhere: locally by scripts/db-reset.mjs
+-- and in production by the database container's init scripts. The DEV FIXTURES
+-- in supabase/local/dev-data.sql are the part that never ships.
 
 -- ---------------------------------------------------------------------------
 -- Roles

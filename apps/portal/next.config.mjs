@@ -15,8 +15,21 @@
  * Port 3002: 3000 is the website, 3001 is admin.
  */
 
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Ships a self-contained server with only the files actually reached, instead
+  // of the whole workspace's node_modules. Without it a container image for this
+  // monorepo carries three apps' dependencies to run one.
+  output: 'standalone',
+  // File tracing has to start at the REPO root, or the traced bundle misses
+  // @stackd/server and @stackd/shared, which live outside this app's folder.
+  // The failure is at runtime, not build time: MODULE_NOT_FOUND on first request.
+  outputFileTracingRoot: path.join(here, '../..'),
   transpilePackages: ['@stackd/shared', '@stackd/server'],
   typescript: { ignoreBuildErrors: false },
   serverExternalPackages: ['pg'],

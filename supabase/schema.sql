@@ -9,8 +9,10 @@
 -- `supabase/migrations/0001_*.sql` — after that, editing this file in place
 -- silently diverges from what is actually deployed.
 --
--- Apply locally with `npm run db:reset`, which layers supabase/local/00_shim.sql
--- underneath to stand in for the Supabase platform (auth schema, PostgREST roles).
+-- Apply with `npm run db:reset` locally, or via the database container's init
+-- scripts in production. supabase/01_platform_shim.sql must go FIRST in both:
+-- it supplies the auth schema and PostgREST roles that this file references and
+-- that a plain Postgres does not have. See docs/deploy/SERVER.md.
 
 -- gen_random_uuid() is core since Postgres 13, so no extension is required.
 

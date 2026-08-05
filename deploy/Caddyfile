@@ -1,0 +1,57 @@
+# TLS and routing for the STACKD stack.
+#
+# Caddy gets certificates from Let's Encrypt automatically and renews them, so
+# there is no cron job and no expiry to forget. It needs ports 80 and 443 open
+# and the DNS record already pointing here — the HTTP-01 challenge fails
+# otherwise, and the failure looks like a certificate problem rather than a DNS one.
+
+{
+	email {$TLS_EMAIL}
+}
+
+# --- Customer portal: my.stackd.com.sa ---------------------------------------
+#
+# ⚠ This hostname must be DNS-ONLY at Cloudflare (grey cloud, not orange).
+# Proxying it would terminate TLS at Cloudflare's edge, which puts customer
+# names, phone numbers and order history through a US company's network — the
+# cross-border transfer that PDPL governs and that SDAIA has published no
+# adequacy list for. Proxy the static marketing site all you like; not this.
+{$PORTAL_DOMAIN} {
+	encode zstd gzip
+
+	# Next fingerprints these filenames, so they can be cached hard.
+	@static path /_next/static/*
+	header @static Cache-Control "public, max-age=31536000, immutable"
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy portal:3002
+}
+
+# --- Staff portal: admin.stackd.com.sa ---------------------------------------
+#
+# Restricted by source address. Set ADMIN_ALLOW_CIDR to the shop's public range,
+# or put Cloudflare Access / a VPN in front and leave this open. It defaults to
+# open so a first deploy is not a lockout, which means TIGHTENING IT IS A REAL
+# STEP, not an optional one.
+{$ADMIN_DOMAIN} {
+	encode zstd gzip
+
+	@blocked not remote_ip {$ADMIN_ALLOW_CIDR}
+	respond @blocked "Not available from this network." 403
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		-Server
+	}
+
+	reverse_proxy admin:3001
+}

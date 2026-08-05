@@ -39,15 +39,15 @@ export function connectionFor(database) {
 
 /** Applied in order. Each file is one simple-query batch, so it is one transaction. */
 const FILES = [
-  'supabase/local/00_shim.sql',
+  'supabase/01_platform_shim.sql',
   'supabase/schema.sql',
   'supabase/seed.sql',
-  'supabase/local/10_dev_data.sql',
+  'supabase/local/dev-data.sql',
 ];
 
 async function run() {
   const withDevData = !process.argv.includes('--no-dev-data');
-  const files = FILES.filter((f) => withDevData || !f.includes('10_dev_data'));
+  const files = FILES.filter((f) => withDevData || !f.includes('dev-data'));
 
   const admin = new pg.Client(connectionFor('postgres'));
   await admin.connect();

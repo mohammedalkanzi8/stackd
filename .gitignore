@@ -20,3 +20,6 @@ apps/admin/.next/
 
 # Portal build output
 apps/portal/.next/
+
+# Server environment, filled in on the VM
+deploy/.env

@@ -121,21 +121,21 @@ npm run test:db                   # just the schema tests
 
 | File | Ships to production? |
 |---|---|
+| `supabase/01_platform_shim.sql` | **Yes** — supplies the `auth` schema and PostgREST roles |
 | `supabase/schema.sql` | Yes — the model |
 | `supabase/seed.sql` | Yes — the real menu, branch and rewards |
-| `supabase/local/00_shim.sql` | **No** — fakes the Supabase platform (`auth` schema, PostgREST roles) |
-| `supabase/local/10_dev_data.sql` | **No** — test users, staff logins, a customer to earn points |
+| `supabase/local/dev-data.sql` | **No** — test users, staff logins, a customer to earn points |
 
-The shim exists so `schema.sql` stays byte-identical to what a real Supabase
-project would receive. Never edit the schema to accommodate local Postgres; edit
-the shim.
+The shim is applied **first, everywhere**. It used to sit in `local/` back when
+Supabase was the plan; it is not, because Supabase has no Middle East region — so
+we run our own Postgres and supply what Supabase would have. Keeping it separate
+means `schema.sql` stays byte-identical to what a managed project would accept,
+so that door is still open. Never edit the schema to accommodate plain Postgres;
+edit the shim.
 
-Against a real Supabase project, the shim is unnecessary:
+Only `dev-data.sql` never ships.
 
-```bash
-psql "$SUPABASE_DB_URL" -f supabase/schema.sql
-psql "$SUPABASE_DB_URL" -f supabase/seed.sql
-```
+**Deploying it to a real server: [`docs/deploy/SERVER.md`](docs/deploy/SERVER.md).**
 
 ### The menu is generated from the database
 

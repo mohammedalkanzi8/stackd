@@ -1,0 +1,20 @@
+# The build context is the repo root, so keeping this tight is the difference
+# between a few MB and a few hundred.
+node_modules
+**/node_modules
+.next
+**/.next
+out
+**/out
+apps/web/out
+.git
+.wrangler
+deploy/.env
+*.log
+.DS_Store
+**/*.tsbuildinfo
+preview.html
+.stackd-cf-token
+.claude
+docs
+*.md
