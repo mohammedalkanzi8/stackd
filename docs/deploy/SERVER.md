@@ -101,58 +101,50 @@ that region, not a mistake on your part. Either retry over a few hours, or switc
 the shape to paid — roughly $15/month for 2 cores. Do **not** solve it by moving
 to a region outside the Kingdom.
 
-### Minimal images ship without the basics
-
-The Minimal image is a deliberately stripped Ubuntu. `git` in particular is
-absent, and § 4 clones the repo with it. Do this first, before anything else:
-
-```bash
-sudo apt update
-sudo apt install -y git curl ca-certificates iptables-persistent
-```
-
-Everything after this point is identical to the full image.
-
 ### ⚠ Oracle blocks ports in two places, and one of them is invisible
 
 This is the single most common way an OCI deployment appears broken. Both must
-be opened or the site is simply unreachable, with nothing in any log on the box.
+be opened, or the site is unreachable with nothing in any log on the box.
 
-**1. The VCN security list** (in the Oracle console — Networking → your VCN →
-Security Lists → default). Add ingress rules:
+**1. The VCN security list** — console only, no script can do it.
+Networking → Virtual Cloud Networks → your VCN → Security Lists → Default
+Security List → **Add Ingress Rules**:
 
-| Source | Protocol | Port |
+| Source | IP Protocol | Destination Port |
 |---|---|---|
 | `0.0.0.0/0` | TCP | 80 |
 | `0.0.0.0/0` | TCP | 443 |
 
 **2. The host firewall inside the instance.** Oracle's Ubuntu images ship
-iptables rules that reject everything except SSH, and they persist across
-reboots. `ufw` does not manage them, so `ufw allow 80` looks like it worked and
-changes nothing.
+iptables rules that reject everything except SSH, and they survive reboots.
+`ufw` does not manage them, so `ufw allow 80` reports success and changes
+nothing — a genuinely misleading half hour.
 
-### Do both of these with one script
-
-`deploy/bootstrap.sh` installs what a Minimal image lacks, opens 80 and 443 in
-the host firewall, and installs Docker:
+### Setting up the box
 
 ```bash
-git clone <your repo> /opt/stackd && cd /opt/stackd
-bash deploy/bootstrap.sh
+ssh ubuntu@<public-ip>            # the image's user is `ubuntu`, not root
+
+sudo apt-get update
+sudo apt-get install -y git       # Minimal has no git, and the next line needs it
+
+sudo mkdir -p /opt/stackd && sudo chown "$USER" /opt/stackd
+git clone <your repo> /opt/stackd
+cd /opt/stackd
+
+bash deploy/bootstrap.sh          # packages, host firewall, Docker
 ```
 
-It finds the catch-all REJECT rule and inserts **above** it rather than assuming
-a line number — a rule added below the REJECT is never reached, and looks
-identical to having added nothing. It is safe to run twice, and it does not touch
-the VCN security list, which only the console can change.
-
-### Then Docker
+Then log out and back in so Docker group membership applies, and check:
 
 ```bash
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker "$USER"   # log out and back in for this to apply
-docker --version
+docker run --rm hello-world
 ```
+
+`bootstrap.sh` finds the catch-all REJECT rule and inserts **above** it rather
+than assuming a line number — a rule added below the REJECT is never reached and
+looks identical to having added nothing. It is safe to run twice. It does not
+touch the VCN security list; that is still yours to do in the console.
 
 Postgres is never exposed to the host or the internet — the app containers reach
 it over the internal Compose network, which is why only 80 and 443 are open.
@@ -161,11 +153,10 @@ it over the internal Compose network, which is why only 80 and 443 are open.
 
 ## 4. First deploy
 
-```bash
-sudo mkdir -p /opt/stackd && sudo chown "$USER" /opt/stackd
-git clone <your repo> /opt/stackd
-cd /opt/stackd
+The repo is already cloned at `/opt/stackd` from § 3.
 
+```bash
+cd /opt/stackd
 cp deploy/env.example deploy/.env
 chmod 600 deploy/.env
 openssl rand -hex 32   # STACKD_PORTAL_SECRET
