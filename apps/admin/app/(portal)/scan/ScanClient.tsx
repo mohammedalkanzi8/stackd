@@ -9,6 +9,12 @@ import { Scanner } from './Scanner.tsx';
  * typing a code and pressing Enter works with no JavaScript at all. The camera
  * is the enhancement on top, not the mechanism.
  */
-export function ScanClient({ identify }: { identify: (formData: FormData) => Promise<void> }) {
-  return <Scanner action={identify} />;
+export function ScanClient({
+  identify,
+  takeFocus,
+}: {
+  identify: (formData: FormData) => Promise<void>;
+  takeFocus: boolean;
+}) {
+  return <Scanner action={identify} takeFocus={takeFocus} />;
 }

@@ -32,7 +32,21 @@ declare global {
   }
 }
 
-export function Scanner({ action }: { action: (formData: FormData) => Promise<void> }) {
+export function Scanner({
+  action,
+  takeFocus = true,
+}: {
+  action: (formData: FormData) => Promise<void>;
+  /**
+   * Whether this field should grab the caret on mount.
+   *
+   * False while a follow-up form is on screen — the bill total, or a member
+   * code for a receipt. A hardware scanner types into whatever is focused, and
+   * this effect runs AFTER React applies `autoFocus`, so leaving it unconditional
+   * stole the caret back and the cashier's bill total went into the scan box.
+   */
+  takeFocus?: boolean;
+}) {
   const [code, setCode] = useState('');
   const [cameraOn, setCameraOn] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -43,8 +57,8 @@ export function Scanner({ action }: { action: (formData: FormData) => Promise<vo
 
   useEffect(() => {
     setCanUseCamera(typeof window !== 'undefined' && 'BarcodeDetector' in window);
-    inputRef.current?.focus();
-  }, []);
+    if (takeFocus) inputRef.current?.focus();
+  }, [takeFocus]);
 
   // Camera loop. Only mounted while the camera is on, and always torn down —
   // a live camera left running behind a page navigation keeps the indicator lit

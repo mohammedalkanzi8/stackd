@@ -90,7 +90,9 @@ export default async function ScanPage({
       {error ? <div className="banner bad">{error}</div> : null}
 
       <div className="card" style={{ marginBlockEnd: 22 }}>
-        <ScanClient identify={identify} />
+        {/* A follow-up form takes the caret instead, so a hardware scanner or a
+            typed total lands where the cashier is looking. */}
+        <ScanClient identify={identify} takeFocus={!memberCode && !redeem && !claim} />
       </div>
 
       {member ? (
