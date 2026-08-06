@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { qrSvg, registrationUrl, queryOne } from '@stackd/server';
+import { LOCALES, isLocale, DEFAULT_LOCALE } from '@stackd/shared';
 
 import { requireStaff } from '@/lib/auth.ts';
 import { FORMATS, FORMAT_IDS, isFormatId } from '@/lib/poster/formats.ts';
@@ -13,11 +14,12 @@ export const dynamic = 'force-dynamic';
 export default async function SignupQrPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string }>;
+  searchParams: Promise<{ f?: string; lang?: string }>;
 }) {
   await requireStaff();
-  const { f: raw } = await searchParams;
+  const { f: raw, lang } = await searchParams;
   const format = FORMATS[isFormatId(raw) ? raw : 'a3'];
+  const lead = lang && isLocale(lang) ? lang : DEFAULT_LOCALE;
 
   const url = registrationUrl();
   const qr = await qrSvg(url);
@@ -58,7 +60,7 @@ export default async function SignupQrPage({
           return (
             <Link
               key={id}
-              href={`/signup-qr?f=${id}`}
+              href={`/signup-qr?f=${id}&lang=${lead}`}
               className={`fmt${active ? ' fmt-on' : ''}`}
             >
               <b>{item.label}</b>
@@ -71,16 +73,37 @@ export default async function SignupQrPage({
         })}
       </div>
 
+      {/* ---- Language ------------------------------------------------------
+          Each size prints in two versions. Both carry Arabic AND English; this
+          picks which one leads. An Arabic-led sheet for the dining room, an
+          English-led one wherever that suits the spot better. */}
+      <div className="fmt-row" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', maxWidth: 440 }}>
+        {LOCALES.map((loc) => (
+          <Link
+            key={loc}
+            href={`/signup-qr?f=${format.id}&lang=${loc}`}
+            className={`fmt${loc === lead ? ' fmt-on' : ''}`}
+          >
+            <b>{loc === 'ar' ? 'Arabic leads' : 'English leads'}</b>
+            <span>
+              {loc === 'ar'
+                ? 'Arabic headline, English underneath.'
+                : 'English headline, Arabic underneath.'}
+            </span>
+          </Link>
+        ))}
+      </div>
+
       <div className="row" style={{ marginBlock: 20, alignItems: 'center' }}>
         {/* target=_blank: the print sheet is a separate document, and coming
             back to the picker afterwards should not mean re-choosing a size. */}
         <a
-          href={`/print/${format.id}`}
+          href={`/print/${format.id}?lang=${lead}`}
           target="_blank"
           rel="noopener"
           className="btn primary"
         >
-          Open the {format.label} print sheet
+          Open the {format.label}, {lead === 'ar' ? 'Arabic' : 'English'} first
         </a>
         <span className="muted" style={{ fontSize: 13 }}>
           Opens clean, with no portal chrome. Print from there, or save it as a
@@ -95,7 +118,7 @@ export default async function SignupQrPage({
       <style dangerouslySetInnerHTML={{ __html: sheetCss(format, scale) }} />
       <div className="sheet-frame">
         <Poster
-          format={format}
+          lead={lead}
           qrSvg={qr}
           url={url}
           earnPercent={earnPercent}
@@ -132,6 +155,10 @@ export default async function SignupQrPage({
               card carrying this artwork on both faces.
             </li>
           ) : null}
+          <li>
+            Both language versions are the same artwork with the headline
+            languages swapped, so a shop can treat them as one job in two files.
+          </li>
           <li>
             Test before the full run: print one on an ordinary printer and scan it
             with a phone that has never seen the portal.

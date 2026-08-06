@@ -81,33 +81,47 @@ export function sheetCss(f: Format, scale: number): string {
   display: block;
   margin-block: 1.1em 0.7em;
 }
+/* The two halves of the name are separate spans for one reason: letter-spacing.
+   Arabic is cursive, and tracking it apart pulls the joins open into visible
+   gaps mid-word. So the Latin half is tracked and the Arabic half is not. */
 .ph-name {
   font-family: 'Tajawal', sans-serif;
   font-weight: 800;
   font-size: 1.05em;
-  letter-spacing: 0.18em;
   color: #eca70f;
   margin: 0;
+  display: flex;
+  gap: 0.5em;
+  align-items: baseline;
+  justify-content: center;
+}
+.ph-name-latin {
+  letter-spacing: 0.18em;
 }
 
 /* ---- Headline ----------------------------------------------------------
-   Arabic first and largest: the restaurant is in Khobar and Arabic is the
-   default locale everywhere else in this system. English sits under it as the
-   second voice, not as an equal-weight translation. */
-.ph-ar {
+   ph-h1 is whichever language this sheet leads in; ph-h2 is the other,
+   underneath at half the size. Both sheets carry both languages -- a
+   monolingual sign in Al Khobar excludes half the people walking past it. Which
+   one leads is a placement decision, so it is a parameter rather than a rule.
+
+   (No backticks in this file's comments: the whole stylesheet is a template
+   literal, and a backtick here terminates it.) */
+.ph-h1 {
   font-family: 'Tajawal', sans-serif;
   font-weight: 900;
   font-size: 2.55em;
   line-height: 1.12;
   margin: 0.5em 0 0;
   /* Arabic ascenders and descenders are long; the default tight leading clips
-     them at these sizes. */
+     them at these sizes. Applied in both languages so the two versions of a
+     size have identical metrics and can be checked against each other. */
   padding-block: 0.06em;
 }
 .ph-pct {
   color: #eca70f;
 }
-.ph-en {
+.ph-h2 {
   font-family: 'Tajawal', sans-serif;
   font-weight: 700;
   font-size: 1.28em;
@@ -141,13 +155,20 @@ export function sheetCss(f: Format, scale: number): string {
   font-size: 1.15em;
   margin: 0.7em 0 0;
 }
-.ph-scan-en {
+.ph-scan-sub {
   font-size: 0.82em;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgb(254 254 254 / 0.7);
   margin: 0.35em 0 0;
+}
+/* On an English-led sheet this line is the Arabic one, and neither treatment
+   above suits it: Arabic has no case, and tracking breaks the joins. */
+.ph-scan-sub:lang(ar) {
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.92em;
 }
 
 /* ---- Steps -------------------------------------------------------------- */

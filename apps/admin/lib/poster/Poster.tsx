@@ -1,29 +1,42 @@
 import type { ReactNode } from 'react';
-import { REWARDS_COPY, REWARDS_MARK_SVG, toArabicDigits } from '@stackd/shared';
+import {
+  REWARDS_COPY,
+  REWARDS_MARK_SVG,
+  fillRewards,
+  otherLocale,
+  rewardsNumber,
+  type Locale,
+} from '@stackd/shared';
 
-import type { Format } from './formats.ts';
 
 /**
- * The printed artefact. One component for all four sizes — the layout is
- * identical and only the root font-size differs, which `sheet-css.ts` sets.
+ * The printed artefact. One component for all four sizes AND both languages.
  *
- * Bilingual with Arabic leading. That ordering is the same call made everywhere
- * else in this system: the restaurant is in Al Khobar, Arabic is the default
- * locale, and English is the second voice rather than a co-equal translation.
+ * `lead` decides which language carries the headline; the other follows
+ * underneath at a smaller size. Both sheets stay bilingual either way, because
+ * a monolingual sign in Al Khobar excludes half the people walking past it —
+ * the choice is which language a given piece speaks first, not which language
+ * it speaks.
+ *
+ * Everything on the sheet is sized in `em` against a root of `width / 30`,
+ * which `sheet-css.ts` sets. That is what lets one design serve a 105 mm
+ * counter card and an 850 mm banner. ⚠ Do not put a fixed px or mm value
+ * inside the sheet: it breaks three of the four sizes, and only on paper.
  *
  * No photography, by decision. The only food images available are Instagram
  * crops upscaled roughly 3x (see STATUS.md §4); at A3 they would be visibly
- * soft, and on an 850 mm banner they would be a mess. Type, the brand marks and
+ * soft and on an 850 mm banner they would be a mess. Type, the brand marks and
  * flat colour all print perfectly at any size.
  */
 export function Poster({
-  format,
+  lead,
   qrSvg,
   url,
   earnPercent,
   signupBonus,
 }: {
-  format: Format;
+  /** Which language speaks first. The other still appears, smaller. */
+  lead: Locale;
   /** Pre-rendered SVG for the registration URL. Vector, so it stays sharp. */
   qrSvg: string;
   url: string;
@@ -31,11 +44,13 @@ export function Poster({
   earnPercent: number;
   signupBonus: number;
 }) {
-  const ar = REWARDS_COPY.ar;
-  const en = REWARDS_COPY.en;
+  const sub = otherLocale(lead);
+  const a = REWARDS_COPY[lead];
+  const b = REWARDS_COPY[sub];
+  const rtl = (l: Locale) => (l === 'ar' ? 'rtl' : 'ltr');
 
   return (
-    <div className="sheet" lang="ar" dir="rtl">
+    <div className="sheet" lang={lead} dir={rtl(lead)}>
       {/* The wordmark is the light-on-dark cut, because this sheet is dark. */}
       <img className="ph-logo" src="/brand/logo.svg" alt="" />
 
@@ -45,38 +60,51 @@ export function Poster({
         dangerouslySetInnerHTML={{ __html: REWARDS_MARK_SVG }}
       />
 
+      {/* Both names, always, in a fixed order so the two language versions of a
+          size are recognisably the same piece side by side. Split into two spans
+          so only the Latin half gets letter-spacing — tracking Arabic pulls its
+          cursive joins open into gaps mid-word. */}
       <p className="ph-name">
-        {ar.name} · STACKD REWARDS
+        <span lang="ar" dir="rtl">
+          {REWARDS_COPY.ar.name}
+        </span>
+        <span aria-hidden="true">·</span>
+        <span className="ph-name-latin" lang="en" dir="ltr">
+          STACKD REWARDS
+        </span>
       </p>
 
-      <h1 className="ph-ar">
-        {highlight(ar.headline, `${toArabicDigits(earnPercent)}٪`)}
+      <h1 className="ph-h1">
+        {highlight(a.headline, fillRewards(a.percent, lead, earnPercent))}
       </h1>
-      {/* lang + dir on every English run inside this RTL sheet. Without it the
-          bidi algorithm treats the trailing full stop as neutral and resolves
-          it to the paragraph direction, so "Every single order." prints with
-          the period stranded on the left. */}
-      <p className="ph-en" lang="en" dir="ltr">
-        {lines(en.headline)}
+
+      {/*
+        lang + dir on every run in the other language. Without it the bidi
+        algorithm treats trailing full stops as neutral and resolves them to the
+        paragraph direction, so an English line inside an RTL sheet prints with
+        its period stranded on the left.
+      */}
+      <p className="ph-h2" lang={sub} dir={rtl(sub)}>
+        {lines(b.headline)}
       </p>
 
       <div className="ph-qr" dangerouslySetInnerHTML={{ __html: qrSvg }} />
 
-      <p className="ph-scan">{ar.scanCta}</p>
-      <p className="ph-scan-en" lang="en" dir="ltr">
-        {en.scanCta}
+      <p className="ph-scan">{a.scanCta}</p>
+      <p className="ph-scan-sub" lang={sub} dir={rtl(sub)}>
+        {b.scanCta}
       </p>
 
       <ol className="ph-steps">
-        {ar.steps.map((step, i) => (
+        {a.steps.map((step, i) => (
           <li className="ph-step" key={i}>
             <span className="ph-step-n" aria-hidden="true">
-              {toArabicDigits(i + 1)}
+              {rewardsNumber(lead, i + 1)}
             </span>
             <span className="ph-step-t">
               {step}
-              <small lang="en" dir="ltr">
-                {en.steps[i]}
+              <small lang={sub} dir={rtl(sub)}>
+                {b.steps[i]}
               </small>
             </span>
           </li>
@@ -85,23 +113,34 @@ export function Poster({
 
       <div className="ph-foot">
         <p className="ph-rate">
-          {ar.rate} <span>· {en.rate}</span>
+          {a.rate}{' '}
+          <span lang={sub} dir={rtl(sub)}>
+            · {b.rate}
+          </span>
         </p>
+
         {/* A joining bonus is the strongest line on the sheet when there is one,
             so it is not buried in the small print. It disappears entirely when
             the bonus is zero rather than printing "0 points". */}
         {signupBonus > 0 ? (
           <p className="ph-rate">
-            {toArabicDigits(signupBonus)} نقطة هدية عند التسجيل{' '}
-            <span>· {signupBonus} points just for joining</span>
+            {fillRewards(a.bonus, lead, signupBonus)}{' '}
+            <span lang={sub} dir={rtl(sub)}>
+              · {fillRewards(b.bonus, sub, signupBonus)}
+            </span>
           </p>
         ) : null}
+
+        {/* The address in text as well as in the code. Someone whose camera will
+            not focus, or who is reading this from across the room, still has a
+            way in. */}
         <p className="ph-url">{displayUrl(url)}</p>
+
         <p className="ph-fine">
-          {ar.fine}
+          {a.fine}
           <br />
-          <span lang="en" dir="ltr">
-            {en.fine}
+          <span lang={sub} dir={rtl(sub)}>
+            {b.fine}
           </span>
         </p>
       </div>
@@ -112,8 +151,9 @@ export function Poster({
 /**
  * Sets the offer itself in gold, leaving the rest of the headline white.
  *
- * Works off the token rather than a hard-coded string so the copy stays in
- * `packages/shared` and the number stays whatever the database says.
+ * Works off the token rather than a hard-coded string, so the copy stays in
+ * `packages/shared`, the number stays whatever the database says, and each
+ * language keeps its own numerals.
  */
 function highlight(headline: string, token: string): ReactNode {
   return headline.split('\n').map((line, i) => {

@@ -12,6 +12,7 @@
  */
 
 import type { Locale } from './menu.ts';
+import { toArabicDigits } from './i18n.ts';
 
 export const REWARDS = {
   /** Percent of the bill returned as points. Mirrors loyalty_settings.earn_percent. */
@@ -67,6 +68,21 @@ interface RewardsCopy {
   signInCta: string;
   /** The terms in one sentence. Small on screen, small on paper, always present. */
   fine: string;
+  /**
+   * The joining bonus line. `{n}` is replaced with the live figure.
+   *
+   * A template rather than a built string because the number comes from
+   * `loyalty_settings.signup_bonus`, and the two languages put it in different
+   * places relative to the noun.
+   */
+  bonus: string;
+  /**
+   * How the earn rate is written in this language, e.g. `10%` / `١٠٪`.
+   *
+   * `{n}` is the figure. Used to find and highlight the offer inside the
+   * headline, so the two cannot disagree about which numerals to use.
+   */
+  percent: string;
 }
 
 export const REWARDS_COPY: Record<Locale, RewardsCopy> = {
@@ -104,6 +120,8 @@ export const REWARDS_COPY: Record<Locale, RewardsCopy> = {
     signInCta: 'I already have an account',
     fine:
       'Points are earned on the bill total including VAT, and lapse after 12 months with no activity. STACKD Al Khobar Al Shamalia.',
+    bonus: '{n} points just for joining',
+    percent: '{n}%',
   },
   ar: {
     name: 'مكافآت ستاكد',
@@ -139,5 +157,27 @@ export const REWARDS_COPY: Record<Locale, RewardsCopy> = {
     signInCta: 'عندي حساب',
     fine:
       'النقاط تُحتسب على إجمالي الفاتورة شامل الضريبة، وتنتهي بعد ١٢ شهراً من عدم النشاط. ستاكد - الخبر الشمالية.',
+    bonus: '{n} نقطة هدية عند التسجيل',
+    percent: '{n}٪',
   },
 };
+
+/** The other locale. The printed sheets always carry both. */
+export function otherLocale(locale: Locale): Locale {
+  return locale === 'ar' ? 'en' : 'ar';
+}
+
+/**
+ * A figure in the numerals the locale actually reads.
+ *
+ * Arabic copy here uses Arabic-Indic digits throughout, so a Western-numeral
+ * figure dropped into an Arabic line is immediately visible as a mistake.
+ */
+export function rewardsNumber(locale: Locale, n: number): string {
+  return locale === 'ar' ? toArabicDigits(n) : String(n);
+}
+
+/** Fills a `{n}` template with a locale-appropriate figure. */
+export function fillRewards(template: string, locale: Locale, n: number): string {
+  return template.replace('{n}', rewardsNumber(locale, n));
+}

@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
 import { qrSvg, registrationUrl, queryOne } from '@stackd/server';
 
+import { isLocale, DEFAULT_LOCALE } from '@stackd/shared';
+
 import { requireStaff } from '@/lib/auth.ts';
 import { FORMATS, isFormatId } from '@/lib/poster/formats.ts';
 import { Poster } from '@/lib/poster/Poster.tsx';
@@ -26,24 +28,35 @@ export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ format: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
   const { format } = await params;
+  const { lang } = await searchParams;
   const f = isFormatId(format) ? FORMATS[format] : null;
+  const lead = lang && isLocale(lang) ? lang : DEFAULT_LOCALE;
   // The tab title becomes the default filename when printing to PDF, so it is
-  // worth making it something a print shop can act on.
-  return { title: f ? `STACKD Rewards ${f.w}x${f.h}mm` : 'Print' };
+  // worth making it something a print shop can act on. The language is in there
+  // because the two versions of a size are otherwise indistinguishable files.
+  return { title: f ? `STACKD Rewards ${f.w}x${f.h}mm ${String(lead).toUpperCase()}` : 'Print' };
 }
 
 export default async function PrintPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ format: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
   await requireStaff();
   const { format } = await params;
+  const { lang } = await searchParams;
   if (!isFormatId(format)) notFound();
+  // An unknown ?lang falls back rather than 404ing: a bad language still has a
+  // sensible sheet to show, unlike a bad size, which has no dimensions at all.
+  const lead = lang && isLocale(lang) ? lang : DEFAULT_LOCALE;
 
   const f = FORMATS[format];
   const url = registrationUrl();
@@ -58,7 +71,7 @@ export default async function PrintPage({
       <style dangerouslySetInnerHTML={{ __html: sheetCss(f, 1) }} />
       <div className="sheet-frame">
         <Poster
-          format={f}
+          lead={lead}
           qrSvg={qr}
           url={url}
           earnPercent={Number(settings?.earn_percent ?? 10)}
