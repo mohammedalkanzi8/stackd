@@ -23,3 +23,7 @@ apps/portal/.next/
 
 # Server environment, filled in on the VM
 deploy/.env
+
+# Claude Code: settings.json is shared project config and IS tracked.
+# settings.local.json is per-developer (permission grants, local paths) and is not.
+.claude/settings.local.json
