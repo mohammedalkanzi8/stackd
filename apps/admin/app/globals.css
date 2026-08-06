@@ -117,14 +117,29 @@ a { color: var(--accent); }
   color: var(--text);
 }
 .brand span { color: var(--accent); }
-nav.main { display: flex; gap: 4px; margin-inline-end: auto; flex-wrap: wrap; }
+nav.main { display: flex; gap: 2px; margin-inline-end: auto; flex-wrap: wrap; }
 nav.main a {
-  padding: 6px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
   border-radius: 6px;
   text-decoration: none;
   color: var(--dim);
   font-size: 14px;
   font-weight: 500;
+  white-space: nowrap;
+}
+/* Glyphs sit beside labels, never instead of them. This is a tool people use
+   mid-shift with a queue waiting; an icon alone is a guessing game. */
+nav.main a svg { width: 16px; height: 16px; flex: none; }
+.whoami button svg { width: 14px; height: 14px; vertical-align: -2px; margin-inline-end: 5px; }
+
+@media (max-width: 900px) {
+  /* Eight labels will not fit a narrow screen. Drop the words, keep the glyphs,
+     and keep the accessible name via title. */
+  nav.main a { gap: 0; padding: 8px; font-size: 0; }
+  nav.main a svg { width: 19px; height: 19px; }
 }
 nav.main a:hover { background: var(--chip); color: var(--text); }
 nav.main a[aria-current='page'] { background: var(--chip); color: var(--text); }

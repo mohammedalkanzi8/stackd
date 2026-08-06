@@ -64,7 +64,7 @@ export function OpenStatus({ locale }: { locale: Locale }) {
         aria-hidden="true"
         style={{ visibility: 'hidden' }}
       >
-        —
+        &nbsp;
       </div>
     );
   }

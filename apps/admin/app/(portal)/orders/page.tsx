@@ -79,7 +79,7 @@ export default async function OrdersPage({
       <h1>The day&rsquo;s trade</h1>
       <p className="lede">
         Trading days run to 03:00, so a 01:30 order belongs to the previous
-        evening — that is the day shown here, not the calendar date.
+        evening. That is the day shown here, not the calendar date.
       </p>
 
       <form className="card row" style={{ marginBlockEnd: 20 }}>
@@ -89,7 +89,7 @@ export default async function OrdersPage({
             <option value="">All days</option>
             {days.map((d) => (
               <option key={d.service_date} value={d.service_date}>
-                {d.service_date} — {d.n} orders
+                {d.service_date} · {d.n} orders
               </option>
             ))}
           </select>
@@ -147,7 +147,7 @@ export default async function OrdersPage({
                       </Link>
                       <span className="muted" style={{ fontSize: 12 }}>
                         {' '}
-                        · {o.lines || '—'} {o.lines === 1 ? 'line' : 'lines'}
+                        · {o.lines || '-'} {o.lines === 1 ? 'line' : 'lines'}
                       </span>
                     </td>
                     <td className="num muted" style={{ whiteSpace: 'nowrap' }}>
@@ -178,7 +178,7 @@ export default async function OrdersPage({
                     </td>
                     <td className="right num">{formatSar(o.grand_total)}</td>
                     <td className="right num">
-                      {o.points_earned > 0 ? o.points_earned : <span className="muted">—</span>}
+                      {o.points_earned > 0 ? o.points_earned : <span className="muted">-</span>}
                     </td>
                     <td className="right">
                       <span className={`chip ${STATUS_CHIP[o.status] ?? ''}`}>

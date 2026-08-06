@@ -64,6 +64,25 @@ a { color: var(--red); }
 .topbar a.plain { color: var(--dim); text-decoration: none; font-size: 14px; }
 .topbar a.plain:hover { color: var(--text); }
 
+nav.main { display: flex; gap: 2px; margin-inline-end: auto; }
+nav.main a {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 10px; border-radius: 8px;
+  color: var(--dim); text-decoration: none;
+  font-size: 14px; font-weight: 600; white-space: nowrap;
+}
+nav.main a:hover { background: var(--card); color: var(--text); }
+nav.main a svg { width: 17px; height: 17px; flex: none; }
+button.quiet svg { width: 15px; height: 15px; vertical-align: -3px; margin-inline-end: 5px; }
+
+@media (max-width: 560px) {
+  /* A phone in one hand at a counter: keep the glyphs, drop the words. The
+     label stays in the DOM so it is still announced. */
+  nav.main a span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  nav.main a { padding: 8px; }
+  .brand { font-size: 16px; }
+}
+
 main { max-width: 720px; margin: 0 auto; padding: 30px 20px 80px; }
 
 /* ---------- type ---------- */

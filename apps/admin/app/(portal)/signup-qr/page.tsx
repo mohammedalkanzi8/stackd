@@ -29,7 +29,7 @@ export default async function SignupQrPage() {
         <div className="banner note">
           <b>This QR points at <code>{url}</code> and will not work on a phone.</b> Set{' '}
           <code>STACKD_PORTAL_URL</code> to the portal&rsquo;s real public address
-          before printing anything — paper cannot be corrected afterwards.
+          before printing anything. Paper cannot be corrected afterwards.
         </div>
       ) : null}
 
@@ -49,7 +49,7 @@ export default async function SignupQrPage() {
       </div>
 
       <p className="muted" style={{ fontSize: 13, marginBlockStart: 18 }}>
-        Use your browser&rsquo;s print command — the page strips the navigation and
+        Use your browser&rsquo;s print command. The page strips the navigation and
         buttons when printed. The QR is vector, so it stays sharp at any size.
       </p>
     </>

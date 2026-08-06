@@ -48,7 +48,7 @@ export function localeSwapPath(pathname: string, target: Locale): string {
  */
 export function assertLocale(value: string): Locale {
   if (!isLocale(value)) {
-    throw new Error(`Unknown locale "${value}" — expected one of ${LOCALES.join(', ')}`);
+    throw new Error(`Unknown locale "${value}". Expected one of ${LOCALES.join(', ')}`);
   }
   return value;
 }

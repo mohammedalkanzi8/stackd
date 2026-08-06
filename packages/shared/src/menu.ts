@@ -226,8 +226,8 @@ export const BRANCH = {
   cityEn: 'Al Khobar',
   cityAr: 'الخبر',
   /** E.164 for tel: links. */
-  phone: '+966547557666',
-  phoneDisplay: '054 755 7666',
+  phone: '+966500338808',
+  phoneDisplay: '050 033 8808',
   /** Must exist as a real mailbox or alias on MXroute, or mail to it bounces. */
   email: 'info@stackd.com.sa',
   mapsUrl: 'https://maps.app.goo.gl/Kfi1PbLSJwn4LKcf9',

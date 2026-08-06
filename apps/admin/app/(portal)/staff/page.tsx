@@ -47,7 +47,7 @@ async function addStaff(formData: FormData): Promise<void> {
   const role = String(formData.get('role') ?? '') as Role;
   const password = String(formData.get('password') ?? '');
 
-  if (!name) fail('Give them a name — it appears on every point adjustment they make.');
+  if (!name) fail('Give them a name. It appears on every point adjustment they make.');
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail('That is not an email address.');
   if (!ROLES.includes(role)) fail('Pick a role.');
   if (password.length < 8) fail('The password must be at least 8 characters.');
@@ -88,7 +88,7 @@ async function changeRole(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');
   const role = String(formData.get('role') ?? '') as Role;
   if (!ROLES.includes(role)) fail('Pick a role.');
-  if (id === me.id) fail('You cannot change your own role — ask another owner.');
+  if (id === me.id) fail('You cannot change your own role. Ask another owner.');
 
   const rows = await query<{ full_name: string | null }>(
     'update staff set role = $2 where id = $1 returning full_name',
@@ -197,7 +197,7 @@ export default async function StaffPage({
               {people.map((p) => (
                 <tr key={p.id}>
                   <td>
-                    <b>{p.full_name ?? '—'}</b>
+                    <b>{p.full_name ?? '-'}</b>
                     {p.id === me.id ? (
                       <span className="chip" style={{ marginInlineStart: 6 }}>
                         you
@@ -237,7 +237,7 @@ export default async function StaffPage({
                     <td className="right" style={{ whiteSpace: 'nowrap' }}>
                       {p.id === me.id ? (
                         <span className="muted" style={{ fontSize: 13 }}>
-                          —
+                          &nbsp;
                         </span>
                       ) : (
                         <>
@@ -261,7 +261,7 @@ export default async function StaffPage({
           </table>
         </div>
         <p className="muted" style={{ fontSize: 13, marginBlockEnd: 0 }}>
-          Staff are deactivated, never deleted — their name is on every point
+          Staff are deactivated, never deleted. Their name is on every point
           adjustment they ever made, and that history is the reason the column
           exists.
         </p>
@@ -274,7 +274,7 @@ export default async function StaffPage({
             <input type="hidden" name="id" value={resetting.id} />
             <div className="field">
               <label htmlFor="password">
-                Password <span className="hint">— at least 8 characters</span>
+                Password <span className="hint">at least 8 characters</span>
               </label>
               <input id="password" name="password" type="password" required autoFocus minLength={8} />
             </div>

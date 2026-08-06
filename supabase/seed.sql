@@ -26,12 +26,12 @@ insert into branches (
 )
 values (
   '00000000-0000-0000-0000-000000000001',
-  'STACKD — North Khobar',
+  'STACKD North Khobar',
   'ستاكد - الخبر الشمالية',
   '76X9+7P5, Al Khobar Al Shamalia',
   '76X9+7P5، الخبر الشمالية',
   'Al Khobar', 'الخبر',
-  '+966547557666',   -- displayed locally as 054 755 7666
+  '+966500338808',   -- displayed locally as 050 033 8808
   '31311',
   '76X9+7P5',
   15

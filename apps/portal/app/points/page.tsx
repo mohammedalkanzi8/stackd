@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { formatSar, qrSvg, query, queryOne } from '@stackd/server';
 
 import { SubmitButton } from '../SubmitButton.tsx';
+import { IconPoints, IconQr, IconRewards, IconSignOut } from '../NavIcons.tsx';
 import { currentMember, endSession } from '@/lib/session.ts';
 
 export const metadata = { title: 'Your points · STACKD Rewards' };
@@ -113,11 +114,25 @@ export default async function PointsPage({
           <span className="brand">
             STACKD<span>.</span>
           </span>
-          <span className="muted" style={{ fontSize: 14 }}>
-            {member.fullName}
-          </span>
+          {/* Anchors rather than routes: the portal is one page today, so these
+              jump within it. They become real links when ordering arrives. */}
+          <nav className="main">
+            <a href="#balance">
+              <IconPoints />
+              <span>Points</span>
+            </a>
+            <a href="#code">
+              <IconQr />
+              <span>My code</span>
+            </a>
+            <a href="#rewards">
+              <IconRewards />
+              <span>Rewards</span>
+            </a>
+          </nav>
           <form action={signOut}>
             <SubmitButton className="quiet" pendingLabel="…">
+              <IconSignOut />
               Sign out
             </SubmitButton>
           </form>
@@ -137,7 +152,7 @@ export default async function PointsPage({
         ) : null}
         {error ? <div className="banner bad">{error}</div> : null}
 
-        <div className="balance">
+        <div className="balance" id="balance">
           <div className="k">Your points</div>
           <div className="n num">{member.balance}</div>
           <div className="sub">
@@ -146,7 +161,7 @@ export default async function PointsPage({
           </div>
         </div>
 
-        <div className="card" style={{ marginBlockStart: 18 }}>
+        <div className="card" id="code" style={{ marginBlockStart: 18 }}>
           <h2 style={{ textAlign: 'center' }}>Show this at the counter</h2>
           <div className="member-qr" dangerouslySetInnerHTML={{ __html: qr }} />
           <p className="member-code mono">{member.memberCode}</p>
@@ -155,7 +170,7 @@ export default async function PointsPage({
           </p>
         </div>
 
-        <div className="card" style={{ marginBlockStart: 18 }}>
+        <div className="card" id="rewards" style={{ marginBlockStart: 18 }}>
           <h2>Swap your points</h2>
           {rewards.length === 0 ? (
             <p className="empty">No rewards available right now.</p>

@@ -122,7 +122,7 @@ export default async function PointsPage({
       <h1>How points are earned</h1>
       <p className="lede">
         By default every riyal spent earns points at the rate below, on the pre-VAT
-        net. Any dish can override that with a flat number — the lever for pushing
+        net. Any dish can override that with a flat number, the lever for pushing
         one item without discounting it.
       </p>
 
@@ -133,7 +133,7 @@ export default async function PointsPage({
         <h2>The programme</h2>
         <p className="lede" style={{ marginBlockEnd: 16 }}>
           These apply to every order from the moment you save. Points already
-          earned are untouched — the ledger is a record of what was, not a formula.
+          earned are untouched. The ledger is a record of what was, not a formula.
         </p>
 
         {canEdit ? (
@@ -199,7 +199,7 @@ export default async function PointsPage({
               At {Number(settings.points_per_riyal)} per riyal a {formatSar(6000)} ticket
               earns{' '}
               <b>{Math.floor((6000 - Math.round(6000 - 6000 / 1.15)) / 100 * Number(settings.points_per_riyal))}</b>{' '}
-              points — on the net, not the gross.
+              points, on the net, not the gross.
             </p>
           </form>
         ) : (
@@ -284,7 +284,7 @@ export default async function PointsPage({
 
       <p className="muted" style={{ fontSize: 13 }}>
         Leave the box empty to earn by value. Enter <code>0</code> to make an item
-        earn nothing at all — they are not the same thing.
+        earn nothing at all. They are not the same thing.
       </p>
     </>
   );

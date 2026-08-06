@@ -19,7 +19,7 @@ async function signIn(formData: FormData): Promise<void> {
   const password = String(formData.get('password') ?? '');
 
   // Mobile or email, whichever they remember. A number typed any way normalises
-  // first so 0547557666 and +966547557666 find the same account.
+  // first so 0500338808 and +966500338808 find the same account.
   const phone = normalisePhone(identifier);
   const row = await queryOne<{ id: string; password_hash: string }>(
     `select c.id, cc.password_hash

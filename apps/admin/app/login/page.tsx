@@ -85,7 +85,7 @@ export default async function LoginPage({
         {process.env.NODE_ENV !== 'production' ? (
           <p className="muted" style={{ fontSize: 13, marginBlockStart: 16 }}>
             Local fixtures: <code>owner@stackd.local</code>,{' '}
-            <code>cashier@stackd.local</code>, <code>kitchen@stackd.local</code> —
+            <code>cashier@stackd.local</code>, <code>kitchen@stackd.local</code>,
             password <code>stackd-dev</code>. Only the owner can edit rewards and
             the menu. Set a real password with{' '}
             <code>npm run admin:passwd -- &lt;email&gt;</code>.

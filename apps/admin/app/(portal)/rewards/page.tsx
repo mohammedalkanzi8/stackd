@@ -138,7 +138,7 @@ export default async function RewardsPage({
       <h1>Reward catalogue</h1>
       <p className="lede">
         What points buy. The five seeded rewards are tuned to roughly a 7% return
-        at one point per riyal — changing a points cost changes that maths.
+        at one point per riyal. Changing a points cost changes that maths.
       </p>
 
       {ok ? <div className="banner ok">{ok}</div> : null}
@@ -173,7 +173,7 @@ export default async function RewardsPage({
                       ? `${r.free_item} free`
                       : r.discount_amount
                         ? `${formatSar(r.discount_amount)} off`
-                        : '—'}
+                        : '-'}
                   </td>
                   <td className="right num muted">{r.redemptions}</td>
                   <td className="right">
@@ -205,7 +205,7 @@ export default async function RewardsPage({
         <div className="card">
           <h2>{editing ? `Edit “${editing.name_en}”` : 'Add a reward'}</h2>
           <p className="lede" style={{ marginBlockEnd: 16 }}>
-            A reward gives either a free item or a flat discount — never both.
+            A reward gives either a free item or a flat discount, never both.
           </p>
 
           <form action={saveReward} className="stack" key={editing?.id ?? 'new'}>
@@ -277,13 +277,13 @@ export default async function RewardsPage({
               </div>
               <div className="field">
                 <label htmlFor="freeItemId">
-                  Free item <span className="hint">— used only if “a free item”</span>
+                  Free item <span className="hint">used only if “a free item”</span>
                 </label>
                 <select id="freeItemId" name="freeItemId" defaultValue={editing?.free_item_id ?? ''}>
                   <option value="">Choose an item…</option>
                   {items.map((i) => (
                     <option key={i.id} value={i.id}>
-                      {i.name_en} — {formatSar(i.price)}
+                      {i.name_en} · {formatSar(i.price)}
                     </option>
                   ))}
                 </select>

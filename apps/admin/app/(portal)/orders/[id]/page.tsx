@@ -144,7 +144,7 @@ export default async function OrderPage({
           <h2 style={{ marginBlockEnd: 12 }}>What they bought</h2>
           {lines.length === 0 ? (
             <p className="empty" style={{ padding: '10px 0' }}>
-              No line detail — the till sent a total only.
+              No line detail. The till sent a total only.
             </p>
           ) : (
             <div className="table-wrap">

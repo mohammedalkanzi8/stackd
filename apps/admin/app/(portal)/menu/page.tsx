@@ -140,7 +140,7 @@ async function uploadPhoto(formData: FormData): Promise<void> {
 
   if (!(file instanceof File) || file.size === 0) fail('Choose an image to upload.');
   const ext = ALLOWED[file.type];
-  if (!ext) fail(`${file.type || 'That file'} is not an image we can use — webp, jpg or png.`);
+  if (!ext) fail(`${file.type || 'That file'} is not an image we can use. Try webp, jpg or png.`);
   if (file.size > MAX_BYTES) {
     fail(`That image is ${(file.size / 1024 / 1024).toFixed(1)} MB. Keep it under 4 MB.`);
   }
@@ -214,7 +214,7 @@ export default async function MenuPage({
       <h1>Prices and availability</h1>
       <p className="lede">
         The database is the source of truth for the website. Names stay in{' '}
-        <code>seed.sql</code> — the Arabic came off STACKD&rsquo;s own menu board
+        <code>seed.sql</code>. The Arabic came off STACKD&rsquo;s own menu board
         and posters, and is not something to retype from here.
       </p>
 
@@ -322,7 +322,7 @@ export default async function MenuPage({
           <h2 style={{ fontSize: 15 }}>Photo</h2>
           {!editing.show_photos ? (
             <p className="muted" style={{ fontSize: 13 }}>
-              {editing.category} are text cards on the website — a 3 SAR sauce does
+              {editing.category} are text cards on the website. A 3 SAR sauce does
               not earn a photo, and seventeen placeholder tiles read as unfinished.
               An image uploaded here would be stored but never shown.
             </p>
@@ -367,7 +367,7 @@ export default async function MenuPage({
                 <input type="hidden" name="id" value={editing.id} />
                 <div>
                   <label htmlFor="photo">
-                    Replace it <span className="hint">— webp, jpg or png, under 4 MB</span>
+                    Replace it <span className="hint">webp, jpg or png, under 4 MB</span>
                   </label>
                   <input
                     id="photo"
@@ -391,7 +391,7 @@ export default async function MenuPage({
                 <b>Crop to 4:3 before uploading.</b> Anything else is cropped to fit
                 and you lose control of what gets cut. The file is saved into{' '}
                 <code>apps/web/public/menu/</code> as <code>{editing.slug}.webp</code>{' '}
-                — it reaches the site on the next <code>npm run build</code>, not
+                . It reaches the site on the next <code>npm run build</code>, not
                 immediately.
               </p>
               {editing.photo_note ? (

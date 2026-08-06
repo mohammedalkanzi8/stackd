@@ -32,7 +32,7 @@ async function register(formData: FormData): Promise<void> {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail('That email address does not look right.');
 
   const phone = normalisePhone(rawPhone);
-  if (!phone) fail(`"${rawPhone}" is not a Saudi mobile number. Try 054 755 7666.`);
+  if (!phone) fail(`"${rawPhone}" is not a Saudi mobile number. Try 050 033 8808.`);
   if (password.length < 8) fail('Your password needs at least 8 characters.');
 
   if (await queryOne('select 1 from customers where phone = $1', [phone])) {
@@ -130,7 +130,7 @@ export default async function RegistrationPage({
             </div>
             <div>
               <label htmlFor="phone">
-                Mobile <span className="hint">— 054 755 7666</span>
+                Mobile <span className="hint">050 033 8808</span>
               </label>
               <input
                 id="phone"
@@ -144,7 +144,7 @@ export default async function RegistrationPage({
             </div>
             <div>
               <label htmlFor="password">
-                Password <span className="hint">— at least 8 characters</span>
+                Password <span className="hint">at least 8 characters</span>
               </label>
               <input
                 id="password"

@@ -30,13 +30,13 @@ async function addMember(formData: FormData): Promise<void> {
 
   if (!name) fail('Enter their name.');
 
-  // Accept 0547557666, 547557666, +966547557666, or with spaces — store E.164.
+  // Accept 0500338808, 500338808, +966500338808, or with spaces. Stored as E.164.
   const digits = rawPhone.replace(/[^0-9]/g, '');
   let phone: string;
   if (/^9665\d{8}$/.test(digits)) phone = `+${digits}`;
   else if (/^05\d{8}$/.test(digits)) phone = `+966${digits.slice(1)}`;
   else if (/^5\d{8}$/.test(digits)) phone = `+966${digits}`;
-  else fail(`"${rawPhone}" is not a Saudi mobile number — try 054 755 7666.`);
+  else fail(`"${rawPhone}" is not a Saudi mobile number. Try 050 033 8808.`);
 
   if (!['ar', 'en'].includes(locale)) fail('Pick a language.');
 
@@ -96,8 +96,8 @@ export default async function MembersPage({
   const term = q.trim();
 
   // Matches a scanned member code, a phone number however it was typed, or a
-  // name. Phone comparison strips punctuation on both sides so "0547557666",
-  // "054 755 7666" and "+966547557666" all find the same person.
+  // name. Phone comparison strips punctuation on both sides so "0500338808",
+  // "050 033 8808" and "+966500338808" all find the same person.
   const members = await query<MemberRow>(
     `select c.id, c.member_code, c.full_name, c.phone, c.locale, c.created_at,
             coalesce(b.balance, 0) as balance,
@@ -134,7 +134,7 @@ export default async function MembersPage({
       <form className="card row" style={{ marginBlockEnd: 20 }}>
         <div className="field">
           <label htmlFor="q">
-            Member code, name or phone <span className="hint">— blank lists everyone</span>
+            Member code, name or phone <span className="hint">blank lists everyone</span>
           </label>
           <input id="q" name="q" type="text" defaultValue={term} autoFocus placeholder="DEV22222" />
         </div>
@@ -180,7 +180,7 @@ export default async function MembersPage({
                       <span className="chip">{m.locale.toUpperCase()}</span>
                     </td>
                     <td className="mono">{m.member_code}</td>
-                    <td className="mono muted">{m.phone ?? '—'}</td>
+                    <td className="mono muted">{m.phone ?? '-'}</td>
                     <td className="right num">
                       <b>{m.balance}</b>
                     </td>
@@ -197,7 +197,7 @@ export default async function MembersPage({
         <h2>Sign someone up</h2>
         <p className="lede" style={{ marginBlockEnd: 16 }}>
           For a customer joining at the counter. They get a member code straight
-          away — read it out, or let them scan the QR on their next receipt.
+          away. Read it out, or let them scan the QR on their next receipt.
         </p>
         <form action={addMember} className="row">
           <div className="field">
@@ -206,7 +206,7 @@ export default async function MembersPage({
           </div>
           <div className="field">
             <label htmlFor="phone">
-              Mobile <span className="hint">— 054 755 7666</span>
+              Mobile <span className="hint">050 033 8808</span>
             </label>
             <input id="phone" name="phone" type="text" inputMode="tel" required />
           </div>

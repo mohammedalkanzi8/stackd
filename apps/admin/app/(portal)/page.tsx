@@ -163,7 +163,7 @@ export default async function OverviewPage() {
 
       <p className="muted" style={{ fontSize: 13, marginBlockStart: 24 }}>
         Points are earned on the pre-VAT net, so a {formatSar(6000)} ticket earns
-        52, not 60. Nothing in this portal mints points directly — orders do, and
+        52, not 60. Nothing in this portal mints points directly. Orders do, and
         the ledger is append-only.
       </p>
     </>

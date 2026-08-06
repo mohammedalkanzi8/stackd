@@ -26,9 +26,11 @@ export function Header({ locale }: { locale: Locale }) {
           <img src="/brand/logo.svg" alt="STACKD" width={800} height={886} />
         </Link>
         <nav className="nav">
-          <Link href={`/${locale}/`} className="nav-link nav-icon" aria-label={t(locale, 'nav.home')}>
-            <HomeIcon />
-            <span className="nav-icon-label">{t(locale, 'nav.home')}</span>
+          {/* Home, Menu and Visit are peers and read as peers: plain text, same
+              weight. Only the portal link takes an icon, because it is the one
+              that leaves the site. */}
+          <Link href={`/${locale}/`} className="nav-link">
+            {t(locale, 'nav.home')}
           </Link>
           <Link href={`/${locale}/menu/`} className="nav-link">
             {t(locale, 'nav.menu')}
@@ -52,23 +54,10 @@ export function Header({ locale }: { locale: Locale }) {
   );
 }
 
-/* Inline SVG rather than an icon font or an <img>: two glyphs do not justify a
-   network request, and `currentColor` means they follow the nav's own colour
+/* Inline SVG rather than an icon font or an <img>: one glyph does not justify a
+   network request, and `currentColor` means it follows the nav's own colour
    through both themes without a second rule. */
 
-function HomeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path
-        d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 function UserIcon() {
   return (

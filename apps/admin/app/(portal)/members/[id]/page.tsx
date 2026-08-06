@@ -68,7 +68,7 @@ async function adjustPoints(formData: FormData): Promise<void> {
     redirect(`${back}?error=${encodeURIComponent('Enter a whole number of points, not zero.')}`);
   }
   if (!note) {
-    redirect(`${back}?error=${encodeURIComponent('Say why — this is an audit trail.')}`);
+    redirect(`${back}?error=${encodeURIComponent('Say why. This is an audit trail.')}`);
   }
 
   try {
@@ -180,7 +180,7 @@ export default async function MemberPage({
                   year: 'numeric',
                   timeZone: 'Asia/Riyadh',
                 })
-              : '—'}
+              : '-'}
           </div>
           <div className="sub">points lapse after 12 months idle</div>
         </div>
@@ -191,7 +191,7 @@ export default async function MemberPage({
           <h2>Adjust points</h2>
           <p className="lede" style={{ marginBlockEnd: 14 }}>
             Goodwill, or fixing a mistake. Recorded against your name in the ledger
-            and never removable — use a negative number to take points away.
+            and never removable. Use a negative number to take points away.
           </p>
           <form action={adjustPoints} className="row">
             <input type="hidden" name="customerId" value={member.id} />
@@ -201,7 +201,7 @@ export default async function MemberPage({
             </div>
             <div className="field">
               <label htmlFor="note">
-                Reason <span className="hint">— shown in the ledger</span>
+                Reason <span className="hint">shown in the ledger</span>
               </label>
               <input
                 id="note"
@@ -259,7 +259,7 @@ export default async function MemberPage({
                           by {e.actor}
                         </span>
                       ) : null}
-                      {!e.reward && e.order_total === null && !e.note ? '—' : null}
+                      {!e.reward && e.order_total === null && !e.note ? '-' : null}
                     </td>
                     <td className={`right num ${e.delta > 0 ? 'pos' : 'neg'}`}>
                       {e.delta > 0 ? '+' : ''}

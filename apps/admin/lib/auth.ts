@@ -29,7 +29,7 @@ export async function requireRole(...roles: Role[]): Promise<StaffSession> {
   const staff = await requireStaff();
   if (!roles.includes(staff.role)) {
     throw new Error(
-      `${staff.role} cannot do this — needs ${roles.join(' or ')}`,
+      `${staff.role} cannot do this. Needs ${roles.join(' or ')}`,
     );
   }
   return staff;
