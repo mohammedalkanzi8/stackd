@@ -1,11 +1,96 @@
 # STACKD — where we left off
 
-**Last session:** 5 August 2026
+**Last session:** 6 August 2026
 **Live now:** https://stackd.com.sa — verified serving, `www` 301s to the apex
 **Email:** MXroute, live and working (SPF + DKIM + DMARC all present)
 **Repo:** `/home/kanzi/stackd` (git, all committed)
 **Theme:** dark for everyone; light only via the header toggle
-**Phone:** 054 755 7666 · **Contact email published:** info@stackd.com.sa
+**Phone:** 050 033 8808 · **Contact email published:** info@stackd.com.sa
+**Portals:** my.stackd.com.sa (customers) · admin.stackd.com.sa (staff) · Oracle Riyadh
+**POS:** Kashier Pro by DKEYS — integration waiting on their support team
+
+---
+
+## 6 August 2026 — the POS decision, and the region finally verified
+
+### ✅ Hosting is verified, not assumed
+
+```
+region: me-riyadh-1   AD: DsxQ:ME-RIYADH-1-AD-1   shape: VM.Standard.A1.Flex
+```
+
+Read from the instance metadata service on the box itself. Customer data is
+physically in Riyadh, so the PDPL argument the whole architecture rests on is
+now a checked fact rather than a plan. This had been open since hosting was
+chosen and is the single most load-bearing thing in the project.
+
+Note for anyone who looks at the public IP and worries: it resolves to an Oracle
+range registered through RIPE in Europe. That is Oracle's EMEA administrative
+registration and says nothing about the datacentre. The metadata above is what
+counts.
+
+### The POS is Kashier Pro, and it stays
+
+**Kashier Pro by DKEYS** — a Saudi vendor in Dammam, Alrajaa Tower, CR
+2053113231, +966 57 885 8297, dkeys@digital-keys.com.sa. Roughly twenty minutes
+from the branch. The tenant is `rosepier.tenants.dkeys.net` (the app is at
+`/login`; the root serves a default Passenger page).
+
+**Foodics was evaluated and rejected.** The licence was already paid and idle,
+which made it tempting, but:
+
+- Foodics is the default choice at **three or more branches**. STACKD has one,
+  so centralised inventory, unified reporting and branch-level P&L are value
+  that cannot be collected yet.
+- It is **iPad-only**, from SAR 1,499 per till before software. Kashier Pro runs
+  on Web, Windows, Android and iOS.
+- **ZATCA Phase 2 was the strongest argument for moving, and it evaporated** —
+  Kashier Pro claims Phase 1 and Phase 2. ⚠ That came off a marketing page and
+  is still worth confirming in writing with DKEYS, because it is the one item
+  here with a fine attached.
+
+The idle Foodics licence is being cancelled.
+
+**Never migrate a working till to make an integration easier.** The loyalty
+system is not blocked by any of this: points earn and redeem today through the
+Scan page, and will keep working whatever POS runs.
+
+### What would change the decision later
+
+Two questions, worth asking DKEYS and worth revisiting at a second branch:
+
+1. **Does Kashier Pro do recipe-level inventory depletion?** Food cost is the
+   margin in a chicken restaurant, and knowing it per dish beats any other
+   feature either system has.
+2. **Does it integrate HungerStation and Jahez?** Those two are 60–70% of
+   platform delivery in Saudi. Kashier's site lists Talabat, Zomato and Noon;
+   Talabat and Careem together are only 10–15%. Without the big two, Phase 4
+   means staff re-keying delivery orders by hand.
+
+Failing **both** together would justify the migration. Either one alone probably
+does not. A second branch is the natural moment to change systems anyway: new
+site, new hardware, no disruption to a trading kitchen.
+
+### Integration: waiting on DKEYS
+
+Their site advertises integration capability but publishes no API documentation.
+For a large vendor that is a dead end; for a small local one it is the opposite,
+so they have been asked directly for:
+
+1. **Webhooks** — can Kashier Pro call our URL when an order is paid? That is the
+   whole integration; everything else is a workaround.
+2. **A REST API** to read orders, as the polling fallback.
+3. **A custom QR in the receipt footer**, usually a printer-template setting
+   rather than a development request.
+
+**The receipt-claim design does not need a per-order code.** A *static* QR in the
+footer plus the receipt number is enough: the customer scans, types the receipt
+number, and we verify it against the POS before crediting. Nothing dynamic has to
+be printed, it cannot be forged, and it reuses the `order_claims` machinery that
+already exists and is tested.
+
+⚠ **Kashier Pro has its own loyalty module.** Make sure it is switched off, or
+two systems will issue points and nobody will know which is right.
 
 ---
 

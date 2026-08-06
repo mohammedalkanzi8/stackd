@@ -108,7 +108,11 @@ and removes payment/ZATCA from the critical path.
 2. Full street address + national address, phone, opening hours per weekday
 3. Logo files (SVG/PNG transparent) + mascot isolated from the badge
 4. Item photos — the digital menu has them, but I need originals not screenshots
-5. POS system? If Foodics, the app should sync rather than become a second
-   source of truth for the menu
+5. ~~POS system?~~ **ANSWERED 6 Aug 2026: Kashier Pro, by DKEYS (Dammam).**
+   Foodics was evaluated and rejected — it is the default choice at three or
+   more branches, and STACKD has one, so its multi-branch advantages are value
+   that cannot be collected yet. It is also iPad-only, from SAR 1,499 a till.
+   The idle Foodics licence is being cancelled. Integration now waits on whether
+   DKEYS will expose a webhook; see STATUS.md.
 6. Commercial Registration number + VAT number (needed for ZATCA receipts)
 7. Arabic names for Tortilla Strips and Chicken Strips (mine are translations)
