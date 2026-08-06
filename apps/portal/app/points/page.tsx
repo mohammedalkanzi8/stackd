@@ -201,9 +201,7 @@ export default async function PointsPage({
             </div>
           ) : null}
 
-          <p className="muted" style={{ textAlign: 'center', fontSize: 12.5, marginBlockEnd: 0 }}>
-            Or add this page to your home screen for one-tap access.
-          </p>
+          <InstallButton />
         </div>
 
         <div className="card" id="rewards" style={{ marginBlockStart: 18 }}>
