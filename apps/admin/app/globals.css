@@ -335,3 +335,38 @@ button[data-pending='true'] { cursor: progress; }
 @media (prefers-reduced-motion: no-preference) {
   button, .btn, nav.main a { transition: background 0.12s ease, border-color 0.12s ease; }
 }
+
+/* ---------- print studio ----------
+   The size picker at /signup-qr. Each card states what the piece is FOR, not
+   just its dimensions: "A5" means nothing to whoever is asked to order these,
+   and "on each table" means everything. */
+.fmt-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 10px;
+  margin-block-start: 18px;
+}
+.fmt {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.fmt:hover { border-color: var(--rule-strong); }
+.fmt b { font-size: 14px; }
+.fmt span { color: var(--dim); }
+.fmt .mono { font-size: 12px; color: var(--faint); }
+.fmt-on {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.notes { margin: 0; padding-inline-start: 20px; display: grid; gap: 8px; }
+.notes li { font-size: 13.5px; line-height: 1.6; color: var(--dim); }
+.notes b { color: var(--text); }

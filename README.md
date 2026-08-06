@@ -14,10 +14,10 @@ American street food · الخبر الشمالية (North Khobar), KSA
 | Data model (`supabase/schema.sql`) | **Applies and is tested** — RLS on every table, loyalty ledger, walk-in orders |
 | Menu seed (`supabase/seed.sql`) | Source of truth — 17 items; the website is generated from it |
 | Design tokens (`packages/shared/src/tokens.ts`) | Done |
-| Hours / money / VAT logic | Done — **79 tests passing** (40 shared + 19 functions + 20 schema) |
-| Website | **Builds and exports** — 6 pages, AR + EN. Needs real photos |
+| Hours / money / VAT logic | Done — **102 tests passing** (41 shared + 6 wallet + 19 functions + 36 schema) |
+| Website | **Builds and exports** — 8 pages, AR + EN. Needs real photos |
 | Typography | Self-hosted Tajawal + Cairo (SIL OFL), Arabic + Latin subsets |
-| Admin portal (`apps/admin`) | **Runs locally** — orders, members, points, rewards, menu, staff |
+| Admin portal (`apps/admin`) | **Runs locally** — orders, members, points, rewards, menu, staff, scan, print studio |
 | Customer portal (`apps/portal`) | **Runs locally** — register, sign in, points, redeem |
 | Mobile app | Not started |
 | Kitchen display | Not started |

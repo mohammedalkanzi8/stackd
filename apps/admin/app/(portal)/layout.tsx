@@ -28,7 +28,7 @@ const NAV = [
   { href: '/members', label: 'Members', Icon: IconMembers },
   { href: '/points', label: 'Points', Icon: IconPoints },
   { href: '/rewards', label: 'Rewards', Icon: IconRewards },
-  { href: '/signup-qr', label: 'Signup QR', Icon: IconStaff },
+  { href: '/signup-qr', label: 'Print studio', Icon: IconStaff },
   { href: '/menu', label: 'Menu', Icon: IconMenu },
 ];
 

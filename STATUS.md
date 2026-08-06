@@ -11,6 +11,101 @@
 
 ---
 
+## 6 August 2026 — STACKD Rewards gets an identity, and something to print
+
+The loyalty programme had a database, two portals and a wallet pass, but no name
+anyone could say and nothing to put in front of a customer. It now has all three:
+a mark, four printable pieces, and a page on the website.
+
+### The programme is "STACKD Rewards / مكافآت ستاكد"
+
+Not a rename. That is already what the portal, the wallet passes and the counter
+QR called it, so nothing had to change to adopt it. The alternative names all
+required renaming live surfaces to buy nothing.
+
+### `packages/shared/src/rewards.ts` — one source of truth
+
+The offer is a number customers will hold the restaurant to, so the poster, the
+website page and the portal all read it from one file rather than each stating
+it. It holds the mark (as an SVG string, so `shared` needs no React dependency),
+the earn rate, and the full bilingual copy.
+
+**⚠ `REWARDS.earnPercent` is the DEFAULT, not the truth.** The live figure is
+`loyalty_settings.earn_percent`, editable on the admin Points page. Anything with
+a database connection reads it from there and passes it in — the print studio
+does. The constant exists for the static website, which has none.
+
+### The mark
+
+Three ascending chevrons in the brand's rounded badge, gold on red, brightening
+upward. The badge shape is the one the rooster already sits in, so it reads as
+family rather than as a second logo. No text and no photography in it, so one
+file serves a favicon and an 850 mm banner.
+
+### ⚠ The home page was advertising the old offer
+
+`loyalty.lead` still said "Earn a point for every riyal" and the ring on the home
+page read **"1 Point / Riyal"**. That stopped being true when earning moved to a
+percentage of the bill, and it was live on stackd.com.sa saying so. Both now come
+from `REWARDS`, so the ring cannot drift from the programme again.
+
+### The print studio — `/signup-qr`, and `/print/[format]`
+
+Four sizes off one layout: A3 wall poster, 85 × 200 cm roll-up, A5 table tent,
+A6 counter card. Everything inside the sheet is sized in `em` against a root of
+`width / 30`, which is what lets one design serve a 105 mm card and a 2 m banner.
+
+**Do not put a fixed px or mm value inside the sheet.** It breaks three of the
+four sizes, and only on paper, where finding out is expensive.
+
+Three things there are load-bearing and look like clutter:
+
+- `print-color-adjust: exact`. Browsers strip background colours when printing.
+  Without it the poster prints as black type on white paper.
+- `@page { margin: 0 }` and a sheet at exact trim, or the printer's default
+  margin shrinks a full-bleed design and leaves a white frame.
+- The Print button waits on `document.fonts.load()` before enabling. The
+  `@font-face` rules use `font-display: swap`, so a print fired in the first few
+  hundred ms silently sets the whole sheet in the fallback system font. On screen
+  that self-corrects and nobody notices; on a banner it is a wasted print run.
+
+`/print/[format]` is deliberately **outside** the `(portal)` route group, so it
+inherits only the bare root layout and there is no chrome to hide. It is still
+behind `requireStaff()`. A print stylesheet hiding the portal chrome was the
+alternative, and it fails the day someone adds to the layout without knowing.
+
+### The fonts are now generated for both apps
+
+`scripts/fetch-fonts.mjs` writes `fonts.generated.css` and mirrors the woff2 files
+into **both** `apps/web` and `apps/admin`. The admin is otherwise happy on system
+fonts; the print studio is the exception. Hand-copied font files would have
+drifted on the next run of that script, and the failure surfaces as a banner in
+the wrong typeface.
+
+### Type and brand only, no photography
+
+By decision. The only food images available are Instagram crops upscaled roughly
+3x (see §4 below). At A3 they would be visibly soft and on an 850 mm banner they
+would be a mess. Type, the marks and flat colour print perfectly at any size.
+
+### Bidi: every English run inside the sheet carries `lang` + `dir`
+
+The sheet is `dir="rtl"`. Without `dir="ltr"` on each English run, the bidi
+algorithm resolves trailing full stops to the paragraph direction and prints them
+stranded on the left.
+
+### ⚠ Still to do
+
+**The owner has not seen any of this yet.** There is no browser in the agent
+environment, so nothing here has been looked at — only asserted against the
+rendered markup. `/ar/rewards`, `/en/rewards` and all four print sheets need a
+visual pass before anything is deployed or sent to a printer.
+
+Print one A6 on an ordinary printer and scan it with a phone that has never seen
+the portal, before committing to a print run.
+
+---
+
 ## 6 August 2026 — the POS decision, and the region finally verified
 
 ### ✅ Hosting is verified, not assumed

@@ -21,6 +21,9 @@ export function Header({ locale }: { locale: Locale }) {
           <Link href={`/${locale}/menu/`} className="nav-link">
             {t(locale, 'nav.menu')}
           </Link>
+          <Link href={`/${locale}/rewards/`} className="nav-link">
+            {t(locale, 'nav.loyalty')}
+          </Link>
           <Link href={`/${locale}/visit/`} className="nav-link">
             {t(locale, 'nav.visit')}
           </Link>

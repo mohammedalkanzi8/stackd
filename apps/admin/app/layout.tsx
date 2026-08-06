@@ -21,7 +21,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning applies to THIS element's attributes only, one
+    // level deep — children are still fully hydration-checked.
+    //
+    // Browser extensions stamp classes onto <html> before React loads
+    // (Modernizr-style `no-touch`, dark-mode forcers, password managers). The
+    // server cannot know about them, so React reports a mismatch it can never
+    // reconcile. Same fix as the website's root layout, which hit this first.
+    <html lang="en" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );

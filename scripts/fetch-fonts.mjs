@@ -18,7 +18,13 @@
  * vietnamese and greek for these families and none of them are wanted here.
  */
 
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import {
+  writeFileSync,
+  mkdirSync,
+  existsSync,
+  readdirSync,
+  copyFileSync,
+} from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -171,7 +177,30 @@ be sold by itself, and the copyright and licence notices must be retained.
 `,
 );
 
+/*
+ * Mirror into the admin app. Runs LAST, so OFL.txt above is already on disk and
+ * the licence travels with the copies rather than lagging a run behind.
+ *
+ * The admin portal is otherwise happy on system fonts — it is a tool, not a
+ * brand surface. The exception is the print studio at /signup-qr, which sets the
+ * posters and the roll-up banner in Tajawal and sends them to a print shop. A
+ * hand-copied set of font files would silently drift the next time this script
+ * ran, and that failure surfaces as a 2-metre banner in the wrong typeface.
+ *
+ * The url() paths are already absolute /fonts/..., and each Next app serves its
+ * own public/, so one stylesheet is correct in both without rewriting.
+ */
+const adminFontDir = join(root, 'apps/admin/public/fonts');
+mkdirSync(adminFontDir, { recursive: true });
+for (const file of readdirSync(fontDir)) {
+  copyFileSync(join(fontDir, file), join(adminFontDir, file));
+}
+writeFileSync(
+  join(root, 'apps/admin/app/fonts.generated.css'),
+  header + cssBlocks.join('\n\n') + '\n',
+);
+
 console.log(
   `\nDone. ${downloaded} file(s) downloaded, ${(totalBytes / 1024).toFixed(1)} kB total.`,
 );
-console.log(`Wrote apps/web/app/fonts.generated.css and ${join(fontDir, 'OFL.txt')}`);
+console.log(`Wrote fonts.generated.css for apps/web and apps/admin, and ${join(fontDir, "OFL.txt")}`);

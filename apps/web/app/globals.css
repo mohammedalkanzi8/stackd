@@ -1390,6 +1390,135 @@ svg {
 }
 
 /* ==========================================================================
+   STACKD Rewards page
+   ========================================================================== */
+
+.rw-hero {
+  display: grid;
+  gap: clamp(28px, 5vw, 56px);
+  align-items: center;
+}
+@media (min-width: 860px) {
+  .rw-hero {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+/* Each half of the headline is its own line. Two short lines land harder than
+   one long one, and the Arabic and English break in different places. */
+.rw-headline span {
+  display: block;
+}
+
+.rw-mark {
+  width: clamp(150px, 26vw, 230px);
+  justify-self: center;
+  filter: drop-shadow(0 18px 40px rgb(184 39 18 / 0.35));
+}
+.rw-mark svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* --- The three steps ------------------------------------------------------
+   A numbered list that keeps its numbers when CSS is unavailable, so the
+   counters are real <li> content rather than generated. */
+.rw-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: clamp(16px, 2.5vw, 26px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rw-step {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: clamp(18px, 2.6vw, 26px);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.rw-step-n {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--red);
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+.rw-step-t {
+  font-size: clamp(15px, 1.6vw, 17px);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+/* --- The rate strip -------------------------------------------------------
+   Three figures, evenly weighted. This is the whole programme in numbers, for
+   the reader who will not read a paragraph. */
+.rw-rate {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: clamp(20px, 3vw, 36px);
+  padding: clamp(26px, 4vw, 44px);
+  border-radius: var(--r-lg);
+  /* A fixed ink panel rather than var(--surface): the numbers are set in gold,
+     and gold only clears contrast on a dark ground. Holding the panel dark in
+     BOTH themes is what lets the figures stay brand-gold in both. The gold
+     hairline is what separates it from the near-identical dark-mode page
+     background. The slogan band directly above is the red gradient, so this one
+     stays ink to avoid two red stripes in a row. */
+  background: var(--ink-2);
+  border: 1px solid rgb(236 167 15 / 0.28);
+  text-align: center;
+}
+.rw-rate-fig {
+  display: grid;
+  gap: 6px;
+}
+.rw-rate-num {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 7vw, 66px);
+  font-weight: 800;
+  line-height: 1;
+  /* Gold on near-black clears 8:1, so the display face can carry it here. On
+     the cream page background it may not — that is what --label is for. */
+  color: var(--gold);
+}
+.rw-rate-lbl {
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(254 254 254 / 0.72);
+}
+[lang='ar'] .rw-rate-lbl {
+  /* Arabic has no case, and letterspacing breaks the joins. */
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 15px;
+}
+
+.rw-close {
+  text-align: center;
+  align-items: center;
+}
+.rw-fine {
+  max-width: 60ch;
+  margin-block-start: 10px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-faint);
+}
+
+/* ==========================================================================
    Small screens
    ========================================================================== */
 

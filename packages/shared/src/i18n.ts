@@ -104,9 +104,13 @@ const strings = {
     'visit.delivery': 'توصيل',
     'visit.avgSpend': 'متوسط الإنفاق للفرد',
 
-    'loyalty.title': 'برنامج الولاء',
-    'loyalty.lead': 'اجمع نقطة على كل ريال. استبدلها بوجبات مجانية.',
+    // The offer changed from a point per riyal to 10% of the bill back. These
+    // strings are read off the home page by people standing in the shop, so
+    // they have to match `REWARDS` and the admin Points page exactly.
+    'loyalty.title': 'مكافآت ستاكد',
+    'loyalty.lead': 'استرجع ١٠٪ من كل فاتورة نقاطاً، واخصمها من طلبك القادم.',
     'loyalty.comingSoon': 'اعرف نقاطك',
+    'loyalty.more': 'كيف يشتغل البرنامج',
 
     'footer.rights': 'جميع الحقوق محفوظة',
     'footer.follow': 'تابعونا',
@@ -155,9 +159,10 @@ const strings = {
     'visit.delivery': 'Delivery',
     'visit.avgSpend': 'Average spend per person',
 
-    'loyalty.title': 'Rewards',
-    'loyalty.lead': 'Earn a point for every riyal. Redeem for free food.',
+    'loyalty.title': 'STACKD Rewards',
+    'loyalty.lead': 'Get 10% of every bill back as points, and take them off your next order.',
     'loyalty.comingSoon': 'Check my points',
+    'loyalty.more': 'How it works',
 
     'footer.rights': 'All rights reserved',
     'footer.follow': 'Follow us',

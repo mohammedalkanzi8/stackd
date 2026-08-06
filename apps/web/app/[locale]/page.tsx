@@ -4,6 +4,7 @@ import {
   BRAND,
   BRANCH,
   MENU,
+  REWARDS,
   formatAmount,
   t,
   assertLocale,
@@ -173,21 +174,30 @@ export default async function HomePage({
               {isAr ? 'كل ريال يرجع لك' : 'Every Riyal Comes Back'}
             </h2>
             <p className="lede">{t(locale, 'loyalty.lead')}</p>
-            {/* Live now, so it is a link rather than a label. --label, not
-                --gold: this pill sits on the page background, and raw gold on
-                cream is 1.96:1. */}
-            <a
-              href={`${PORTAL_URL}/login`}
-              className="status status-link"
-              style={{ borderColor: 'var(--label)', color: 'var(--label)' }}
-            >
-              {t(locale, 'loyalty.comingSoon')}
-            </a>
+            <div className="link-row">
+              <Link href={`/${locale}/rewards/`} className="btn btn-primary btn-sm">
+                {t(locale, 'loyalty.more')}
+              </Link>
+              {/* Live now, so it is a link rather than a label. --label, not
+                  --gold: this pill sits on the page background, and raw gold on
+                  cream is 1.96:1. */}
+              <a
+                href={`${PORTAL_URL}/login`}
+                className="status status-link"
+                style={{ borderColor: 'var(--label)', color: 'var(--label)' }}
+              >
+                {t(locale, 'loyalty.comingSoon')}
+              </a>
+            </div>
           </div>
+          {/* The number in this ring is the offer itself, so it tracks
+              REWARDS.earnPercent rather than being typed in. It used to read
+              "1 point / riyal", which stopped being true when earning moved to
+              a percentage of the bill. */}
           <div className="ring" aria-hidden="true">
             <div className="ring-inner">
-              <span className="ring-num">{num(1)}</span>
-              <span className="ring-lbl">{isAr ? 'نقطة / ريال' : 'Point / Riyal'}</span>
+              <span className="ring-num">{num(REWARDS.earnPercent)}%</span>
+              <span className="ring-lbl">{isAr ? 'من كل فاتورة' : 'Back on Every Bill'}</span>
             </div>
           </div>
         </div>
