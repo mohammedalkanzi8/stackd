@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { formatSar, qrSvg, query, queryOne } from '@stackd/server';
+import { formatSar, qrSvg, query, queryOne, walletOptions } from '@stackd/server';
 
 import { SubmitButton } from '../SubmitButton.tsx';
 import { IconPoints, IconQr, IconRewards, IconSignOut } from '../NavIcons.tsx';
@@ -105,6 +105,14 @@ export default async function PointsPage({
   // The QR the cashier scans is the member code itself, not a URL: the till
   // scanner reads a string and looks it up, and a URL would just be noise.
   const qr = await qrSvg(member.memberCode);
+
+  // Both buttons stay hidden until their credentials exist. A pass that cannot
+  // be signed is worse than no button: it fails silently in the customer's hand.
+  const wallet = walletOptions({
+    memberCode: member.memberCode,
+    fullName: member.fullName,
+    balance: member.balance,
+  });
   const next = rewards.find((r) => r.points_cost > member.balance);
 
   return (
@@ -165,8 +173,35 @@ export default async function PointsPage({
           <h2 style={{ textAlign: 'center' }}>Show this at the counter</h2>
           <div className="member-qr" dangerouslySetInnerHTML={{ __html: qr }} />
           <p className="member-code mono">{member.memberCode}</p>
-          <p className="muted" style={{ textAlign: 'center', fontSize: 13, marginBlockEnd: 0 }}>
+          <p className="muted" style={{ textAlign: 'center', fontSize: 13 }}>
             Scanned when you order, so your points go on automatically.
+          </p>
+
+          {wallet.googleUrl || wallet.appleAvailable ? (
+            <div className="wallet-row">
+              {wallet.appleAvailable ? (
+                <a className="wallet-btn" href="/wallet/apple">
+                  <AppleMark />
+                  <span>
+                    <small>Add to</small>
+                    Apple Wallet
+                  </span>
+                </a>
+              ) : null}
+              {wallet.googleUrl ? (
+                <a className="wallet-btn" href={wallet.googleUrl}>
+                  <GoogleMark />
+                  <span>
+                    <small>Add to</small>
+                    Google Wallet
+                  </span>
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+
+          <p className="muted" style={{ textAlign: 'center', fontSize: 12.5, marginBlockEnd: 0 }}>
+            Or add this page to your home screen for one-tap access.
           </p>
         </div>
 
@@ -245,5 +280,28 @@ export default async function PointsPage({
         </p>
       </main>
     </>
+  );
+}
+
+/* Wordmark-free marks: Apple and Google both restrict use of their official
+   "Add to Wallet" artwork, and a plain glyph beside plain text is inside what
+   their guidelines permit while still reading correctly. */
+
+function AppleMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor">
+      <path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.3-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.7.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.8.8-3.5 2.1-1.5 2.6-.4 6.5 1.1 8.6.7 1 1.6 2.2 2.7 2.2 1.1 0 1.5-.7 2.8-.7 1.3 0 1.6.7 2.8.7 1.2 0 1.9-1 2.6-2.1.8-1.2 1.2-2.4 1.2-2.4s-2.3-.9-2.3-3.4zM14.2 5.9c.6-.7 1-1.7.9-2.7-.9 0-2 .6-2.6 1.3-.6.6-1.1 1.7-.9 2.6 1 .1 2-.5 2.6-1.2z" />
+    </svg>
+  );
+}
+
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.3-.2-1.9H12v3.7h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" />
+      <path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.5l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z" />
+      <path fill="#FBBC05" d="M6.4 13.9a6 6 0 0 1 0-3.8V7.5H3.1a10 10 0 0 0 0 9l3.3-2.6z" />
+      <path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.5l3.3 2.6C7.2 7.7 9.4 5.9 12 5.9z" />
+    </svg>
   );
 }

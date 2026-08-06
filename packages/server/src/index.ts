@@ -12,3 +12,4 @@ export * from './password.ts';
 export * from './money.ts';
 export * from './qr.ts';
 export * from './session.ts';
+export * from './wallet/index.ts';

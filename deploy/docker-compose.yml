@@ -70,8 +70,23 @@ services:
       STACKD_DB: ${STACKD_DB:-stackd}
       STACKD_PORTAL_SECRET: ${STACKD_PORTAL_SECRET:?set STACKD_PORTAL_SECRET in .env}
       STACKD_PORTAL_URL: ${STACKD_PORTAL_URL:?set STACKD_PORTAL_URL in .env}
+      # Wallet passes, all optional. Unset means the button is simply not shown,
+      # which is why none of these use the :? required form.
+      GOOGLE_WALLET_ISSUER_ID: ${GOOGLE_WALLET_ISSUER_ID:-}
+      GOOGLE_WALLET_CLIENT_EMAIL: ${GOOGLE_WALLET_CLIENT_EMAIL:-}
+      GOOGLE_WALLET_PRIVATE_KEY: ${GOOGLE_WALLET_PRIVATE_KEY:-}
+      GOOGLE_WALLET_ORIGINS: ${GOOGLE_WALLET_ORIGINS:-}
+      APPLE_WALLET_PASS_TYPE_ID: ${APPLE_WALLET_PASS_TYPE_ID:-}
+      APPLE_WALLET_TEAM_ID: ${APPLE_WALLET_TEAM_ID:-}
+      APPLE_WALLET_CERT_PEM: ${APPLE_WALLET_CERT_PEM:-}
+      APPLE_WALLET_KEY_PEM: ${APPLE_WALLET_KEY_PEM:-}
+      APPLE_WALLET_WWDR_PEM: ${APPLE_WALLET_WWDR_PEM:-}
     expose:
       - '3002'
+    volumes:
+      # Apple pass artwork comes from the website's icons, same files the tab
+      # icon uses.
+      - ../apps/web/public:/app/apps/web/public:ro,z
 
   admin:
     build:

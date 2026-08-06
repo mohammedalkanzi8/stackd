@@ -113,6 +113,25 @@ h2 { font-size: 17px; margin: 0 0 10px; letter-spacing: -0.01em; }
 .member-qr svg { display: block; width: 100%; height: auto; }
 .member-code { font-size: 24px; letter-spacing: 0.22em; text-align: center; margin: 14px 0 0; font-weight: 700; }
 
+/* ---------- wallet buttons ----------
+   Deliberately plain: Apple and Google both restrict use of their official
+   "Add to Wallet" artwork, so this is a glyph beside honest text rather than a
+   reproduction of their badges. */
+.wallet-row {
+  display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  margin-block: 16px 12px;
+}
+.wallet-btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 9px 15px; border-radius: 10px;
+  background: #000; border: 1px solid var(--rule-strong);
+  color: #fff; text-decoration: none; line-height: 1.15;
+}
+.wallet-btn:hover { border-color: var(--dim); }
+.wallet-btn svg { width: 22px; height: 22px; flex: none; }
+.wallet-btn span { display: flex; flex-direction: column; font-weight: 700; font-size: 14px; }
+.wallet-btn small { font-weight: 500; font-size: 10.5px; opacity: 0.75; letter-spacing: 0.03em; }
+
 /* ---------- rewards ---------- */
 .reward { display: flex; gap: 14px; align-items: center; padding: 15px 0; border-block-end: 1px solid var(--rule); }
 .reward:last-child { border-block-end: 0; }

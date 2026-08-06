@@ -11,6 +11,13 @@ export const metadata: Metadata = {
   // The rooster, same as the website. A blank tab among several open STACKD
   // tabs is genuinely hard to find; the icon is what makes them distinguishable
   // at a glance during a shift.
+  // iOS does not read `display: standalone` from the manifest. Without this the
+  // saved icon opens in Safari with the full browser chrome.
+  appleWebApp: {
+    capable: true,
+    title: 'STACKD',
+    statusBarStyle: 'black-translucent',
+  },
   icons: {
     icon: [
       { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
@@ -23,6 +30,9 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: '#141512',
+  // The QR sits on a white card; a viewport that stops at the notch would crop
+  // it on some phones held up to a scanner.
+  viewportFit: 'cover',
   // Almost every visit is a phone, most of them scanning a QR in the shop.
   width: 'device-width',
   initialScale: 1,
