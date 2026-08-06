@@ -203,10 +203,11 @@ export const fontSize = {
  * in line with QSR norms and sustainable on food cost. Points accrue on the
  * pre-VAT net, so a 60 SAR ticket earns 52, not 60.
  *
- * Change `pointsPerRiyal` to 2 for a promo weekend; nothing else needs touching.
+ * Change `earnPercent` to 20 for a promo weekend; nothing else needs touching.
  */
 export const loyalty = {
-  pointsPerRiyal: 1,
+  // Percent of the bill returned as points. One point is one halala.
+  earnPercent: 10,
   signupBonus: 50,
   birthdayBonus: 100,
   expiryMonths: 12,

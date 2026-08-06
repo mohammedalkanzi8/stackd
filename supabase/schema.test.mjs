@@ -25,7 +25,7 @@ pg.types.setTypeParser(1082, (v) => v);
 
 import { connectionFor, DB_NAME } from '../scripts/db-reset.mjs';
 import { MENU } from '../packages/shared/src/menu.ts';
-import { pointsForOrder, splitVatInclusive } from '../packages/shared/src/money.ts';
+import { pointsForAmount, splitVatInclusive } from '../packages/shared/src/money.ts';
 
 const BRANCH = '00000000-0000-0000-0000-000000000001';
 const CUSTOMER_1 = 'c0000000-0000-0000-0000-000000000001';
@@ -175,11 +175,11 @@ dbTest('server-only tables have RLS on and deliberately no policy', async () => 
     where n.nspname = 'public'
       and c.relname in ('tax_invoices','invoice_counters','payments',
                         'pickup_code_counters','staff_credentials','order_claims',
-                        'customer_credentials')
+                        'customer_credentials','redemption_tokens')
     group by c.relname
     order by c.relname
   `);
-  assert.equal(rows.length, 7);
+  assert.equal(rows.length, 8);
   // Zero policies plus RLS on means deny-all except bypassrls. That is the
   // intended posture, so assert it rather than leaving it looking forgotten.
   for (const r of rows) {
@@ -269,7 +269,7 @@ dbTest('SQL and TypeScript compute the same points, for every price on the menu'
   for (const { gross, pts } of rows) {
     assert.equal(
       pts,
-      pointsForOrder(gross),
+      pointsForAmount(gross),
       `points disagree for ${gross} halalas — schema.sql and money.ts have drifted`,
     );
   }
@@ -317,9 +317,10 @@ dbTest('balance always equals the sum of the ledger', async () => {
     const order = await makeOrder({ gross: 6000 });
     const { rows: minted } = await db.query('select mint_loyalty_points($1) as pts', [order.id]);
 
-    // 60.00 SAR gross → 52.17 net → 52 points. Earned on the net, not the gross.
-    assert.equal(minted[0].pts, 52);
-    assert.equal(minted[0].pts, pointsForOrder(6000));
+    // 60.00 SAR paid → 10% → 600 points, worth 6.00 SAR back. One point is one
+    // halala, and the basis is the gross the customer actually handed over.
+    assert.equal(minted[0].pts, 600);
+    assert.equal(minted[0].pts, pointsForAmount(6000));
 
     const reward = (
       await db.query(`select id, points_cost from rewards where name_en = 'Free Sauce'`)
@@ -333,9 +334,9 @@ dbTest('balance always equals the sum of the ledger', async () => {
          from loyalty_balances b where b.customer_id = $1`,
       [CUSTOMER_1],
     );
-    assert.equal(rows[0].balance, 52 - reward.points_cost);
+    assert.equal(rows[0].balance, 600 - reward.points_cost);
     assert.equal(Number(rows[0].ledger_sum), rows[0].balance, 'cached balance drifted from the ledger');
-    assert.equal(rows[0].lifetime_earned, 52, 'a redemption must not reduce lifetime earned');
+    assert.equal(rows[0].lifetime_earned, 600, 'a redemption must not reduce lifetime earned');
   } finally {
     await rollbackNested();
   }
@@ -430,7 +431,7 @@ dbTest('a fixed points_award overrides the per-riyal rate, per line', async () =
 
     const { rows } = await db.query('select points_for_order($1) as pts', [order.id]);
     // The flat award ignores the 25.00 price entirely; the other line does not.
-    assert.equal(rows[0].pts, 200 + pointsForOrder(4800));
+    assert.equal(rows[0].pts, 200 + pointsForAmount(4800));
   });
 });
 
@@ -450,16 +451,16 @@ dbTest('an order with no line items still earns on its total', async () => {
     // nothing else. That must not silently earn zero.
     const order = await makeOrder({ customer: null, source: 'pos', gross: 6000 });
     const { rows } = await db.query('select points_for_order($1) as pts', [order.id]);
-    assert.equal(rows[0].pts, pointsForOrder(6000));
+    assert.equal(rows[0].pts, pointsForAmount(6000));
   });
 });
 
-dbTest('the earn rate is a setting, not a constant', async () => {
+dbTest('the earn percentage is a setting, not a constant', async () => {
   await withRollback(async () => {
     const order = await makeOrder({ customer: null, source: 'pos', gross: 6000 });
-    await db.query('update loyalty_settings set points_per_riyal = 2');
+    await db.query('update loyalty_settings set earn_percent = 20');
     const { rows } = await db.query('select points_for_order($1) as pts', [order.id]);
-    assert.equal(rows[0].pts, pointsForOrder(6000, 2));
+    assert.equal(rows[0].pts, pointsForAmount(6000, 20));
   });
 });
 
@@ -486,7 +487,7 @@ dbTest('claiming a bill QR credits the member and links the sale to them', async
     const claimed = (
       await db.query('select claim_order_points($1, $2) as pts', [token, CUSTOMER_2])
     ).rows[0].pts;
-    assert.equal(claimed, pointsForOrder(6000));
+    assert.equal(claimed, pointsForAmount(6000));
 
     const after = (
       await db.query(
@@ -534,6 +535,126 @@ dbTest('an order that already credited a member cannot also issue a QR', async (
     // again to whoever picks the receipt up off the table.
     await rejects('select issue_order_claim($1)', [order.id], 'already earned');
   });
+});
+
+// ---------------------------------------------------------------------------
+// 4c. Redemption QR: spending points at the counter
+// ---------------------------------------------------------------------------
+
+/** Credits a member by ringing up a POS ticket, the way the cashier scan does. */
+async function giveBalance(customerId, grossHalalas) {
+  const order = await makeOrder({ customer: customerId, source: 'pos', gross: grossHalalas });
+  await db.query('select mint_loyalty_points($1)', [order.id]);
+}
+
+dbTest('a redemption code is valid for exactly the configured window', async () => {
+  await withRollback(async () => {
+    await giveBalance(CUSTOMER_1, 11500);
+    const token = (
+      await db.query('select issue_redemption($1, $2) as t', [CUSTOMER_1, 400])
+    ).rows[0].t;
+
+    const row = (
+      await db.query(
+        `select points, extract(epoch from (expires_at - now()))::int as secs_left
+           from redemption_tokens where token = $1`,
+        [token],
+      )
+    ).rows[0];
+
+    assert.equal(row.points, 400);
+    // Three minutes: long enough to reach the front of a queue, short enough
+    // that a photograph of someone's screen is worthless by the time it is used.
+    assert.ok(row.secs_left > 170 && row.secs_left <= 180, `got ${row.secs_left}s`);
+    assert.match(token, /^[2-9A-HJ-NP-Z]{10}$/);
+  });
+});
+
+dbTest('generating a second code invalidates the first', async () => {
+  await withRollback(async () => {
+    await giveBalance(CUSTOMER_1, 11500);
+    const first = (await db.query('select issue_redemption($1, 400) as t', [CUSTOMER_1])).rows[0].t;
+    const second = (await db.query('select issue_redemption($1, 250) as t', [CUSTOMER_1])).rows[0].t;
+
+    assert.notEqual(first, second);
+    // Otherwise a customer could keep several screenshots and spend the same
+    // points more than once.
+    const live = await db.query(
+      'select token from redemption_tokens where customer_id = $1 and redeemed_at is null',
+      [CUSTOMER_1],
+    );
+    assert.deepEqual(live.rows.map((r) => r.token), [second]);
+  });
+});
+
+dbTest('scanning a code deducts the points and records who did it', async () => {
+  await withRollback(async () => {
+    await giveBalance(CUSTOMER_1, 11500); // 1150 points
+    const token = (await db.query('select issue_redemption($1, 400) as t', [CUSTOMER_1])).rows[0].t;
+
+    const out = (
+      await db.query('select * from redeem_points_token($1, $2)', [token, CASHIER])
+    ).rows[0];
+    assert.equal(out.points, 400);
+    assert.equal(out.member_code, 'DEV22222');
+
+    const bal = (
+      await db.query('select balance from loyalty_balances where customer_id = $1', [CUSTOMER_1])
+    ).rows[0].balance;
+    assert.equal(bal, 1150 - 400);
+
+    // Points are money. A dispute needs a name against the deduction.
+    const entry = (
+      await db.query(
+        `select t.delta, t.actor_id from loyalty_transactions t
+          where t.customer_id = $1 order by t.id desc limit 1`,
+        [CUSTOMER_1],
+      )
+    ).rows[0];
+    assert.equal(entry.delta, -400);
+    assert.equal(entry.actor_id, CASHIER);
+  });
+});
+
+dbTest('a code cannot be scanned twice', async () => {
+  await withRollback(async () => {
+    await giveBalance(CUSTOMER_1, 11500);
+    const token = (await db.query('select issue_redemption($1, 400) as t', [CUSTOMER_1])).rows[0].t;
+    await db.query('select redeem_points_token($1, $2)', [token, CASHIER]);
+    await rejects('select redeem_points_token($1, $2)', [token, CASHIER], 'already been taken off');
+  });
+});
+
+dbTest('an expired or unknown code is refused', async () => {
+  await withRollback(async () => {
+    await giveBalance(CUSTOMER_1, 11500);
+    const token = (await db.query('select issue_redemption($1, 400) as t', [CUSTOMER_1])).rows[0].t;
+    await db.query(`update redemption_tokens set expires_at = now() - interval '1 second'`);
+    await rejects('select redeem_points_token($1, $2)', [token, CASHIER], 'expired');
+    await rejects('select redeem_points_token($1, $2)', ['NOTATOKEN', CASHIER], 'not one of ours');
+  });
+});
+
+dbTest('a member cannot ask to spend more than they hold', async () => {
+  await withRollback(async () => {
+    await giveBalance(CUSTOMER_1, 11500); // 1150
+    await rejects('select issue_redemption($1, $2)', [CUSTOMER_1, 1151], 'insufficient points');
+    await rejects('select issue_redemption($1, $2)', [CUSTOMER_1, 0], 'how many points');
+  });
+});
+
+dbTest('one point is one halala, so a reward costs what the item costs', async () => {
+  const { rows } = await db.query(
+    `select name_en, points_cost, discount_amount from rewards order by points_cost`,
+  );
+  for (const r of rows) {
+    // The whole reason for the 1:1 choice: nobody has to be told a rate.
+    assert.equal(
+      r.points_cost,
+      r.discount_amount,
+      `${r.name_en} costs ${r.points_cost} points but is worth ${r.discount_amount} halalas`,
+    );
+  }
 });
 
 // ---------------------------------------------------------------------------

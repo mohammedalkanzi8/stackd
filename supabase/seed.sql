@@ -244,14 +244,19 @@ from menu_items mi join categories c on c.id = mi.category_id
 where c.slug in ('burgers', 'giants');
 
 -- ---------------------------------------------------------------------------
--- Rewards — tuned to ~7% effective return at 1 pt/SAR
+-- Rewards
 --
--- Points are earned on the pre-VAT net, so a 60 SAR ticket earns 52, not 60.
+-- ONE POINT IS ONE HALALA, so a reward costs exactly what the item costs. Free
+-- Fries is 9.00 SAR, therefore 900 points. Nothing to tune and nothing to
+-- explain: a customer who can read the menu can read the reward price.
+--
+-- These exist alongside spending points directly off a bill. They are the
+-- shortcut for the obvious things, not the only way to spend.
 -- ---------------------------------------------------------------------------
 
 insert into rewards (name_en, name_ar, points_cost, discount_amount) values
-  ('Free Sauce',          'صلصة مجانية',        50,  300),
-  ('Free Coleslaw',       'كول سلو مجاني',      90,  400),
-  ('Free Fries',          'بطاطس مجانية',      130,  900),
-  ('Free Chicken Strips', 'ستربس دجاج مجاني',  330, 2300),
-  ('Free Classic-Stackd', 'كلاسيك ستاكد مجاني',380, 2700);
+  ('Free Sauce',          'صلصة مجانية',        300,  300),
+  ('Free Coleslaw',       'كول سلو مجاني',      400,  400),
+  ('Free Fries',          'بطاطس مجانية',       900,  900),
+  ('Free Chicken Strips', 'ستربس دجاج مجاني',  2300, 2300),
+  ('Free Classic-Stackd', 'كلاسيك ستاكد مجاني',2700, 2700);

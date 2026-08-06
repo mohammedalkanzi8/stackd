@@ -217,6 +217,21 @@ button.primary:hover { filter: brightness(1.08); }
 button.quiet { background: transparent; border-color: transparent; color: var(--dim); }
 button.quiet:hover { background: var(--chip); color: var(--text); }
 
+/* ---------- scanner ---------- */
+.scan-form { display: flex; flex-direction: column; gap: 6px; }
+.scan-row { display: flex; gap: 8px; }
+.scan-row input {
+  flex: 1; font-size: 22px; font-weight: 700; text-align: center;
+  letter-spacing: 0.14em; text-transform: uppercase; padding-block: 10px;
+}
+.scan-row button { padding-inline: 18px; }
+.scan-video { margin-block-start: 14px; text-align: center; }
+.scan-video video {
+  width: 100%; max-width: 420px; border-radius: 10px;
+  border: 1px solid var(--rule-strong); background: #000;
+}
+.scan-video p { font-size: 13px; margin-block-start: 8px; }
+
 /* ---------- tables ---------- */
 .table-wrap { overflow-x: auto; }
 table.data { width: 100%; border-collapse: collapse; font-size: 14px; }

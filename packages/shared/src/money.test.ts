@@ -5,7 +5,8 @@ import {
   formatPrice,
   splitVatInclusive,
   addVat,
-  pointsForOrder,
+  pointsForAmount,
+  pointsToHalalas,
   VAT_RATE,
 } from './money.ts';
 import { MENU, allItems } from './menu.ts';
@@ -58,18 +59,29 @@ test('addVat is the inverse direction', () => {
   assert.equal(VAT_RATE, 0.15);
 });
 
-test('points are earned on the net, not the VAT', () => {
-  // 65 SAR gross -> 56.52 net -> 56 points, not 65.
-  assert.equal(pointsForOrder(6500), 56);
-  // A single classic burger: 27 gross -> 23.48 net -> 23 points
-  assert.equal(pointsForOrder(2700), 23);
-  // Double-point promo
-  assert.equal(pointsForOrder(2700, 2), 46);
+test('points are 10% of what was actually paid', () => {
+  // One point is one halala, so 10% of the gross IS the value handed back.
+  // A 115.00 SAR bill earns 1150 points, worth 11.50 SAR.
+  assert.equal(pointsForAmount(11500), 1150);
+  // A single classic burger at 27.00 SAR earns 270 points, worth 2.70 SAR.
+  assert.equal(pointsForAmount(2700), 270);
+  // VAT is deliberately NOT extracted first: the customer has to be able to
+  // check the figure against the total printed on their own receipt.
+  assert.equal(pointsForAmount(10000), 1000);
+  // A promotional rate is just a different percentage.
+  assert.equal(pointsForAmount(2700, 20), 540);
+});
+
+test('a point is worth a halala, so rewards price themselves', () => {
+  // The whole reason for the 1:1 choice: Free Fries costs 9.00 SAR, therefore
+  // 900 points, and nobody has to be told an exchange rate.
+  assert.equal(pointsToHalalas(900), 900);
+  assert.equal(formatAmount(pointsToHalalas(900)), '9');
 });
 
 test('points never go negative or fractional', () => {
   for (const item of allItems()) {
-    const p = pointsForOrder(item.price);
+    const p = pointsForAmount(item.price);
     assert.ok(Number.isInteger(p), `${item.nameEn} produced ${p}`);
     assert.ok(p >= 0);
   }

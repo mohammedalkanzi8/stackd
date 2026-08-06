@@ -10,8 +10,8 @@ export default async function SignupQrPage() {
 
   const url = registrationUrl();
   const qr = await qrSvg(url);
-  const settings = await queryOne<{ signup_bonus: number; points_per_riyal: string }>(
-    'select signup_bonus, points_per_riyal from loyalty_settings',
+  const settings = await queryOne<{ signup_bonus: number; earn_percent: string }>(
+    'select signup_bonus, earn_percent from loyalty_settings',
   );
 
   const pointsOnLocalhost = url.includes('localhost');
@@ -40,8 +40,8 @@ export default async function SignupQrPage() {
         </p>
         <p className="muted" style={{ textAlign: 'center', fontSize: 14, marginBlockStart: 0 }}>
           {settings && settings.signup_bonus > 0
-            ? `${settings.signup_bonus} points just for joining, then ${Number(settings.points_per_riyal)} per riyal.`
-            : `Earn ${Number(settings?.points_per_riyal ?? 1)} point for every riyal you spend.`}
+            ? `${settings.signup_bonus} points just for joining, then ${Number(settings.earn_percent)}% back on every bill.`
+            : `Get ${Number(settings?.earn_percent ?? 10)}% of every bill back as points.`}
         </p>
         <p className="mono muted" style={{ textAlign: 'center', fontSize: 12, wordBreak: 'break-all' }}>
           {url}

@@ -5,6 +5,7 @@ import { formatSar, qrSvg, query, queryOne, walletOptions } from '@stackd/server
 import { SubmitButton } from '../SubmitButton.tsx';
 import { IconPoints, IconQr, IconRewards, IconSignOut } from '../NavIcons.tsx';
 import { InstallButton } from '../InstallButton.tsx';
+import { RedeemPanel, type ActiveCode } from './RedeemPanel.tsx';
 import { currentMember, endSession } from '@/lib/session.ts';
 
 export const metadata = { title: 'Your points · STACKD Rewards' };
@@ -66,6 +67,55 @@ async function redeem(formData: FormData): Promise<void> {
   redirect('/points?claimed=1');
 }
 
+/**
+ * Creates a redemption code for the chosen number of points.
+ *
+ * The points are NOT deducted here. issue_redemption only reserves the amount;
+ * the ledger is written when the cashier scans. An abandoned code therefore
+ * costs the customer nothing, which matters because most of them will be.
+ */
+async function issueCode(formData: FormData): Promise<void> {
+  'use server';
+
+  const member = await currentMember();
+  if (!member) redirect('/login');
+
+  const points = Number(String(formData.get('points') ?? ''));
+  if (!Number.isInteger(points) || points < 1) {
+    redirect(`/points?error=${encodeURIComponent('Choose how many points to spend.')}`);
+  }
+
+  try {
+    await queryOne('select issue_redemption($1, $2)', [member.id, points]);
+  } catch (err) {
+    if (err && typeof err === 'object' && 'digest' in err) throw err;
+    const raw = err instanceof Error ? err.message.replace(/^[^:]*:\s*/, '') : '';
+    redirect(
+      `/points?error=${encodeURIComponent(
+        raw.startsWith('insufficient points')
+          ? `You only have ${member.balance} points.`
+          : raw || 'Could not create a code.',
+      )}`,
+    );
+  }
+
+  revalidatePath('/points');
+  redirect('/points#redeem');
+}
+
+/** Throws the live code away, so a new one can be made. */
+async function cancelCode(): Promise<void> {
+  'use server';
+
+  const member = await currentMember();
+  if (!member) redirect('/login');
+  await query('delete from redemption_tokens where customer_id = $1 and redeemed_at is null', [
+    member.id,
+  ]);
+  revalidatePath('/points');
+  redirect('/points#redeem');
+}
+
 async function signOut(): Promise<void> {
   'use server';
   await endSession();
@@ -107,8 +157,25 @@ export default async function PointsPage({
   // scanner reads a string and looks it up, and a URL would just be noise.
   const qr = await qrSvg(member.memberCode);
 
-  // Both buttons stay hidden until their credentials exist. A pass that cannot
-  // be signed is worse than no button: it fails silently in the customer's hand.
+  // A live redemption code, if one exists and has not expired. Expired rows are
+  // left for the next issue() to clear rather than deleted on read, so a GET
+  // never writes.
+  const live = await queryOne<{ token: string; points: number; expires_at: Date }>(
+    `select token, points, expires_at from redemption_tokens
+      where customer_id = $1 and redeemed_at is null and expires_at > now()`,
+    [member.id],
+  );
+  const activeCode: ActiveCode | null = live
+    ? {
+        token: live.token,
+        points: live.points,
+        qrSvg: await qrSvg(live.token),
+        expiresAt: new Date(live.expires_at).toISOString(),
+      }
+    : null;
+
+  // Both wallet buttons stay hidden until their credentials exist. A pass that
+  // cannot be signed is worse than no button: it fails silently in the hand.
   const wallet = walletOptions({
     memberCode: member.memberCode,
     fullName: member.fullName,
@@ -204,8 +271,22 @@ export default async function PointsPage({
           <InstallButton />
         </div>
 
+        <div className="card" id="redeem" style={{ marginBlockStart: 18 }}>
+          <h2>Spend points off your bill</h2>
+          <p className="muted" style={{ fontSize: 13.5, marginBlockStart: 0 }}>
+            Choose an amount, show the code to the cashier, and it comes straight
+            off what you owe. 100 points is 1.00 SAR.
+          </p>
+          <RedeemPanel
+            balance={member.balance}
+            active={activeCode}
+            issue={issueCode}
+            cancel={cancelCode}
+          />
+        </div>
+
         <div className="card" id="rewards" style={{ marginBlockStart: 18 }}>
-          <h2>Swap your points</h2>
+          <h2>Or swap them for an item</h2>
           {rewards.length === 0 ? (
             <p className="empty">No rewards available right now.</p>
           ) : (

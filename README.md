@@ -166,6 +166,7 @@ Sign in with `owner@stackd.local` / `stackd-dev` — one of three fixtures seede
 | Page | Does |
 |---|---|
 | Overview | Points outstanding, members, recent ledger movements |
+| **Scan** | **The counter: give points for a bill, or take points off one** |
 | Orders | The day's trade; per-order detail and the bill QR |
 | Members | Look up by code, name or phone; view the ledger; adjust points; sign someone up |
 | Points | Earn rate, expiry, sign-up bonus, and a fixed award per dish |
@@ -173,16 +174,30 @@ Sign in with `owner@stackd.local` / `stackd-dev` — one of three fixtures seede
 | Menu | Prices, calories, spicy flag, availability, and item photos |
 | Staff | Add people, change roles, reset passwords, deactivate (owner only) |
 
-### How points are earned
+### How points work
 
-Every riyal spent earns at the rate on the **Points** page, calculated on the
-pre-VAT net. Any dish can override that with a fixed award — a Scoopy-Doo can be
+**One point is one halala.** 100 points is 1.00 SAR off a bill, so a reward's
+cost in points is simply its price in halalas and nobody has to be told a rate.
+
+**Earning is 10% of the bill**, VAT included, on the total actually paid — the
+figure printed on the receipt, so a customer can check it. A 115.00 SAR bill
+earns 1150 points, worth 11.50 SAR back.
+
+Points are spent two ways, and both exist deliberately: **any amount off a
+bill** via a three-minute QR, or **swapped for an item** from the reward
+catalogue. The catalogue is the shortcut for the obvious things, not the only
+route.
+
+Any dish can override the percentage with a fixed award — a Scoopy-Doo can be
 worth exactly 200 points whatever it costs, which is how you push one item
-without discounting it. Blank means "earn by value"; `0` means "earns nothing",
-and those are not the same thing.
+without discounting it. Blank means "earn by the rate"; `0` means "earns
+nothing", and those are not the same thing.
 
 An order with no line items falls back to its ticket total, because every POS
 integration until someone writes one sends a total and nothing else.
+
+**The counter workflow is [`docs/COUNTER.md`](docs/COUNTER.md)** — how a cashier
+gives and takes points, and what to do when a code expires.
 
 ### The bill QR
 

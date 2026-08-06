@@ -161,6 +161,28 @@ h2 { font-size: 17px; margin: 0 0 10px; letter-spacing: -0.01em; }
 .reward .cost { font-size: 13px; color: var(--dim); }
 .reward.locked { opacity: 0.55; }
 
+/* ---------- redeem ---------- */
+.redeem-form { display: flex; flex-direction: column; gap: 10px; }
+.redeem-input { display: flex; gap: 8px; }
+.redeem-input input { flex: 1; font-size: 20px; font-weight: 700; text-align: center;
+  font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+.redeem-all { flex: 0 0 auto; padding-inline: 18px; font-size: 14px; }
+.redeem-worth { margin: 0; text-align: center; font-size: 14px; color: var(--dim); }
+.redeem-worth b { color: var(--text); }
+
+.redeem-live { text-align: center; }
+.redeem-instruction { font-size: 14.5px; color: var(--dim); margin: 0 0 14px; }
+.redeem-instruction b { color: var(--text); }
+/* Counts down in place. Turns red under 30s, because the useful information at
+   that point is "hurry", not the exact number of seconds. */
+.redeem-timer { margin: 12px 0 6px; font-size: 15px; font-weight: 700; color: var(--dim);
+  font-variant-numeric: tabular-nums; }
+.redeem-timer.urgent { color: var(--red); }
+.redeem-expired { text-align: center; }
+.redeem-expired p { color: var(--dim); font-size: 14.5px; margin-block-start: 0; }
+
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+
 /* ---------- ledger ---------- */
 .entry { display: flex; justify-content: space-between; gap: 14px; padding: 11px 0; border-block-end: 1px solid var(--rule); font-size: 14.5px; }
 .entry:last-child { border-block-end: 0; }

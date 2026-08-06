@@ -23,11 +23,12 @@ import { signOut } from './actions.ts';
 
 const NAV = [
   { href: '/', label: 'Overview', Icon: IconOverview },
+  { href: '/scan', label: 'Scan', Icon: IconQr },
   { href: '/orders', label: 'Orders', Icon: IconOrders },
   { href: '/members', label: 'Members', Icon: IconMembers },
   { href: '/points', label: 'Points', Icon: IconPoints },
   { href: '/rewards', label: 'Rewards', Icon: IconRewards },
-  { href: '/signup-qr', label: 'Signup QR', Icon: IconQr },
+  { href: '/signup-qr', label: 'Signup QR', Icon: IconStaff },
   { href: '/menu', label: 'Menu', Icon: IconMenu },
 ];
 

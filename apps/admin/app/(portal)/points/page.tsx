@@ -8,9 +8,10 @@ export const metadata = { title: 'Points · STACKD admin' };
 export const dynamic = 'force-dynamic';
 
 interface Settings {
-  points_per_riyal: string;
+  earn_percent: string;
   expiry_months: number;
   claim_window_days: number;
+  redeem_window_secs: number;
   signup_bonus: number;
 }
 
@@ -40,21 +41,27 @@ async function saveSettings(formData: FormData): Promise<void> {
   'use server';
   await requireRole(...MANAGERIAL);
 
-  const rate = Number(String(formData.get('pointsPerRiyal') ?? '').trim());
+  const percent = Number(String(formData.get('earnPercent') ?? '').trim());
   const expiry = Number(String(formData.get('expiryMonths') ?? '').trim());
   const claimDays = Number(String(formData.get('claimWindowDays') ?? '').trim());
+  const redeemSecs = Number(String(formData.get('redeemWindowSecs') ?? '').trim());
   const signup = Number(String(formData.get('signupBonus') ?? '').trim());
 
-  if (!Number.isFinite(rate) || rate < 0) fail('Points per riyal must be zero or more.');
+  if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+    fail('The earn rate must be a percentage between 0 and 100.');
+  }
   if (!Number.isInteger(expiry) || expiry < 1) fail('Expiry must be at least one month.');
   if (!Number.isInteger(claimDays) || claimDays < 1) fail('The claim window must be at least a day.');
+  if (!Number.isInteger(redeemSecs) || redeemSecs < 30 || redeemSecs > 3600) {
+    fail('A redemption code must last between 30 seconds and an hour.');
+  }
   if (!Number.isInteger(signup) || signup < 0) fail('The sign-up bonus cannot be negative.');
 
   await query(
     `update loyalty_settings
-        set points_per_riyal = $1, expiry_months = $2,
-            claim_window_days = $3, signup_bonus = $4, updated_at = now()`,
-    [rate, expiry, claimDays, signup],
+        set earn_percent = $1, expiry_months = $2, claim_window_days = $3,
+            redeem_window_secs = $4, signup_bonus = $5, updated_at = now()`,
+    [percent, expiry, claimDays, redeemSecs, signup],
   );
   done('Programme settings saved.');
 }
@@ -105,7 +112,7 @@ export default async function PointsPage({
   const items = await query<ItemRow>(`
     select mi.id, mi.slug, mi.name_en, mi.price, mi.points_award,
            c.name_en as category, c.slug as category_slug,
-           points_for_amount(mi.price, 0.15, s.points_per_riyal) as by_value
+           points_for_amount(mi.price, s.earn_percent) as by_value
       from menu_items mi
       join categories c on c.id = mi.category_id
       cross join loyalty_settings s
@@ -140,15 +147,18 @@ export default async function PointsPage({
           <form action={saveSettings} className="stack">
             <div className="row">
               <div className="field field-sm">
-                <label htmlFor="pointsPerRiyal">Points per riyal</label>
+                <label htmlFor="earnPercent">
+                  Earn rate <span className="hint">% of the bill</span>
+                </label>
                 <input
-                  id="pointsPerRiyal"
-                  name="pointsPerRiyal"
+                  id="earnPercent"
+                  name="earnPercent"
                   type="number"
-                  step="0.25"
+                  step="0.5"
                   min="0"
+                  max="100"
                   required
-                  defaultValue={Number(settings.points_per_riyal)}
+                  defaultValue={Number(settings.earn_percent)}
                 />
               </div>
               <div className="field field-sm">
@@ -191,23 +201,41 @@ export default async function PointsPage({
                   defaultValue={settings.claim_window_days}
                 />
               </div>
+              <div className="field field-sm">
+                <label htmlFor="redeemWindowSecs">
+                  Redeem QR lasts <span className="hint">seconds</span>
+                </label>
+                <input
+                  id="redeemWindowSecs"
+                  name="redeemWindowSecs"
+                  type="number"
+                  step="30"
+                  min="30"
+                  max="3600"
+                  required
+                  defaultValue={settings.redeem_window_secs}
+                />
+              </div>
               <button type="submit" className="primary">
                 Save
               </button>
             </div>
             <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              At {Number(settings.points_per_riyal)} per riyal a {formatSar(6000)} ticket
-              earns{' '}
-              <b>{Math.floor((6000 - Math.round(6000 - 6000 / 1.15)) / 100 * Number(settings.points_per_riyal))}</b>{' '}
-              points, on the net, not the gross.
+              <b>One point is one halala.</b> At {Number(settings.earn_percent)}% a{' '}
+              {formatSar(11500)} bill earns{' '}
+              <b>{Math.floor((11500 * Number(settings.earn_percent)) / 100)}</b> points,
+              worth {formatSar(Math.floor((11500 * Number(settings.earn_percent)) / 100))}{' '}
+              off a later bill. The basis is the total paid, VAT included, so a
+              customer can check it against their own receipt.
             </p>
           </form>
         ) : (
           <p className="muted">
-            {Number(settings.points_per_riyal)} per riyal · expires after{' '}
+            {Number(settings.earn_percent)}% back · expires after{' '}
             {settings.expiry_months} months idle · bill QR lasts{' '}
-            {settings.claim_window_days} days. Only a manager or the owner can change
-            these.
+            {settings.claim_window_days} days · redeem QR lasts{' '}
+            {settings.redeem_window_secs} seconds. Only a manager or the owner can
+            change these.
           </p>
         )}
       </div>

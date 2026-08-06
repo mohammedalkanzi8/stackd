@@ -46,8 +46,23 @@ export function addVat(net: number): { net: number; vat: number; gross: number }
   return { net, vat, gross: net + vat };
 }
 
-/** Loyalty points for an order. Earned on the pre-VAT net, floor-rounded. */
-export function pointsForOrder(grossHalalas: number, pointsPerRiyal = 1): number {
-  const { net } = splitVatInclusive(grossHalalas);
-  return Math.floor((net / 100) * pointsPerRiyal);
+/**
+ * Loyalty points for an amount paid.
+ *
+ * ONE POINT IS ONE HALALA, so this is simply a percentage of the gross. VAT is
+ * deliberately not extracted first: the earn basis is the total printed on the
+ * receipt, so a customer can check it themselves. At 10% a 115.00 SAR bill
+ * earns 1150 points, worth 11.50 SAR back.
+ *
+ * Mirrored by points_for_amount() in supabase/schema.sql. The two are asserted
+ * equal for every menu price in supabase/schema.test.mjs — change one and that
+ * test tells you about the other.
+ */
+export function pointsForAmount(grossHalalas: number, earnPercent = 10): number {
+  return Math.floor((grossHalalas * earnPercent) / 100);
+}
+
+/** What a points balance is worth off a bill. One point, one halala. */
+export function pointsToHalalas(points: number): number {
+  return points;
 }

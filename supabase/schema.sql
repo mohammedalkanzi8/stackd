@@ -628,7 +628,20 @@ create table rewards (
 -- happened to read first.
 create table loyalty_settings (
   id                 boolean primary key default true check (id),
-  points_per_riyal   numeric(6,2) not null default 1 check (points_per_riyal >= 0),
+  -- ONE POINT IS ONE HALALA. 100 points buy 1.00 SAR off a bill.
+  --
+  -- That equivalence is the whole design: a reward's cost in points is simply
+  -- its price in halalas, and a customer can check the maths on their own
+  -- receipt without being told an exchange rate.
+  --
+  -- Earning is this percentage of the total PAID, VAT included, because that is
+  -- the figure printed on the receipt. At 10.00 a 115.00 SAR bill earns 1150
+  -- points, worth 11.50 SAR — a true 10% back.
+  earn_percent       numeric(5,2) not null default 10.00
+                       check (earn_percent >= 0 and earn_percent <= 100),
+  -- How long a redemption QR stays valid. Short on purpose: it is a bearer
+  -- token for real money, shown on a screen at a counter.
+  redeem_window_secs int not null default 180 check (redeem_window_secs between 30 and 3600),
   -- Months of inactivity before a balance lapses. See expire_stale_points().
   expiry_months      int not null default 12 check (expiry_months > 0),
   -- How long a bill QR stays claimable. Long enough to find the receipt in a
@@ -741,15 +754,23 @@ create trigger loyalty_tx_apply
 -- and a mismatch there is a support ticket every time. supabase/schema.test.mjs
 -- asserts the two agree for every price on the menu; if you change one, that
 -- test is what tells you about the other.
+/**
+ * Points earned on a gross amount, in halalas.
+ *
+ * A straight percentage of what the customer paid. VAT is deliberately NOT
+ * extracted first: the earn basis is the total on the receipt, so the customer
+ * can reproduce the figure themselves. Extracting VAT would be marginally
+ * cheaper and would make the number unverifiable at the counter, which is a bad
+ * trade for a few halalas.
+ *
+ * Floored, so the shop never owes a fraction of a point.
+ */
 create or replace function points_for_amount(
-  p_gross          int,
-  p_vat_rate       numeric default 0.15,
-  p_points_per_riyal numeric default 1
+  p_gross        int,
+  p_earn_percent numeric default 10.00
 ) returns int
 language sql immutable as $$
-  select floor(
-    ((p_gross - round(p_gross - p_gross / (1 + p_vat_rate))) / 100.0) * p_points_per_riyal
-  )::int
+  select floor(p_gross * p_earn_percent / 100.0)::int
 $$;
 
 -- What an order earns, line by line.
@@ -769,24 +790,23 @@ $$;
 create or replace function points_for_order(p_order_id uuid)
 returns int
 language sql stable as $$
-  with s as (select points_per_riyal from loyalty_settings),
-       o as (select grand_total, vat_rate from orders where id = p_order_id),
+  with s as (select earn_percent from loyalty_settings),
+       o as (select grand_total from orders where id = p_order_id),
        lines as (
          select case
                   when mi.points_award is not null then mi.points_award * oi.quantity
-                  else points_for_amount(oi.line_total, o.vat_rate, s.points_per_riyal)
+                  else points_for_amount(oi.line_total, s.earn_percent)
                 end as pts
          from order_items oi
          -- left join: menu_item_id is nullable, because an item can be deleted
          -- long after the order that sold it. Those lines earn by value.
          left join menu_items mi on mi.id = oi.menu_item_id
-         cross join o
          cross join s
          where oi.order_id = p_order_id
        )
   select coalesce(
     (select sum(pts)::int from lines),
-    (select points_for_amount(o.grand_total, o.vat_rate, s.points_per_riyal) from o, s),
+    (select points_for_amount(o.grand_total, s.earn_percent) from o, s),
     0
   )
 $$;
@@ -895,6 +915,131 @@ begin
   )
   select count(*) into n from inserted;
   return n;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Redemption QR: spending points at the counter
+--
+-- The customer chooses an amount in the portal and gets a QR. The cashier scans
+-- it, the points come off, and the till takes that much off the bill.
+--
+-- This is a bearer token for REAL MONEY, displayed on a screen in a public
+-- place, so it is deliberately short-lived and single-use. Three minutes is
+-- long enough to reach the front of a queue and short enough that a photograph
+-- of someone's screen is worthless by the time it is used.
+--
+-- The points are NOT deducted when the token is issued. Deducting up front
+-- means an abandoned redemption silently costs the customer their balance, and
+-- there is no moment at which anyone would notice. They come off when the
+-- cashier scans, and only then.
+-- ---------------------------------------------------------------------------
+
+create table redemption_tokens (
+  -- 10 characters from the same unambiguous alphabet as everything else here,
+  -- so it can be read aloud when a scanner will not cooperate.
+  token       text primary key,
+  customer_id uuid not null references customers(id) on delete cascade,
+  points      int  not null check (points > 0),
+  expires_at  timestamptz not null,
+  redeemed_at timestamptz,
+  -- Which staff member scanned it. Points are money; a dispute needs a name.
+  redeemed_by uuid references staff(id),
+  created_at  timestamptz not null default now(),
+
+  constraint redemption_is_whole
+    check ((redeemed_at is null) = (redeemed_by is null))
+);
+
+create index redemption_tokens_customer on redemption_tokens (customer_id, created_at desc);
+-- Only one live token per customer at a time. Generating a second must invalidate
+-- the first, or a customer could stack several screenshots and spend the same
+-- points repeatedly.
+create unique index redemption_one_live_per_customer
+  on redemption_tokens (customer_id)
+  where redeemed_at is null;
+
+/**
+ * Issues a redemption QR for a customer.
+ *
+ * Any earlier unredeemed token for that customer is deleted first, so exactly
+ * one code is ever live. Balance is checked here for a clean error, and again
+ * at redemption because the balance can move in between.
+ */
+create or replace function issue_redemption(p_customer_id uuid, p_points int)
+returns text
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  bal    int;
+  secs   int;
+  tok    text;
+begin
+  if p_points is null or p_points <= 0 then
+    raise exception 'choose how many points to spend';
+  end if;
+
+  select balance into bal from loyalty_balances
+   where customer_id = p_customer_id for update;
+
+  if coalesce(bal, 0) < p_points then
+    raise exception 'insufficient points: have %, asked for %', coalesce(bal, 0), p_points;
+  end if;
+
+  -- Superseded, not kept. An old code left valid is a second way to spend.
+  delete from redemption_tokens
+   where customer_id = p_customer_id and redeemed_at is null;
+
+  select redeem_window_secs into secs from loyalty_settings;
+
+  loop
+    tok := generate_claim_token();
+    begin
+      insert into redemption_tokens (token, customer_id, points, expires_at)
+      values (tok, p_customer_id, p_points, now() + make_interval(secs => secs));
+      return tok;
+    exception when unique_violation then
+      -- Token collision only. Try again.
+    end;
+  end loop;
+end $$;
+
+/**
+ * Spends a redemption token. Called by the cashier's scanner.
+ *
+ * Locks the token, so two tills scanning the same screen at once means the
+ * second one waits and then finds it spent. Returns the amount so the till can
+ * be told what to take off.
+ */
+create or replace function redeem_points_token(p_token text, p_staff_id uuid)
+returns table (points int, customer_id uuid, customer_name text, member_code text)
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare t redemption_tokens%rowtype;
+begin
+  select * into t from redemption_tokens
+   where token = upper(trim(p_token)) for update;
+
+  if not found then
+    raise exception 'that code is not one of ours';
+  end if;
+  if t.redeemed_at is not null then
+    raise exception 'those points have already been taken off a bill';
+  end if;
+  if t.expires_at < now() then
+    raise exception 'that code expired, ask them to generate a new one';
+  end if;
+
+  update redemption_tokens
+     set redeemed_at = now(), redeemed_by = p_staff_id
+   where token = t.token;
+
+  -- The ledger write is what actually spends them, and the balance check
+  -- constraint is the backstop if the balance moved since the code was issued.
+  insert into loyalty_transactions (customer_id, delta, reason, actor_id, note)
+  values (t.customer_id, -t.points, 'manual_adjust', p_staff_id,
+          format('Redeemed %s points at the counter', t.points));
+
+  return query
+    select t.points, t.customer_id, c.full_name, c.member_code
+    from customers c where c.id = t.customer_id;
 end $$;
 
 -- ---------------------------------------------------------------------------
@@ -1126,6 +1271,7 @@ alter table pickup_code_counters      enable row level security;
 alter table rewards                   enable row level security;
 alter table loyalty_settings          enable row level security;
 alter table order_claims              enable row level security;
+alter table redemption_tokens         enable row level security;
 alter table loyalty_transactions      enable row level security;
 alter table loyalty_balances          enable row level security;
 alter table invoice_counters          enable row level security;
@@ -1241,6 +1387,8 @@ revoke all on function expire_stale_points(int)           from public;
 revoke all on function redeem_reward(uuid, uuid)          from public;
 revoke all on function next_invoice_number(uuid, timestamptz) from public;
 revoke all on function next_pickup_code(uuid, date)       from public;
+revoke all on function issue_redemption(uuid, int)         from public;
+revoke all on function redeem_points_token(text, uuid)     from public;
 revoke all on function issue_order_claim(uuid)            from public;
 revoke all on function claim_order_points(text, uuid)     from public;
 
@@ -1249,6 +1397,8 @@ grant execute on function expire_stale_points(int)           to service_role;
 grant execute on function redeem_reward(uuid, uuid)          to service_role;
 grant execute on function next_invoice_number(uuid, timestamptz) to service_role;
 grant execute on function next_pickup_code(uuid, date)       to service_role;
+grant execute on function issue_redemption(uuid, int)         to service_role;
+grant execute on function redeem_points_token(text, uuid)     to service_role;
 grant execute on function issue_order_claim(uuid)            to service_role;
 grant execute on function claim_order_points(text, uuid)     to service_role;
 
@@ -1261,7 +1411,7 @@ grant execute on function claim_order_points(text, uuid)     to service_role;
 -- Safe for clients: read-only, and they can already see the branch.
 grant execute on function is_branch_open(uuid, timestamptz) to anon, authenticated;
 grant execute on function riyadh_service_date(timestamptz)  to anon, authenticated;
-grant execute on function points_for_amount(int, numeric, numeric) to anon, authenticated;
+grant execute on function points_for_amount(int, numeric)    to anon, authenticated;
 grant execute on function points_for_order(uuid)            to authenticated;
 
 -- Staff-facing, and gated internally on the caller being active staff.

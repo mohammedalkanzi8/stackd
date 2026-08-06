@@ -86,8 +86,8 @@ export default async function RegistrationPage({
   if (await currentMember()) redirect('/points');
   const { error, fullName = '', email = '', phone = '' } = await searchParams;
 
-  const settings = await queryOne<{ signup_bonus: number; points_per_riyal: string }>(
-    'select signup_bonus, points_per_riyal from loyalty_settings',
+  const settings = await queryOne<{ signup_bonus: number; earn_percent: string }>(
+    'select signup_bonus, earn_percent from loyalty_settings',
   );
   const bonus = settings?.signup_bonus ?? 0;
 
@@ -98,8 +98,8 @@ export default async function RegistrationPage({
         <h1>Join and start earning</h1>
         <p className="lede">
           {bonus > 0
-            ? `${bonus} points the moment you sign up, then ${Number(settings?.points_per_riyal ?? 1)} for every riyal you spend.`
-            : `Earn ${Number(settings?.points_per_riyal ?? 1)} point for every riyal you spend, and swap them for food.`}
+            ? `${bonus} points the moment you sign up, then ${Number(settings?.earn_percent ?? 10)}% of every bill back as points.`
+            : `Get ${Number(settings?.earn_percent ?? 10)}% of every bill back as points, then spend them off a later one.`}
         </p>
 
         {error ? <div className="banner bad">{error}</div> : null}
