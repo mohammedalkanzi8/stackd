@@ -23,7 +23,15 @@ services:
       # Postgres only reads these on a FIRST run against an empty volume.
       POSTGRES_INITDB_ARGS: '--data-checksums'
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # ⚠ /var/lib/postgresql, NOT /var/lib/postgresql/data.
+      #
+      # Postgres 18 changed the convention: the image now stores the cluster in a
+      # major-version subdirectory (/var/lib/postgresql/18/...) so that
+      # `pg_upgrade --link` can work across versions without crossing a mount
+      # boundary. Mounting the old `/data` path makes the entrypoint refuse to
+      # start and restart-loop, complaining about data "in an unused
+      # mount/volume". Every pre-18 example on the internet shows the old path.
+      - pgdata:/var/lib/postgresql
       # Applied in filename order, once, when the volume is empty. The platform
       # shim MUST come first: schema.sql references auth.users, which it creates.
       # Dev fixtures are deliberately absent — no fake staff in production.
