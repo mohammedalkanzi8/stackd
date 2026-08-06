@@ -68,7 +68,11 @@ COPY --from=builder --chown=nextjs:nodejs /repo/apps/${APP}/.next/standalone ./
 # them copied alongside, and without this every page loads with no CSS or JS.
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/${APP}/.next/static ./apps/${APP}/.next/static
 
-# The admin portal reads menu photos out of the website's public folder.
+# `output: 'standalone'` does not include public/ — Next expects it copied in.
+# Without this the favicon 404s and the tab stays blank.
+COPY --from=builder --chown=nextjs:nodejs /repo/apps/${APP}/public ./apps/${APP}/public
+
+# The admin portal also reads menu photos out of the website's public folder.
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/public ./apps/web/public
 
 # server.js sits inside the app's own folder, not at the root, because tracing

@@ -75,7 +75,9 @@ export default async function VisitPage({
           <div className="info reveal" style={{ marginBlockStart: 0 }}>
             <div className="card">
               <h2 className="info-title">{t(locale, 'visit.address')}</h2>
-              <p>{isAr ? BRANCH.addressAr : BRANCH.addressEn}</p>
+              <span className="info-big info-address">
+                {isAr ? BRANCH.addressAr : BRANCH.addressEn}
+              </span>
               <p style={{ fontSize: 13, color: 'var(--text-faint)' }}>
                 <span dir="ltr">{BRANCH.plusCode}</span>
               </p>

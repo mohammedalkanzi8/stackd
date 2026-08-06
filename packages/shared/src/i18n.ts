@@ -106,7 +106,7 @@ const strings = {
 
     'loyalty.title': 'برنامج الولاء',
     'loyalty.lead': 'اجمع نقطة على كل ريال. استبدلها بوجبات مجانية.',
-    'loyalty.comingSoon': 'قريباً على التطبيق',
+    'loyalty.comingSoon': 'اعرف نقاطك',
 
     'footer.rights': 'جميع الحقوق محفوظة',
     'footer.follow': 'تابعونا',
@@ -157,7 +157,7 @@ const strings = {
 
     'loyalty.title': 'Rewards',
     'loyalty.lead': 'Earn a point for every riyal. Redeem for free food.',
-    'loyalty.comingSoon': 'Coming soon on the app',
+    'loyalty.comingSoon': 'Check my points',
 
     'footer.rights': 'All rights reserved',
     'footer.follow': 'Follow us',

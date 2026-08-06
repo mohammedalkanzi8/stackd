@@ -1,3 +1,4 @@
+import { PORTAL_URL } from '../portal-url.ts';
 import Link from 'next/link';
 import {
   BRAND,
@@ -172,11 +173,16 @@ export default async function HomePage({
               {isAr ? 'كل ريال يرجع لك' : 'Every Riyal Comes Back'}
             </h2>
             <p className="lede">{t(locale, 'loyalty.lead')}</p>
-            {/* --label, not --gold: this pill sits on the page background, and
-                raw gold on cream is 1.96:1. */}
-            <span className="status" style={{ borderColor: 'var(--label)', color: 'var(--label)' }}>
+            {/* Live now, so it is a link rather than a label. --label, not
+                --gold: this pill sits on the page background, and raw gold on
+                cream is 1.96:1. */}
+            <a
+              href={`${PORTAL_URL}/login`}
+              className="status status-link"
+              style={{ borderColor: 'var(--label)', color: 'var(--label)' }}
+            >
               {t(locale, 'loyalty.comingSoon')}
-            </span>
+            </a>
           </div>
           <div className="ring" aria-hidden="true">
             <div className="ring-inner">
@@ -200,7 +206,9 @@ export default async function HomePage({
           <div className="info reveal">
             <div className="card">
               <h3 className="info-title">{t(locale, 'visit.address')}</h3>
-              <p>{isAr ? BRANCH.addressAr : BRANCH.addressEn}</p>
+              <span className="info-big info-address">
+                {isAr ? BRANCH.addressAr : BRANCH.addressEn}
+              </span>
               <div className="link-row">
                 <a
                   href={BRANCH.mapsUrl}

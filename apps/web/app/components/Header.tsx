@@ -2,21 +2,7 @@ import Link from 'next/link';
 import { t, type Locale } from '@stackd/shared';
 import { LangToggle } from './LangToggle';
 import { ThemeToggle } from './ThemeToggle';
-
-/**
- * Where the Rewards link points.
- *
- * The loyalty portal is a separate app that RUNS A SERVER — this site is a
- * static export and cannot hold an account. So it is an ordinary outbound link,
- * baked in at build time, not a route.
- *
- * `NEXT_PUBLIC_PORTAL_URL` must be set before a production build or the button
- * points at localhost on the live site. It defaults to the eventual public
- * address rather than to localhost for exactly that reason: a wrong-but-plausible
- * link is better than one that is obviously broken only on the developer's
- * machine.
- */
-const PORTAL_URL = process.env.NEXT_PUBLIC_PORTAL_URL ?? 'https://stackd.com.sa';
+import { PORTAL_URL } from '../portal-url.ts';
 
 export function Header({ locale }: { locale: Locale }) {
   return (

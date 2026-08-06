@@ -882,7 +882,10 @@ svg {
   padding: clamp(20px, 3vw, 28px);
   border-radius: var(--r-lg);
   background: var(--surface);
-  border: 1px solid var(--line);
+  /* The same red edge the featured card has always used. A neutral hairline
+     read as an unfinished container next to it; this makes the whole grid look
+     deliberate rather than making one card look special by accident. */
+  border: 1px solid rgba(232, 57, 28, 0.34);
   overflow: hidden;
   transition: transform 0.24s ease, border-color 0.24s, box-shadow 0.24s;
 }
@@ -1208,6 +1211,24 @@ svg {
   color: var(--text-dim);
   font-size: 15px;
 }
+.info-address {
+  /* Same weight and colour as the phone and email beside it, one step down in
+     size because an address is a line of prose, not a six-digit number. */
+  font-size: clamp(17px, 2.1vw, 20px);
+  line-height: 1.35;
+  direction: inherit;
+  text-wrap: balance;
+}
+
+.status-link {
+  text-decoration: none;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+.status-link:hover {
+  background: var(--label);
+  color: var(--ink) !important;
+}
+
 .info-big {
   font-family: var(--font-display);
   font-size: clamp(20px, 2.8vw, 26px);
