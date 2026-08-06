@@ -13,6 +13,9 @@
 
 ## 6 August 2026 — STACKD Rewards gets an identity, and something to print
 
+**Shipped and live.** Two commits: `64f6a20` (identity, website page, print
+studio) and `7f9ed64` (both language versions, Arabic typography fixes).
+
 The loyalty programme had a database, two portals and a wallet pass, but no name
 anyone could say and nothing to put in front of a customer. It now has all three:
 a mark, four printable pieces, and a page on the website.
@@ -49,11 +52,18 @@ page read **"1 Point / Riyal"**. That stopped being true when earning moved to a
 percentage of the bill, and it was live on stackd.com.sa saying so. Both now come
 from `REWARDS`, so the ring cannot drift from the programme again.
 
-### The print studio — `/signup-qr`, and `/print/[format]`
+### The print studio — `/signup-qr`, and `/print/[format]?lang=`
 
-Four sizes off one layout: A3 wall poster, 85 × 200 cm roll-up, A5 table tent,
-A6 counter card. Everything inside the sheet is sized in `em` against a root of
+Four sizes × two languages = **eight sheets**, off one layout: A3 wall poster,
+85 × 200 cm roll-up, A5 table tent, A6 counter card, each Arabic-led or
+English-led. Everything inside the sheet is sized in `em` against a root of
 `width / 30`, which is what lets one design serve a 105 mm card and a 2 m banner.
+
+Both versions stay bilingual. A monolingual sign in Al Khobar excludes half the
+people walking past it, so `lead` picks which language carries the headline, not
+which language appears. Headline, scan line, steps, rate, bonus and fine print
+all swap, and each language keeps its own numerals — `١٠٪` and `١ ٢ ٣` on the
+Arabic sheet, `10%` and `1 2 3` on the English one.
 
 **Do not put a fixed px or mm value inside the sheet.** It breaks three of the
 four sizes, and only on paper, where finding out is expensive.
@@ -88,18 +98,41 @@ By decision. The only food images available are Instagram crops upscaled roughly
 3x (see §4 below). At A3 they would be visibly soft and on an 850 mm banner they
 would be a mess. Type, the marks and flat colour print perfectly at any size.
 
-### Bidi: every English run inside the sheet carries `lang` + `dir`
+### Bidi: every run in the other language carries `lang` + `dir`
 
-The sheet is `dir="rtl"`. Without `dir="ltr"` on each English run, the bidi
-algorithm resolves trailing full stops to the paragraph direction and prints them
-stranded on the left.
+Without `dir` on each run, the bidi algorithm resolves trailing full stops to the
+paragraph direction, so an English line inside an RTL sheet prints with its
+period stranded on the left.
+
+### ⚠ Two Arabic typography rules, learned the hard way here
+
+1. **Never `letter-spacing` Arabic.** It is cursive; tracking pulls the joins
+   open into gaps mid-word. The programme name had it, and "مكافآت ستاكد" was
+   coming apart. The name is now two spans and only the Latin half is tracked.
+   The same rule already exists on the website for `.rw-rate-lbl`.
+2. **`text-transform: uppercase` is meaningless in Arabic** and travels with
+   letter-spacing in the same copy-pasted label style. Both are undone under
+   `:lang(ar)`.
+
+### ⚠ No backticks in `sheet-css.ts` comments
+
+The whole stylesheet is a template literal. A backtick in a comment terminates
+it, and the error surfaces four lines later as `Property 'ph' does not exist on
+type 'string'`. This broke the admin build once already.
+
+### Deployed
+
+- **stackd.com.sa** — `npm run deploy` (Cloudflare Pages). `/ar/rewards/` and
+  `/en/rewards/` are live, and the home page ring now reads 10%. Give it a minute
+  after deploying: the first check of a brand-new path can 404 on propagation.
+- **admin + my.stackd.com.sa** — rebuilt on the VM at `7f9ed64`.
 
 ### ⚠ Still to do
 
-**The owner has not seen any of this yet.** There is no browser in the agent
-environment, so nothing here has been looked at — only asserted against the
-rendered markup. `/ar/rewards`, `/en/rewards` and all four print sheets need a
-visual pass before anything is deployed or sent to a printer.
+**The owner has still not seen any of this rendered.** There is no browser in the
+agent environment, so "verified" here means the markup and the geometry were
+checked, not that it looks right. The eight sheets are at
+`admin.stackd.com.sa/signup-qr`.
 
 Print one A6 on an ordinary printer and scan it with a phone that has never seen
 the portal, before committing to a print run.
