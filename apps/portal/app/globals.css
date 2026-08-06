@@ -132,6 +132,27 @@ h2 { font-size: 17px; margin: 0 0 10px; letter-spacing: -0.01em; }
 .wallet-btn span { display: flex; flex-direction: column; font-weight: 700; font-size: 14px; }
 .wallet-btn small { font-weight: 500; font-size: 10.5px; opacity: 0.75; letter-spacing: 0.03em; }
 
+/* ---------- install to home screen ---------- */
+.install-ios { text-align: center; }
+.install-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin: 4px auto 0; padding: 9px 15px;
+  border-radius: 10px; border: 1px dashed var(--rule-strong);
+  background: transparent; color: var(--dim);
+  font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.install-btn:hover { border-color: var(--dim); color: var(--text); }
+.install-btn svg { width: 17px; height: 17px; flex: none; }
+.install-help {
+  font-size: 13px; color: var(--faint); margin: 10px 0 0;
+  text-align: center; line-height: 1.5;
+}
+.install-help b { color: var(--text); }
+.inline-icon {
+  width: 15px; height: 15px; display: inline-block; vertical-align: -3px;
+  margin-inline: 2px; color: var(--text);
+}
+
 /* ---------- rewards ---------- */
 .reward { display: flex; gap: 14px; align-items: center; padding: 15px 0; border-block-end: 1px solid var(--rule); }
 .reward:last-child { border-block-end: 0; }

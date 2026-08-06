@@ -4,6 +4,7 @@ import { formatSar, qrSvg, query, queryOne, walletOptions } from '@stackd/server
 
 import { SubmitButton } from '../SubmitButton.tsx';
 import { IconPoints, IconQr, IconRewards, IconSignOut } from '../NavIcons.tsx';
+import { InstallButton } from '../InstallButton.tsx';
 import { currentMember, endSession } from '@/lib/session.ts';
 
 export const metadata = { title: 'Your points · STACKD Rewards' };
