@@ -3,11 +3,18 @@
 -- Bilingual columns (_en / _ar) rather than a translations table: only two locales,
 -- and every read needs both for RTL toggling anyway.
 --
--- THIS FILE IS CANONICAL. Nothing has been applied to a production database yet,
--- so a single readable definition beats a migration chain with no cutover point.
--- The day it first runs against production, freeze it and start
--- `supabase/migrations/0001_*.sql` — after that, editing this file in place
--- silently diverges from what is actually deployed.
+-- ⚠ THE CUTOVER HAS HAPPENED. Production went up on 6 August 2026, so this file
+-- is no longer the only definition of the database — it is the one that builds a
+-- FRESH one. An existing database is brought forward by `supabase/migrations/`.
+--
+-- Every schema change from here needs BOTH: a numbered migration and the
+-- matching edit in this file. Editing this file alone changes what a new
+-- database would get and does nothing to the running one, and the first person
+-- to find out is whoever restores a backup onto a schema that no longer matches.
+-- `npm run db:reset && npm test` is what proves the two still agree.
+--
+-- (This note used to say the opposite, because nothing was live when it was
+-- written. It stayed true until 0001.)
 --
 -- Apply with `npm run db:reset` locally, or via the database container's init
 -- scripts in production. supabase/01_platform_shim.sql must go FIRST in both:
