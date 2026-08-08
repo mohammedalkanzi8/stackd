@@ -177,6 +177,13 @@ empty database. `npm run db:reset` restores it.
 one at a time, as the 2-core box requires). `/reports` is live behind the staff
 login, and `my.stackd.com.sa` and `admin.stackd.com.sa` both serve.
 
+**⚠ `docker compose exec -T` reads stdin, so it swallows the rest of a heredoc.**
+A multi-command script piped over SSH — the obvious way to run a few checks
+against the database — silently stops after the first `exec`, and the output
+looks like a script that only ever had one command in it. Redirect every call:
+`docker compose ... exec -T db psql ... < /dev/null`. `deploy/backup.sh` has an
+`exec` inside it and does the same thing.
+
 The VM pulls from `git@github.com:mohammedalkanzi8/stackd.git`, which is also
 this checkout's `origin`. Deploying is: push → `git pull --ff-only` on the VM →
 `docker compose build <app>` → `up -d`.
