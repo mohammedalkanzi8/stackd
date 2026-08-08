@@ -52,17 +52,27 @@ and an internal fix are different events, and the first cut of the dashboard had
 to match on note text to tell them apart. `redeem_counter` now says it outright,
 and carries a constraint requiring the cashier who scanned it.
 
-**⚠ NOT YET APPLIED TO PRODUCTION.** On the VM:
+**✅ Applied to production 8 Aug 2026**, after a verified backup
+(`backups/stackd_2026-08-08_1640.sql.gz`). Two rows converted, `left_behind` 0,
+ledger and balances both still 2000 and reconciling. The command, for the next
+database:
 
 ```bash
 docker compose -f deploy/docker-compose.yml exec -T db \
-  psql -U stackd -d stackd -v ON_ERROR_STOP=1 < supabase/migrations/0002_redeem_counter.sql
+  psql -U stackd -d stackd -v ON_ERROR_STOP=1 -f - < supabase/migrations/0002_redeem_counter.sql
 ```
 
 It prints `left_behind` at the end. **That number must be 0**; anything else is
 a counter redemption the backfill could not identify, and the fallback in the
-reports page has to stay until it is zero everywhere. Deploy order does not
-matter — the dashboard reports byte-identical figures either side of it.
+reports page has to stay until it is zero everywhere.
+
+**⚠ Correction to what this entry first claimed: deploy order DOES matter, just
+not for the figures.** The dashboard reports identically either side of the
+migration, which is what was tested — but the *labels* are a different story.
+Every surface that renders a reason does `LABEL[reason] ?? reason`, so a
+database migrated ahead of the app shows customers the raw string
+`redeem_counter` in their own points history. That happened here for about ten
+minutes. **Deploy the app first, or both together.**
 
 Three things it had to get right:
 
@@ -114,11 +124,27 @@ Roughly 90 days of trade covering all eight ledger reasons, so the dashboard is
 worth looking at locally. **It will fail `npm test`,** which assumes a nearly
 empty database. `npm run db:reset` restores it.
 
+### Deployed
+
+**The VM is at `5932912` and both portals were rebuilt** (admin, then portal —
+one at a time, as the 2-core box requires). `/reports` is live behind the staff
+login, and `my.stackd.com.sa` and `admin.stackd.com.sa` both serve.
+
+The VM pulls from `git@github.com:mohammedalkanzi8/stackd.git`, which is also
+this checkout's `origin`. Deploying is: push → `git pull --ff-only` on the VM →
+`docker compose build <app>` → `up -d`.
+
+Verified by grepping the running containers for the new label strings rather
+than by signing in, which would have meant reading production's session secret.
+A route that does not exist returns 404, so `/reports` answering 307 is the
+gate working rather than the page missing.
+
 ### ⚠ Still to do
 
 **Nobody has looked at this page.** There is no browser here, so "verified" means
 the figures match SQL run independently and the markup geometry is sound — not
-that it reads well. `npm run admin` → localhost:3001/reports.
+that it reads well. It is live at `admin.stackd.com.sa/reports`, and locally on
+`npm run admin` → localhost:3001/reports.
 
 ---
 
@@ -1101,10 +1127,6 @@ No exposure today — the website is static and collects nothing.
 
 ## Also outstanding
 
-- **Apply migration 0002 to production** — committed but not run. Counter
-  redemptions on the live database are still filed as `manual_adjust`, so the
-  reports page is reading them through its note-matching fallback rather than
-  the reason. Command and the `left_behind` check are in the 8 Aug entry above.
 - **Narrow `ADMIN_ALLOW_CIDR`** — still `0.0.0.0/0` by decision, so the staff
   portal is open to the internet. The tooling and runbook are in place; it needs
   the shop's public IP and one command. See the 6 Aug entry above.
