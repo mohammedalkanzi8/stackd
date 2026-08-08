@@ -6,8 +6,55 @@
 **Repo:** `/home/kanzi/stackd` (git, all committed)
 **Theme:** dark for everyone; light only via the header toggle
 **Phone:** 050 033 8808 · **Contact email published:** info@stackd.com.sa
+**Hours:** 16:00 – 04:00 daily. Change them in `STACKD_HOURS` *and* a migration
 **Portals:** my.stackd.com.sa (customers) · admin.stackd.com.sa (staff) · Oracle Riyadh
 **POS:** Kashier Pro by DKEYS — integration waiting on their support team
+
+---
+
+## 8 August 2026 — trading hours move to 4 PM – 4 AM
+
+**Live everywhere.** `47c651c`, migration `0003_hours_16_to_04.sql`. The website
+is deployed and verified on the real domain; the migration is applied to
+production after a backup.
+
+### The hours were written in FIVE places
+
+That is the actual story of this change. `branch_hours` in the database,
+`STACKD_HOURS` for the website, the schema.org block Google reads, the home
+page's big clock, and the visit page's big clock — **while the hours table
+lower down that same visit page was already reading `STACKD_HOURS` correctly.**
+So the page disagreed with itself.
+
+Every display now derives from `STACKD_HOURS`. Changing the hours again is one
+constant plus a migration, not a search.
+
+### ⚠ `riyadh_service_date` moves with the close: 4 hours → 5
+
+**The offset is the closing time plus an hour, and the spare hour is the point.**
+A ticket finalised at 04:20, after the kitchen shuts, is the night's last sale.
+Left at 4 against an 04:00 close it lands on the *next* trading day — restarting
+pickup-code numbering mid-clean-down and splitting one night's takings across two
+reports. Demonstrated against a database still on the old settings before the
+migration was written: a 04:20 ticket really did jump a day.
+
+`orders.service_date` is a **stored** column, so nothing already banked moved.
+Only tickets rung up from now on use the new boundary, which is what you want —
+history stays as it was reported at the time.
+
+### Verified
+
+Production before: open at 03:30 **false**, open at 15:30 true, a 04:20 ticket on
+2026-08-10. After: 03:30 true, 15:30 false, 04:00 false (it shuts *at* four), and
+that 04:20 ticket on 2026-08-09. Ledger and balances both 2,460 and reconciling.
+
+The site was checked 12 samples across four pages with cache-busting, plus
+schema.org three times — all `16:00`/`04:00`, no `3 PM` or `15:00` anywhere.
+
+**⚠ An intermediate check caught `/en/visit/` still serving 3 PM after the deploy
+reported success.** It was propagation, not a bad build — the same path was clean
+on the next five samples and `cf-cache-status` was `DYNAMIC` throughout. Sample a
+path several times before believing a stale reading; one fetch is not evidence.
 
 ---
 
