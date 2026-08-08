@@ -1,6 +1,6 @@
 # STACKD — where we left off
 
-**Last session:** 6 August 2026
+**Last session:** 8 August 2026
 **Live now:** https://stackd.com.sa — verified serving, `www` 301s to the apex
 **Email:** MXroute, live and working (SPF + DKIM + DMARC all present)
 **Repo:** `/home/kanzi/stackd` (git, all committed)
@@ -8,6 +8,117 @@
 **Phone:** 050 033 8808 · **Contact email published:** info@stackd.com.sa
 **Portals:** my.stackd.com.sa (customers) · admin.stackd.com.sa (staff) · Oracle Riyadh
 **POS:** Kashier Pro by DKEYS — integration waiting on their support team
+
+---
+
+## 8 August 2026 — the programme can finally say what it costs
+
+**Shipped.** Four commits: `a130c94` (the 6 Aug allowlist work, verified and
+committed at last), `bf5d883` (the reports dashboard), `0ff9f9a` (migration
+0002), `d7acef9` (a correction to `schema.sql`'s own header).
+
+### `admin.stackd.com.sa/reports` — what the loyalty programme costs
+
+Points outstanding were on the overview and nothing about what had been *spent*,
+so "what has this cost us" could only be answered by hand. That page answers it
+in riyals.
+
+**Every riyal figure is exact, not converted.** One point is one halala by the
+programme's design, so a points total IS a halala total and the page only moves
+the decimal point. There is no exchange rate here to get wrong.
+
+Managers and the owner only. The nav hides the link and **the page enforces it** —
+a cashier's HTML contains none of the figures, not a hidden div full of them.
+
+Beyond the headline: points issued, outstanding liability in riyals, take-up
+rate, breakage, a movement table covering every reason, trade and VAT for the
+period, a day-by-day trend, best members, and what sells.
+
+**⚠ Expired points are reported apart from spent ones, deliberately.** They are
+a liability that lapsed, which is the opposite of a cost. Adding the two
+together overstates what the programme costs, and it is an easy mistake to make
+because both arrive as negative numbers in the same column.
+
+**The movement table's net change equals the outstanding balance exactly.** That
+is a live audit of the ledger against the cached balances, and it is why that
+row sums the rows on screen rather than recomputing from the headline figures —
+the two would disagree the day an unclassified reason appeared.
+
+### Migration 0002 — counter redemptions get their own reason
+
+Spending points off a bill wrote `manual_adjust`, which is also what a manager
+writes when correcting a balance by hand. A customer spending what they saved
+and an internal fix are different events, and the first cut of the dashboard had
+to match on note text to tell them apart. `redeem_counter` now says it outright,
+and carries a constraint requiring the cashier who scanned it.
+
+**⚠ NOT YET APPLIED TO PRODUCTION.** On the VM:
+
+```bash
+docker compose -f deploy/docker-compose.yml exec -T db \
+  psql -U stackd -d stackd -v ON_ERROR_STOP=1 < supabase/migrations/0002_redeem_counter.sql
+```
+
+It prints `left_behind` at the end. **That number must be 0**; anything else is
+a counter redemption the backfill could not identify, and the fallback in the
+reports page has to stay until it is zero everywhere. Deploy order does not
+matter — the dashboard reports byte-identical figures either side of it.
+
+Three things it had to get right:
+
+1. **⚠ `ALTER TYPE ... ADD VALUE` cannot be USED in the transaction that added
+   it.** Postgres raises `unsafe use of new value`, verified on 18.4. So the
+   enum step sits outside the transaction and the file **must not** be run with
+   `psql -1` or `--single-transaction`. It is idempotent either way, and a
+   failure after step 1 leaves only an unused label behind.
+2. **The value is added `after 'redeem_reward'`,** so a migrated database and a
+   fresh one from `schema.sql` sort the type identically rather than merely
+   holding the same labels. `pg_enum.enumsortorder` reads 2.5 on the migrated
+   one against 3 on the fresh one — that is internal, and `enum_range()` and the
+   comparison operators agree. Compare those, never `enumsortorder`.
+3. **⚠ Comparing an enum column to a label the type does not have RAISES
+   (22P02). It does not evaluate to false.** `reason = 'redeem_counter'` turned
+   the whole reports page into a 500 against an un-migrated database — precisely
+   the case its fallback exists to survive. It reads `reason::text` there now.
+   Every other reason is left as an enum comparison on purpose, so a typo in one
+   of *those* still fails loudly. Found only by restoring a pre-migration
+   snapshot and serving the page against it.
+
+### ⚠ `caddy start` / `caddy stop` are useless with `admin off`
+
+Worth knowing before anyone tests `deploy/Caddyfile` again. `caddy stop` talks to
+the admin API, so with `admin off` in the config it fails silently and instances
+pile up on the port. Every request then hits whichever process bound first, and
+the results look like real findings: one run "proved" the shipped
+`ADMIN_ALLOW_CIDR=0.0.0.0/0` default returns 403, which would have meant the
+first deploy locks everyone out. It does not — the harness was lying. Test with
+one process and one port per case, killed by PID.
+
+The allowlist itself is now verified against real Caddy 2.11.4 and committed:
+the default admits everyone, a narrow list blocks and renders the client's
+address, and a space-separated value tokenizes into several ranges.
+
+### `schema.sql`'s header was saying the opposite of the truth
+
+It still read "Nothing has been applied to a production database yet" and told
+you to freeze the file "the day it first runs against production". That day was
+6 August, and 0001 and 0002 both exist — so the file was inviting anyone who
+read only it to edit it freely, which is the exact divergence the note was
+written to prevent. It now says what the rule actually is: **every schema change
+needs both a numbered migration and the matching edit in `schema.sql`**, and
+`npm run db:reset && npm test` is what proves they still agree.
+
+### The dev database currently holds generated demo data
+
+Roughly 90 days of trade covering all eight ledger reasons, so the dashboard is
+worth looking at locally. **It will fail `npm test`,** which assumes a nearly
+empty database. `npm run db:reset` restores it.
+
+### ⚠ Still to do
+
+**Nobody has looked at this page.** There is no browser here, so "verified" means
+the figures match SQL run independently and the markup geometry is sound — not
+that it reads well. `npm run admin` → localhost:3001/reports.
 
 ---
 
@@ -927,7 +1038,7 @@ text, 3:1 for large. Nothing on the site is "large" except headings.
 
 ```bash
 npm run dev       # http://localhost:3000/ar/
-npm test          # 59 tests (40 shared + 19 functions)
+npm test          # 103 tests (41 shared + 6 server + 19 functions + 37 schema)
 npm run build     # static export to apps/web/out/
 npm run deploy    # build + push to Cloudflare Pages
 npm run preview   # single-file shareable preview
@@ -990,6 +1101,10 @@ No exposure today — the website is static and collects nothing.
 
 ## Also outstanding
 
+- **Apply migration 0002 to production** — committed but not run. Counter
+  redemptions on the live database are still filed as `manual_adjust`, so the
+  reports page is reading them through its note-matching fallback rather than
+  the reason. Command and the `left_behind` check are in the 8 Aug entry above.
 - **Narrow `ADMIN_ALLOW_CIDR`** — still `0.0.0.0/0` by decision, so the staff
   portal is open to the internet. The tooling and runbook are in place; it needs
   the shop's public IP and one command. See the 6 Aug entry above.
