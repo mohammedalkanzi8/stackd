@@ -174,6 +174,75 @@ h2 { font-size: 17px; margin: 0 0 4px; letter-spacing: -0.01em; }
 .stat .v { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-block-start: 2px; }
 .stat .sub { font-size: 13px; color: var(--dim); }
 
+/* ---------- reports ----------
+   The dashboard at /reports. One hero figure, then plain marks: the data is the
+   only thing on the page allowed to be loud. */
+
+.k-lbl {
+  font-size: 12px; color: var(--faint);
+  text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;
+}
+
+/* The one number the page leads with.
+   Deliberately NOT .num: tabular-nums gives every digit the width of a zero,
+   which at 52px leaves a figure like 14,800 visibly gappy. Tabular figures are
+   for columns that must line up vertically, which this is not. */
+.hero {
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-block-start: 4px;
+  font-variant-numeric: proportional-nums;
+}
+.hero-sub { color: var(--dim); font-size: 15px; margin-block-start: 2px; }
+.hero-sub b { color: var(--text); }
+
+.split {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin-block-start: 20px;
+  padding-block-start: 16px;
+  border-block-start: 1px solid var(--rule);
+}
+.split .v2 { font-size: 21px; font-weight: 700; margin-block-start: 2px; }
+.split .sub { font-size: 13px; color: var(--dim); }
+
+/* Columns, not a line: these are discrete trading days, not a continuum.
+   A 2px gap in the surface colour is what separates neighbours — never a border,
+   which would add ink that is not data. */
+.chart { margin-block-start: 18px; }
+.chart-hd { display: flex; justify-content: space-between; align-items: baseline; margin-block-end: 8px; }
+.chart-ft {
+  display: flex; justify-content: space-between;
+  font-size: 11.5px; color: var(--faint); margin-block-start: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.cols {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 104px;
+  border-block-end: 1px solid var(--rule-strong);
+  padding-block-end: 0;
+}
+.col { flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; height: 100%; }
+/* Rounded at the data end, square at the baseline, so the bar reads as growing
+   from the axis rather than floating above it. */
+.col i { display: block; width: 100%; background: var(--accent); border-radius: 3px 3px 0 0; }
+.col i.alt { background: var(--label); }
+
+/* An inline bar inside a table cell: magnitude beside the exact figure, so the
+   bar is a scan aid and the number is still the source of truth. */
+.bar-row { display: flex; align-items: center; gap: 10px; }
+.bar-track {
+  flex: 1 1 auto; min-width: 40px; height: 8px;
+  background: var(--chip); border-radius: 999px; overflow: hidden;
+}
+.bar-fill { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.bar-val { flex: 0 0 auto; font-size: 13px; }
+
 /* ---------- forms ---------- */
 label { display: block; font-size: 13px; font-weight: 600; margin-block-end: 5px; }
 label .hint { font-weight: 400; color: var(--faint); }

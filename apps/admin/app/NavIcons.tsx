@@ -60,6 +60,15 @@ export function IconPoints() {
   );
 }
 
+export function IconReports() {
+  return (
+    <svg {...base}>
+      <path d="M3 21h18" />
+      <path d="M6 21v-7M11 21V6M16 21v-4M21 21V11" />
+    </svg>
+  );
+}
+
 export function IconRewards() {
   return (
     <svg {...base}>

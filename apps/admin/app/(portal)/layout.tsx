@@ -6,7 +6,7 @@
 
 import Link from 'next/link';
 
-import { requireStaff, ROLE_LABEL } from '@/lib/auth.ts';
+import { MANAGERIAL, requireStaff, ROLE_LABEL } from '@/lib/auth.ts';
 import { SubmitButton } from '@/app/SubmitButton.tsx';
 import {
   IconMembers,
@@ -15,6 +15,7 @@ import {
   IconOverview,
   IconPoints,
   IconQr,
+  IconReports,
   IconRewards,
   IconSignOut,
   IconStaff,
@@ -49,6 +50,15 @@ export default async function PortalLayout({ children }: { children: React.React
                 {label}
               </Link>
             ))}
+            {/* Revenue, liability and the best-customer list are management
+                information, so the link is not offered to a cashier. As with
+                Staff below, the page itself is what enforces that. */}
+            {MANAGERIAL.includes(staff.role) ? (
+              <Link href="/reports">
+                <IconReports />
+                Reports
+              </Link>
+            ) : null}
             {/* Staff management is the owner's alone, so the link is not shown to
                 anyone else. The page enforces it too; this only avoids offering
                 a door that will not open. */}
