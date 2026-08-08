@@ -28,6 +28,7 @@ interface Movement {
 const REASON_LABEL: Record<string, string> = {
   earn_purchase: 'Earned on a purchase',
   redeem_reward: 'Redeemed',
+  redeem_counter: 'Spent at the counter',
   signup_bonus: 'Sign-up bonus',
   birthday_bonus: 'Birthday bonus',
   manual_adjust: 'Manual adjustment',

@@ -32,6 +32,7 @@ interface Entry {
 const REASON: Record<string, string> = {
   earn_purchase: 'Points from a visit',
   redeem_reward: 'Reward claimed',
+  redeem_counter: 'Spent off a bill',
   signup_bonus: 'Welcome bonus',
   birthday_bonus: 'Birthday treat',
   manual_adjust: 'Adjusted by the team',

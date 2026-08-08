@@ -41,18 +41,25 @@ const pts = (n: number) => n.toLocaleString('en');
 /**
  * Every ledger row sorted into one of eight buckets.
  *
- * ⚠ The awkward line is `consumed_counter`. Spending points at the till goes
- * through `redeem_points_token()`, which writes reason `manual_adjust` — the
- * same reason a manager uses to correct someone's balance by hand. The two are
- * genuinely different events (one is a customer spending money's worth, the
- * other is an internal fix) and the enum cannot tell them apart, so the note is
- * the only discriminator available. It is not free text in that path: the
- * function builds it with a fixed `format()` string, so the pattern below
- * matches every counter redemption and nothing else the code can write.
+ * Spending points at the till writes reason `redeem_counter`, which exists
+ * precisely so this page does not have to guess. Before migration 0002 that
+ * path wrote `manual_adjust` — the same reason a manager uses to correct a
+ * balance by hand — and the two could only be told apart by the note.
  *
- * A manager typing that exact sentence by hand would be miscounted. If that
- * ever matters, the fix is a `redeem_counter` value in the loyalty_reason enum,
- * which needs a migration.
+ * ⚠ The note match below is a COMPATIBILITY SHIM, not the mechanism. 0002
+ * backfills every row it can identify, so against a migrated database it
+ * matches nothing. It is here so that running this app against a database that
+ * has not had 0002 applied yet does not file real redemptions under "staff
+ * corrections". Delete it once every deployment is migrated and 0002's
+ * `left_behind` count is 0 everywhere.
+ *
+ * ⚠ `reason::text = 'redeem_counter'` — the cast is load-bearing, not noise.
+ * Comparing an enum column against a label the type does not have RAISES
+ * (22P02, `invalid input value for enum`); it does not evaluate to false. So
+ * the enum spelling would turn this whole page into a 500 on exactly the
+ * un-migrated database the shim exists to survive. Casting to text compares
+ * strings and simply finds nothing. The other reasons are deliberately left as
+ * enum comparisons, so a typo in one of THEM still fails loudly.
  *
  * `other` exists so that a reason added to the enum later shows up as
  * unclassified on the page instead of being silently folded into a total.
@@ -64,6 +71,7 @@ const BUCKET = `
     when t.reason = 'expiry'                            then 'expired'
     when t.reason = 'order_refund'                      then 'clawed_back'
     when t.reason = 'redeem_reward'                     then 'consumed_reward'
+    when t.reason::text = 'redeem_counter'              then 'consumed_counter'
     when t.reason = 'manual_adjust' and t.delta < 0
          and t.note like 'Redeemed % points at the counter' then 'consumed_counter'
     when t.reason = 'manual_adjust' and t.delta < 0     then 'staff_deduction'
@@ -74,6 +82,7 @@ const BUCKET = `
 /** Shared by the headline and the trend, so one definition of "spent" exists. */
 const IS_CONSUMED = `(
   t.reason = 'redeem_reward'
+  or t.reason::text = 'redeem_counter'
   or (t.reason = 'manual_adjust' and t.delta < 0
       and t.note like 'Redeemed % points at the counter')
 )`;

@@ -656,9 +656,18 @@ insert into loyalty_settings (id) values (true);
 create type loyalty_reason as enum (
   'earn_purchase',
   'redeem_reward',
+  -- Points spent as money off a bill at the till, via redeem_points_token().
+  -- Distinct from manual_adjust on purpose: a customer spending what they saved
+  -- and a manager correcting a balance are different events, and a programme
+  -- that cannot separate them cannot say what it costs to run. Requires
+  -- actor_id — the cashier who scanned.
+  --
+  -- ⚠ Position matters. Migration 0002 adds this value AFTER 'redeem_reward'
+  -- so an upgraded database sorts the type the same way a fresh one does.
+  'redeem_counter',
   'signup_bonus',
   'birthday_bonus',
-  'manual_adjust',   -- staff goodwill; requires actor_id
+  'manual_adjust',   -- staff goodwill or correction; requires actor_id
   'expiry',
   'order_refund'     -- claws back points from a refunded order
 );
@@ -681,6 +690,10 @@ create table loyalty_transactions (
 
   constraint manual_adjust_needs_an_actor
     check (reason <> 'manual_adjust' or actor_id is not null),
+  -- Money came off a bill and a member of staff authorised it. Recording who
+  -- is the whole reason this column exists.
+  constraint counter_redemptions_need_an_actor
+    check (reason <> 'redeem_counter' or actor_id is not null),
   constraint redemptions_name_a_reward
     check (reason <> 'redeem_reward' or reward_id is not null)
 );
@@ -1034,7 +1047,7 @@ begin
   -- The ledger write is what actually spends them, and the balance check
   -- constraint is the backstop if the balance moved since the code was issued.
   insert into loyalty_transactions (customer_id, delta, reason, actor_id, note)
-  values (t.customer_id, -t.points, 'manual_adjust', p_staff_id,
+  values (t.customer_id, -t.points, 'redeem_counter', p_staff_id,
           format('Redeemed %s points at the counter', t.points));
 
   return query

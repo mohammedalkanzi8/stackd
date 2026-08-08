@@ -606,13 +606,28 @@ dbTest('scanning a code deducts the points and records who did it', async () => 
     // Points are money. A dispute needs a name against the deduction.
     const entry = (
       await db.query(
-        `select t.delta, t.actor_id from loyalty_transactions t
+        `select t.delta, t.actor_id, t.reason from loyalty_transactions t
           where t.customer_id = $1 order by t.id desc limit 1`,
         [CUSTOMER_1],
       )
     ).rows[0];
     assert.equal(entry.delta, -400);
     assert.equal(entry.actor_id, CASHIER);
+    // Its own reason, not manual_adjust. A customer spending what they saved
+    // and a manager correcting a balance are different events, and reporting
+    // that cannot separate them cannot say what the programme costs.
+    assert.equal(entry.reason, 'redeem_counter');
+  });
+});
+
+dbTest('a counter redemption cannot be recorded without the cashier', async () => {
+  await withRollback(async () => {
+    await rejects(
+      `insert into loyalty_transactions (customer_id, delta, reason, actor_id)
+       values ($1, -100, 'redeem_counter', null)`,
+      [CUSTOMER_1],
+      'counter_redemptions_need_an_actor',
+    );
   });
 });
 
