@@ -4,8 +4,8 @@
  * Needed on the client as well as the server: the website is a static export,
  * so the "Open now" badge has to be computed in the browser.
  *
- * STACKD trades 15:00 → 03:00. That overnight wrap is the whole difficulty here.
- * A naive `opens <= now && now < closes` check is FALSE from midnight to 3 AM —
+ * STACKD trades 16:00 → 04:00. That overnight wrap is the whole difficulty here.
+ * A naive `opens <= now && now < closes` check is FALSE from midnight to 4 AM —
  * which is peak trade for a late-night street-food place. Every function below
  * treats a window whose close is at or before its open as spanning midnight
  * into the following day.
@@ -179,9 +179,15 @@ export function formatTime(hhmm: string, locale: 'en' | 'ar'): string {
   return `${h12}${mm} ${suffix}`;
 }
 
-/** STACKD North Khobar: 15:00 → 03:00, every day. */
+/**
+ * STACKD North Khobar: 16:00 → 04:00, every day.
+ *
+ * ⚠ This is the website's copy of the hours, because the site is a static
+ * export with no database. The branch_hours table is the other copy, and the
+ * two have to be changed together — see supabase/migrations/0003.
+ */
 export const STACKD_HOURS: OpeningWindow[] = Array.from({ length: 7 }, (_, weekday) => ({
   weekday,
-  opens: '15:00',
-  closes: '03:00',
+  opens: '16:00',
+  closes: '04:00',
 }));

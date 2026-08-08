@@ -43,13 +43,13 @@ test('a same-day window is not overnight', () => {
 });
 
 test('closed before opening time', () => {
-  assert.equal(isOpenAt(STACKD_HOURS, riyadh(26, 14, 59)), false);
+  assert.equal(isOpenAt(STACKD_HOURS, riyadh(26, 15, 59)), false);
   assert.equal(isOpenAt(STACKD_HOURS, riyadh(26, 10)), false);
   assert.equal(isOpenAt(STACKD_HOURS, riyadh(26, 6)), false);
 });
 
 test('open from the moment it opens', () => {
-  assert.equal(isOpenAt(STACKD_HOURS, riyadh(26, 15, 0)), true);
+  assert.equal(isOpenAt(STACKD_HOURS, riyadh(26, 16, 0)), true);
 });
 
 test('open through the evening', () => {
@@ -64,12 +64,12 @@ test('open through the evening', () => {
 test('open after midnight (the overnight bug)', () => {
   assert.equal(isOpenAt(STACKD_HOURS, riyadh(27, 0, 0)), true);
   assert.equal(isOpenAt(STACKD_HOURS, riyadh(27, 1)), true);
-  assert.equal(isOpenAt(STACKD_HOURS, riyadh(27, 2, 59)), true);
+  assert.equal(isOpenAt(STACKD_HOURS, riyadh(27, 3, 59)), true);
 });
 
 test('closed exactly at closing time', () => {
-  assert.equal(isOpenAt(STACKD_HOURS, riyadh(27, 3, 0)), false);
-  assert.equal(isOpenAt(STACKD_HOURS, riyadh(27, 3, 1)), false);
+  assert.equal(isOpenAt(STACKD_HOURS, riyadh(27, 4, 0)), false);
+  assert.equal(isOpenAt(STACKD_HOURS, riyadh(27, 4, 1)), false);
 });
 
 test('the Saturday-into-Sunday wrap works', () => {
@@ -96,28 +96,31 @@ test('a branch closed on one day does not leak into that day', () => {
 });
 
 test('minutesUntilClose', () => {
-  assert.equal(minutesUntilClose(STACKD_HOURS, riyadh(26, 14)), null); // closed
-  // 23:00 -> 4h to 03:00
-  assert.equal(minutesUntilClose(STACKD_HOURS, riyadh(26, 23)), 240);
-  // 02:30 -> 30 min to 03:00
-  assert.equal(minutesUntilClose(STACKD_HOURS, riyadh(27, 2, 30)), 30);
-  // 15:00 -> 12h
-  assert.equal(minutesUntilClose(STACKD_HOURS, riyadh(26, 15)), 720);
+  assert.equal(minutesUntilClose(STACKD_HOURS, riyadh(26, 15)), null); // closed
+  // 23:00 -> 5h to 04:00
+  assert.equal(minutesUntilClose(STACKD_HOURS, riyadh(26, 23)), 300);
+  // 03:30 -> 30 min to 04:00
+  assert.equal(minutesUntilClose(STACKD_HOURS, riyadh(27, 3, 30)), 30);
+  // 16:00 -> 12h
+  assert.equal(minutesUntilClose(STACKD_HOURS, riyadh(26, 16)), 720);
 });
 
 test('minutesUntilOpen', () => {
   assert.equal(minutesUntilOpen(STACKD_HOURS, riyadh(26, 18)), null); // already open
-  // 14:00 -> opens in 1h
-  assert.equal(minutesUntilOpen(STACKD_HOURS, riyadh(26, 14)), 60);
-  // 03:00 (just closed) -> reopens at 15:00, 12h later
-  assert.equal(minutesUntilOpen(STACKD_HOURS, riyadh(27, 3)), 720);
+  // 15:00 -> opens in 1h
+  assert.equal(minutesUntilOpen(STACKD_HOURS, riyadh(26, 15)), 60);
+  // 03:00 is still trading, so there is nothing to wait for
+  assert.equal(minutesUntilOpen(STACKD_HOURS, riyadh(27, 3)), null);
+  // 04:00 (just closed) -> reopens at 16:00, 12h later
+  assert.equal(minutesUntilOpen(STACKD_HOURS, riyadh(27, 4)), 720);
 });
 
 test('groupHoursForDisplay collapses seven identical days into one row', () => {
   const rows = groupHoursForDisplay(STACKD_HOURS);
   assert.equal(rows.length, 1);
   assert.deepEqual(rows[0].weekdays, [0, 1, 2, 3, 4, 5, 6]);
-  assert.equal(rows[0].opens, '15:00');
+  assert.equal(rows[0].opens, '16:00');
+  assert.equal(rows[0].closes, '04:00');
 });
 
 test('groupHoursForDisplay keeps differing days apart', () => {

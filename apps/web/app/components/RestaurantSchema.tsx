@@ -1,4 +1,23 @@
-import { BRAND, BRANCH, MENU, formatAmount, type Locale } from '@stackd/shared';
+import {
+  BRAND,
+  BRANCH,
+  MENU,
+  STACKD_HOURS,
+  formatAmount,
+  groupHoursForDisplay,
+  type Locale,
+} from '@stackd/shared';
+
+/** schema.org wants day names; STACKD_HOURS carries `extract(dow)` numbers. */
+const DAY_NAMES = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
 
 /**
  * schema.org JSON-LD. This is what earns the rich result in Google — hours,
@@ -6,7 +25,7 @@ import { BRAND, BRANCH, MENU, formatAmount, type Locale } from '@stackd/shared';
  * restaurant it is the single highest-leverage SEO item on the site.
  *
  * `openingHoursSpecification` encodes the overnight window correctly: closes is
- * "03:00" against an opens of "15:00", which schema.org reads as next-day.
+ * "04:00" against an opens of "16:00", which schema.org reads as next-day.
  */
 export function RestaurantSchema({ locale }: { locale: Locale }) {
   const isAr = locale === 'ar';
@@ -35,24 +54,17 @@ export function RestaurantSchema({ locale }: { locale: Locale }) {
       `https://instagram.com/${BRANCH.instagram}`,
       `https://tiktok.com/@${BRANCH.tiktok}`,
     ],
-    // 15:00 -> 03:00 every day. Schema.org treats a closes value earlier than
-    // opens as running past midnight.
-    openingHoursSpecification: [
-      {
-        '@type': 'OpeningHoursSpecification',
-        dayOfWeek: [
-          'Sunday',
-          'Monday',
-          'Tuesday',
-          'Wednesday',
-          'Thursday',
-          'Friday',
-          'Saturday',
-        ],
-        opens: '15:00',
-        closes: '03:00',
-      },
-    ],
+    // Derived from STACKD_HOURS rather than restated here. These times were
+    // written out twice and drifted apart the first time the hours changed —
+    // Google would have kept serving the old ones. Schema.org treats a closes
+    // value earlier than opens as running past midnight, which is exactly what
+    // groupHoursForDisplay already produces.
+    openingHoursSpecification: groupHoursForDisplay(STACKD_HOURS).map((row) => ({
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: row.weekdays.map((d) => DAY_NAMES[d]),
+      opens: row.opens,
+      closes: row.closes,
+    })),
     acceptsReservations: false,
     hasMenu: {
       '@type': 'Menu',

@@ -75,7 +75,7 @@ create table branch_hours (
 -- One-off closures: Eid, maintenance, a Ramadan schedule change.
 --
 -- `closed_on` names the day the SHIFT STARTS, matching branch_hours. Closing
--- Sunday therefore also closes Monday 00:00–03:00, because that stretch is
+-- Sunday therefore also closes Monday 00:00–04:00, because that stretch is
 -- Sunday's trade. Closing the calendar day instead would leave the small hours
 -- open with nobody in the kitchen.
 create table branch_closures (
@@ -86,9 +86,17 @@ create table branch_closures (
   primary key (branch_id, closed_on)
 );
 
--- The trading day a moment belongs to. 03:00 is the close, so anything before
--- 04:00 Riyadh counts as the previous day — used for pickup-code numbering and
+-- The trading day a moment belongs to. 04:00 is the close, so anything before
+-- 05:00 Riyadh counts as the previous day — used for pickup-code numbering and
 -- for closure lookups.
+--
+-- ⚠ THE OFFSET IS THE CLOSING TIME PLUS AN HOUR, and it has to stay that way.
+-- The spare hour is for tickets finalised after the kitchen shuts: a ticket rung
+-- up at 04:20 is the night's last sale, not the first sale of a day that has not
+-- started. Set the offset equal to the close and those tickets jump to the next
+-- trading day, restarting pickup-code numbering and splitting the night's
+-- takings across two reports. If the hours move again, move this too — see
+-- supabase/migrations/0003.
 --
 -- Immutable, so it is safe in an index expression. `<timestamptz> at time zone
 -- <literal>` is immutable; a bare `<timestamptz>::date` is only STABLE, because
@@ -96,7 +104,7 @@ create table branch_closures (
 create or replace function riyadh_service_date(p_at timestamptz)
 returns date
 language sql immutable as $$
-  select ((p_at at time zone 'Asia/Riyadh') - interval '4 hours')::date
+  select ((p_at at time zone 'Asia/Riyadh') - interval '5 hours')::date
 $$;
 
 -- Authoritative open/closed check. Handles the midnight wrap and pins the

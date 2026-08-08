@@ -5,11 +5,21 @@ import {
   BRANCH,
   MENU,
   REWARDS,
+  STACKD_HOURS,
   formatAmount,
+  formatTime,
   t,
   assertLocale,
   toArabicDigits,
 } from '@stackd/shared';
+
+// The clock reads the same in both locales — digits and a two-letter suffix
+// travel, and the Arabic page keeps the Latin form so the two sides of the site
+// show an identical figure. Derived rather than typed out: these hours were
+// written in five places and only some of them moved the first time they
+// changed. See STACKD_HOURS.
+const OPENS = formatTime(STACKD_HOURS[0].opens, 'en');
+const CLOSES = formatTime(STACKD_HOURS[0].closes, 'en');
 import { OpenStatus } from '../components/OpenStatus';
 import { SloganBand } from '../components/SloganBand';
 import { CardMedia } from '../components/CardMedia';
@@ -141,14 +151,14 @@ export default async function HomePage({
               {isAr ? 'كل أيام الأسبوع' : 'Seven days a week'}
             </p>
             <div className="clock">
-              <span className="clock-t">3 PM</span>
+              <span className="clock-t">{OPENS}</span>
               <span className="clock-sep">{isAr ? 'حتى' : 'until'}</span>
-              <span className="clock-t">3 AM</span>
+              <span className="clock-t">{CLOSES}</span>
             </div>
             <p className="lede">
               {isAr
-                ? 'مفتوحين لين الثالثة فجراً. متى ما جاك الجوع، إحنا موجودين.'
-                : 'Open until three in the morning. Whenever the craving lands, we are still open.'}
+                ? 'مفتوحين لين الرابعة فجراً. متى ما جاك الجوع، إحنا موجودين.'
+                : 'Open until four in the morning. Whenever the craving lands, we are still open.'}
             </p>
             <div className="link-row" style={{ marginBlockStart: 24 }}>
               <a
@@ -242,7 +252,7 @@ export default async function HomePage({
             </div>
 
             {/* Email, not opening hours. The late-night block above already
-                states 3 PM – 3 AM in far bigger type, so this card was repeating
+                states the trading hours in far bigger type, so this card was repeating
                 it; the address and phone cards beside it are contact details, so
                 email belongs here. Full hours still live on the visit page,
                 where they are computed per weekday rather than hardcoded. */}

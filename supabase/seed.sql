@@ -44,7 +44,7 @@ values (
 -- Opening hours: 15:00 → 03:00, every day of the week.
 -- closes_at < opens_at marks an overnight window — see is_branch_open().
 insert into branch_hours (branch_id, weekday, opens_at, closes_at)
-select '00000000-0000-0000-0000-000000000001', d, '15:00'::time, '03:00'::time
+select '00000000-0000-0000-0000-000000000001', d, '16:00'::time, '04:00'::time
 from generate_series(0, 6) as d;
 
 -- ---------------------------------------------------------------------------

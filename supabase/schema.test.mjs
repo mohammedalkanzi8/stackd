@@ -199,14 +199,14 @@ dbTest('is_branch_open handles the overnight window', async () => {
   // 2026-08-02 is a Sunday. All times given with an explicit +03 offset so the
   // test does not depend on the server's TimeZone setting.
   const cases = [
-    ['2026-08-02 14:59:00+03', false, 'Sunday, one minute before opening'],
-    ['2026-08-02 15:00:00+03', true, 'Sunday, on opening'],
+    ['2026-08-02 15:59:00+03', false, 'Sunday, one minute before opening'],
+    ['2026-08-02 16:00:00+03', true, 'Sunday, on opening'],
     ['2026-08-02 23:30:00+03', true, 'Sunday evening'],
     ['2026-08-03 00:30:00+03', true, "past midnight, still Sunday's shift"],
-    ['2026-08-03 02:59:00+03', true, 'one minute before close'],
-    ['2026-08-03 03:00:00+03', false, 'on close'],
+    ['2026-08-03 03:59:00+03', true, 'one minute before close'],
+    ['2026-08-03 04:00:00+03', false, 'on close'],
     ['2026-08-03 12:00:00+03', false, 'Monday midday, between shifts'],
-    ['2026-08-03 16:00:00+03', true, "Monday's own shift"],
+    ['2026-08-03 17:00:00+03', true, "Monday's own shift"],
   ];
 
   for (const [at, expected, why] of cases) {
@@ -221,7 +221,7 @@ dbTest('is_branch_open handles the overnight window', async () => {
 dbTest('a closure covers the whole trading day, including the small hours', async () => {
   await beginNested();
   try {
-    // Closing Sunday must also close Monday 00:00–03:00, because that stretch is
+    // Closing Sunday must also close Monday 00:00–04:00, because that stretch is
     // Sunday's trade. Closing the calendar day would leave the small hours open
     // with nobody in the kitchen.
     await db.query(
@@ -242,13 +242,22 @@ dbTest('a closure covers the whole trading day, including the small hours', asyn
   }
 });
 
-dbTest('riyadh_service_date rolls over at 04:00, not midnight', async () => {
+dbTest('riyadh_service_date rolls over at 05:00, not midnight', async () => {
   const { rows } = await db.query(`
     select riyadh_service_date(timestamptz '2026-08-03 01:30:00+03') as small_hours,
+           riyadh_service_date(timestamptz '2026-08-03 03:59:00+03') as last_orders,
+           riyadh_service_date(timestamptz '2026-08-03 04:20:00+03') as after_close,
+           riyadh_service_date(timestamptz '2026-08-03 05:00:00+03') as boundary,
            riyadh_service_date(timestamptz '2026-08-03 16:00:00+03') as evening
   `);
   // A 01:30 order belongs to the previous evening's ticket numbering.
   assert.equal(rows[0].small_hours, '2026-08-02');
+  assert.equal(rows[0].last_orders, '2026-08-02');
+  // The cushion the offset exists for: a ticket finalised after the 04:00 close
+  // is still the previous night's trade, not the first sale of a new day.
+  assert.equal(rows[0].after_close, '2026-08-02', 'a post-close ticket must stay on the night it was sold');
+  // ...but the boundary itself is 05:00, and past it the new day has begun.
+  assert.equal(rows[0].boundary, '2026-08-03');
   assert.equal(rows[0].evening, '2026-08-03');
 });
 

@@ -26,8 +26,8 @@ export async function generateMetadata({
     title: locale === 'ar' ? 'زورونا | ستاكد الخبر الشمالية' : 'Visit | STACKD Al Khobar',
     description:
       locale === 'ar'
-        ? 'ستاكد الخبر الشمالية. مفتوح كل يوم من ٣ عصراً حتى ٣ فجراً. العنوان، الهاتف، والاتجاهات.'
-        : 'STACKD Al Khobar Al Shamalia. Open daily 3 PM to 3 AM. Address, phone and directions.',
+        ? 'ستاكد الخبر الشمالية. مفتوح كل يوم من ٤ عصراً حتى ٤ فجراً. العنوان، الهاتف، والاتجاهات.'
+        : 'STACKD Al Khobar Al Shamalia. Open daily 4 PM to 4 AM. Address, phone and directions.',
   };
 }
 
@@ -56,12 +56,15 @@ export default async function VisitPage({
           <p className="eyebrow">{isAr ? BRANCH.cityAr : BRANCH.cityEn}</p>
           <h1 className="display h-xl">{t(locale, 'visit.title')}</h1>
           <div className="clock" style={{ marginBlock: 4 }}>
+            {/* Derived, like the home page's clock — the hours table further
+                down this same page was already reading STACKD_HOURS while this
+                headline was typed out, which is how the two came to disagree. */}
             <span className="clock-t" style={{ fontSize: 'clamp(34px, 7vw, 62px)' }}>
-              3 PM
+              {formatTime(STACKD_HOURS[0].opens, 'en')}
             </span>
             <span className="clock-sep">{isAr ? 'حتى' : 'until'}</span>
             <span className="clock-t" style={{ fontSize: 'clamp(34px, 7vw, 62px)' }}>
-              3 AM
+              {formatTime(STACKD_HOURS[0].closes, 'en')}
             </span>
           </div>
           <OpenStatus locale={locale} />
