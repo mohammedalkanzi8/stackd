@@ -39,12 +39,30 @@
 # Restricted by source address. Set ADMIN_ALLOW_CIDR to the shop's public range,
 # or put Cloudflare Access / a VPN in front and leave this open. It defaults to
 # open so a first deploy is not a lockout, which means TIGHTENING IT IS A REAL
-# STEP, not an optional one.
+# STEP, not an optional one. Change it with `deploy/admin-allow.sh`, which
+# checks the new list against the address you are connected from first.
+#
+# ⚠ This hostname must also stay DNS-ONLY at Cloudflare, for a second reason:
+# an orange cloud makes every request arrive from a Cloudflare edge address, so
+# the allowlist below would be matching the proxy instead of the visitor — it
+# would admit the whole internet or nobody, and look like a Caddy bug either way.
 {$ADMIN_DOMAIN} {
 	encode zstd gzip
 
+	# The 403 names the address it rejected. Being locked out is the one moment
+	# you cannot look this up from the inside, and a bare "denied" leaves you
+	# guessing at exactly the value you need to type.
+	#
+	# A private address here (172.x / 10.x) means Caddy is reading Docker's
+	# bridge rather than the real client, and no allowlist can work until that
+	# is fixed. See docs/deploy/SERVER.md § "The staff portal allowlist".
 	@blocked not remote_ip {$ADMIN_ALLOW_CIDR}
-	respond @blocked "Not available from this network." 403
+	respond @blocked `Not available from this network.
+
+Your address: {http.request.remote.host}
+
+To allow it, on the server:  deploy/admin-allow.sh add {http.request.remote.host}
+` 403
 
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"

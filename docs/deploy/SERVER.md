@@ -247,14 +247,61 @@ database.
 ## 8. Lock the admin portal down
 
 `ADMIN_ALLOW_CIDR` defaults to the whole internet so a first deploy is not a
-lockout. **That default is not a safe resting place.** Narrow it to the shop's
-public IP:
+lockout. **That default is not a safe resting place** — it puts the staff login
+page in front of every scanner that walks the DNS, with `requireStaff()` as the
+only thing behind it.
 
-```
-ADMIN_ALLOW_CIDR=203.0.113.4/32
+### The staff portal allowlist
+
+Use the script rather than editing `.env`. Run it on the server, from the
+checkout:
+
+```bash
+deploy/admin-allow.sh                    # what is allowed now, and your address
+deploy/admin-allow.sh add 203.0.113.4    # allow one more (/32 assumed)
+deploy/admin-allow.sh set 203.0.113.0/24 # replace the list
+deploy/admin-allow.sh open               # panic lever
 ```
 
-Then `docker compose -f deploy/docker-compose.yml up -d caddy`.
+It **refuses to write a list that excludes the address you are SSH'd in from**,
+which is the mistake this setting invites. It then recreates the `caddy`
+container — a `caddy reload` is not enough, because `{$ADMIN_ALLOW_CIDR}` is
+substituted when Caddy parses the config, from an environment fixed at container
+creation. A reload re-reads the same old value and looks like it did nothing.
+Both portals stay up; connections are refused for a second or two.
+
+### If you are locked out
+
+**The 403 page names the address it rejected.** Read it off the phone that is
+being blocked, then SSH in and `admin-allow.sh add` it. There is no need to
+guess, and no need to open the whole thing up to find out.
+
+### ⚠ Two things that quietly make the allowlist meaningless
+
+**The hostname must stay DNS-only at Cloudflare.** Behind an orange cloud every
+request arrives from a Cloudflare edge address, so the list matches the proxy
+instead of the visitor — it admits everyone or no one, and reads as a Caddy bug
+either way. This is a second, independent reason for the grey cloud on top of
+the PDPL one in § 2.
+
+**If the 403 shows you a `172.x` or `10.x` address, no allowlist can work yet.**
+Caddy is reading Docker's bridge rather than the real client, so every request
+looks like it came from the same private address. Check that Compose still
+publishes `80:80` and `443:443` directly and that nothing was put in front of
+Caddy. Fix that before narrowing anything.
+
+### ⚠ A dynamic lease will move
+
+The shop's public address is almost certainly not static. A `/32` works until
+the router reboots, and then the staff portal is simply gone mid-shift. Two
+honest options, and no clever third one:
+
+- **Keep the `/32`** and re-run the script when it moves. The 403 tells you the
+  new address, so this costs a minute — but it is a minute during service.
+- **Widen to the ISP's prefix.** Much weaker as a control, and it does still
+  turn away every scanner outside the Kingdom, which is essentially all of them.
+
+A static IP from the ISP removes the choice and is usually cheap. Ask.
 
 If staff need access from anywhere, put Cloudflare Access or a VPN in front
 instead — but note that Cloudflare Access on the admin hostname means proxying

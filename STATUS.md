@@ -11,6 +11,53 @@
 
 ---
 
+## 6 August 2026 — the admin allowlist is now safe to narrow (and still isn't)
+
+**Decision: `ADMIN_ALLOW_CIDR` stays `0.0.0.0/0` for now, deliberately.** The
+staff portal is reachable from any address on the internet, with `requireStaff()`
+as the only control. That is a knowingly accepted risk, not an oversight.
+
+What changed is that narrowing it is now a one-command job instead of a thing
+nobody wants to touch:
+
+```bash
+deploy/admin-allow.sh add <the shop's IP>     # on the VM
+```
+
+`deploy/admin-allow.sh` **refuses to write a list that excludes the address you
+are SSH'd in from**, and the 403 page now names the address it rejected — so
+being locked out tells you exactly what to allow instead of nothing at all.
+Full runbook in `docs/deploy/SERVER.md` § 8.
+
+### Three things verified while building it
+
+1. **The allowlist would actually work.** `admin.stackd.com.sa` and
+   `my.stackd.com.sa` both resolve to `84.8.97.107` (Oracle, DNS-only). No
+   Cloudflare edge in the path, so Caddy's `remote_ip` sees real clients.
+   ⚠ **The grey cloud on the admin hostname is now load-bearing for a second
+   reason**: orange would make every request arrive from a Cloudflare address
+   and the list would match the proxy, not the visitor.
+2. **Space-separated multi-CIDR in one env var works.** It relies on `{$VAR}`
+   being substituted textually before Caddyfile tokenization. Tested against
+   real Caddy 2.11.4: blocked → 403 with the client IP rendered, allowed → 200.
+3. **⚠ `caddy reload` does NOT pick up a changed `ADMIN_ALLOW_CIDR`.** The
+   placeholder resolves at parse time from the container's environment, fixed at
+   container creation, so a reload re-reads the same old value and looks like it
+   did nothing. The container must be recreated — the script does it.
+
+### ⚠ When you do narrow it, the lease is the problem
+
+The owner's observed address is STC (`178.86.224.126`, RDAP: Saudi Telecom, SA)
+and is almost certainly dynamic. A `/32` works until the router reboots, then
+the portal is gone mid-shift. Either keep the `/32` and re-run the script when it
+moves, or widen to the ISP prefix (weak, but still turns away everything outside
+the Kingdom). A static IP from STC removes the choice — worth asking.
+
+It was also never confirmed whether that address is the *shop's* connection or
+just where the owner was sitting. Check from the counter before pinning it.
+
+---
+
 ## 6 August 2026 — STACKD Rewards gets an identity, and something to print
 
 **Shipped and live.** Two commits: `64f6a20` (identity, website page, print
@@ -943,6 +990,9 @@ No exposure today — the website is static and collects nothing.
 
 ## Also outstanding
 
+- **Narrow `ADMIN_ALLOW_CIDR`** — still `0.0.0.0/0` by decision, so the staff
+  portal is open to the internet. The tooling and runbook are in place; it needs
+  the shop's public IP and one command. See the 6 Aug entry above.
 - **ZATCA Phase 2** — Wave 24 (turnover > SAR 375K) deadline was 30 June 2026,
   already passed. Confirm whether STACKD is in scope. Applies to the till now,
   independent of this project.
