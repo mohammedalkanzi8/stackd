@@ -2,7 +2,8 @@
 
 **Last session:** 12 August 2026
 **Live now:** https://stackd.com.sa — verified serving, `www` 301s to the apex
-**Email:** MXroute, live and working (SPF + DKIM + DMARC all present)
+**Email:** MXroute, live and working (SPF + DKIM + DMARC all present). Password
+reset codes send as `rewards@stackd.com.sa`; `SMTP_URL` is required in production
 **Repo:** `/home/kanzi/stackd` (git, all committed)
 **Theme:** dark for everyone; light only via the header toggle
 **Phone:** 050 033 8808 · **Published contact:** info@stackd.com.sa (the public
@@ -13,11 +14,15 @@ one — `mohamed.kanzi@` is an admin-portal login and is never shown to customer
 
 ---
 
-## 12 August 2026 — deployed: both portals, all three migrations
+## 12 August 2026 — deployed: everything
 
-**✅ LIVE.** The VM went `47c651c` → `f8bd7b5`, migrations `0004`, `0005` and
-`0006` are applied to production, and both portals are rebuilt and serving.
-**The website is NOT part of this** — see the bottom of this entry.
+**✅ ALL LIVE.** The VM went `47c651c` → `f8bd7b5`, migrations `0004`, `0005` and
+`0006` are applied to production, both portals are rebuilt and serving, and the
+website shipped to Cloudflare Pages as deployment `ac5a8cca`.
+
+Everything from 12 August is out. The one thing still outstanding is not a
+deploy step: **nobody has looked at the new photography in a browser**, and it is
+now live and indexable. See the Cloudflare section below.
 
 ### ⚠ Migrations went FIRST here, which is the opposite of the 0002 rule
 
@@ -86,19 +91,63 @@ Done that way: `Super Admin` in 3 admin files, `void_reason` 1, `min_redeem_poin
 1, `Forgotten your password` 2 portal files, `must_change_password` 4,
 `customer_password_resets` 3.
 
-### ⚠ THE WEBSITE IS STILL NOT DEPLOYED, AND THAT IS DELIBERATE
+### The website — Cloudflare Pages, deployment `ac5a8cca`
 
-`stackd.com.sa` is a static export on Cloudflare Pages and ships separately with
-`npm run deploy`. It was **not** run. So the live site still shows the old
-photography and still tells customers points come off a bill "or a few riyals",
-which stopped being true when the 500-point floor went in.
+`stackd.com.sa` is a static export and ships separately from the portals, with
+`npm run deploy`. It went out the same day, after the portals.
 
-It is held for one reason: **nobody has looked at the new photographs.** There is
-no browser in this environment, so every "verified" above is markup, status codes
-and SQL — not whether a picture of a burger looks like one. `npm run dev` →
-localhost:3000 first. The two judgement calls flagged in the photography entry
-(Scoopy-Doo as the kraft bowl, and the home-page trio) are both one line to undo
-and much more expensive to undo after they are indexed.
+**Credentials are now on this machine.** `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID` are in `/home/kanzi/stackd/.env` (gitignored), so
+deploying no longer needs an interactive `wrangler login`. Account
+`1b9b2a5cef6a1caa07d0476ee2ade4b3`, project `stackd`, subdomain
+`stackd-7bc.pages.dev`, with `stackd.com.sa` and `www` attached.
+
+⚠ **An account-scoped token fails `/user/tokens/verify` with "Invalid API Token"
+and still works perfectly.** That endpoint only verifies *user*-scoped tokens. It
+looks exactly like a bad credential and it is not — this cost a wrong diagnosis
+here. Test a token against the thing you actually want it to do
+(`/accounts/<id>/pages/projects`), never against `verify`.
+
+⚠ **The token was created through a flow that also issued R2 S3 credentials**, so
+it arrived looking like an R2-only token. It is not; it carries Pages access.
+
+### ⚠ Verify a Pages deploy by BYTE LENGTH, not by status code
+
+The 3 Aug entry records `wrangler pages deploy` reporting success for deploys
+that went nowhere, so "it said success" proves nothing. A 200 on every asset
+proves little more — the old build had the same paths and would also answer 200.
+
+What actually proves it: **compare the served `content-length` against the file
+in `apps/web/out`.** Identical bytes means the edge is serving *this* build.
+Done for six photographs, all matching.
+
+The rest, sampled five times each with cache-busting and `cf-cache-status:
+DYNAMIC` throughout: `"few riyals"` **0 hits** on `/en/rewards/` where it was 1
+before the deploy, `"500 points"` present, the Arabic page carrying the figure,
+and `/menu/README.md` now **404** — the file that was being served out of
+`public/` is gone from the edge.
+
+Confirmed against the API too: `ac5a8cca` is the newest **production**
+deployment, `deploy/success`, ahead of `af090076` (8 Aug) and `7073a57d` (6 Aug).
+
+### ⚠ Still not done: somebody has to LOOK at the photographs
+
+Every "verified" in this entry is status codes, byte lengths and SQL. None of it
+is whether a picture of a burger looks like one, and there is no browser here.
+The photography is now live and indexable without ever having been seen.
+
+If anything is wrong, the two judgement calls flagged in the photography entry —
+Scoopy-Doo as the kraft bowl, and the home-page trio — are one line each in
+`seed.sql`, then `sync:menu` → `deploy`. Cheaper to fix now than after Google
+has the images.
+
+### ⚠ Roll the Cloudflare token
+
+It was shown to the agent in a screenshot, so it exists in that conversation and
+in `~/.claude/image-cache/`. It can write to the Pages project.
+`dash.cloudflare.com/profile/api-tokens`. The R2 access key and secret displayed
+beside it were exposed the same way — nothing in this project uses R2, but they
+are live credentials and worth rolling together.
 
 ---
 
@@ -323,12 +372,10 @@ accepted with one. 105 tests pass, including two new ones for the floor.
 
 ## 12 August 2026 — new photography, every card now has a real photo
 
-**STILL NOT DEPLOYED as of the 12 Aug portal deploy — waiting on your eyes at
-http://localhost:3000.** This is the one piece of that day's work that did not
-ship, and deliberately: the portals went out because they could be verified
-without a browser, and photographs cannot be. `npm run deploy` is the step.
-The owner dropped a folder of new shots and the printed menu PDF into
-`new_shots/`.
+**✅ Deployed 12 Aug** as Cloudflare Pages `ac5a8cca` — see the deploy entry at
+the top. ⚠ **It shipped without ever being looked at in a browser**, which is
+the one thing about this work that is still open. The owner dropped a folder of
+new shots and the printed menu PDF into `new_shots/`.
 
 ### Every menu item now has a photograph
 
