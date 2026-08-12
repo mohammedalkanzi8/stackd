@@ -1,6 +1,6 @@
 # STACKD — where we left off
 
-**Last session:** 12 August 2026 · **GO-LIVE: 13 August 2026**
+**Last session:** 13 August 2026 · **LIVE**
 **Live now:** https://stackd.com.sa — verified serving, `www` 301s to the apex
 **Email:** MXroute, live and working (SPF + DKIM + DMARC all present). Password
 reset codes send as `rewards@stackd.com.sa`; `SMTP_URL` is required in production
@@ -12,6 +12,94 @@ one — `mohamed.kanzi@` is an admin-portal login and is never shown to customer
 **Portals:** my.stackd.com.sa (customers) · admin.stackd.com.sa (staff, EN/AR) · Oracle Riyadh
 **Staff logins:** info@stackd.com.sa (Super Admin) · saddah.muawia@stackd.com.sa (Admin)
 **POS:** Kashier Pro by DKEYS — integration waiting on their support team
+
+---
+
+## 13 August 2026 — a reward claim took the points and gave back nothing
+
+**✅ FIXED AND LIVE.** Migration `0008_reward_redemption_tokens.sql`, applied to
+production. **The 300 points taken by the broken path have been refunded.**
+
+Reported from the live portal: claiming Free Sauce deducted 300 points and showed
+no code. Nothing to present at the counter, and no way to get the points back.
+
+### ⚠ The two redemption paths were asymmetric in the worst direction
+
+| | Points, or a ledger row? | A code to show? |
+|---|---|---|
+| `issue_redemption()` — points off a bill | **reserves**; ledger written on scan | yes |
+| `redeem_reward()` — catalogue claim | **spent immediately** | **none** |
+
+The schema comment on the first says outright that an abandoned code costs the
+customer nothing, *because most codes are abandoned*. The second did the
+opposite: an abandoned claim cost everything, and a completed one still gave
+nothing to show. **The portal's own banner read "Claimed. Show your code at the
+counter" while no code existed** — the clearest possible statement of the bug.
+
+A claim now issues a token and deducts **when the cashier scans**, exactly like
+spending points. `redemption_tokens` carries a nullable `reward_id`;
+`redeem_points_token()` handles both kinds and returns the reward name, so the
+cashier is told **what to hand over** instead of being told to knock riyals off a
+bill. Getting that wrong is the mistake that branch exists to prevent.
+
+⚠ **The min-redeem floor still does not reach the catalogue, and
+`issue_reward_redemption()` is where that is enforced by being absent.** There is
+now a test that fails if it ever does — Free Sauce is 300 against a 500 floor,
+and applying it would leave rewards listed and unclaimable.
+
+**The migration refunds every claim made through the broken path**, as
+`manual_adjust` against the owner so the correction is visible in the ledger and
+in the customer's own history rather than being a silent rewrite. Idempotent: it
+matches on the note before inserting. Verified by rebuilding the pre-0008 world
+on dev — no `reward_id`, the old four-column function, a claim that spent points
+and left no token — then applying: 700 → 1000, one refund row, second run
+refunds none.
+
+### The live code now sits at the top, and names the reward
+
+Claiming used to return the customer to the top of the page with the code they
+had just been told to show sitting below the balance and a full-height member QR.
+
+⚠ **The fix is not a better anchor.** The redirect carried `#redeem`, and hash
+scrolling after a server-action redirect is unreliable in the App Router — and
+even when it worked the page jumped past a whole card to get there. A live code
+has a three-minute countdown, so it is the most urgent thing on screen. It
+renders **first** while it lasts and drops back afterwards.
+
+The panel also names the reward. "3.00 SAR comes off your bill" is wrong and
+alarming when what was claimed is a free sauce.
+
+### The member QR collapses during the exchange
+
+Owner's idea. ⚠ **Two scannable codes on one screen meaning opposite things** —
+one identifies the customer so a bill *adds* points, the other *spends* them. A
+cashier with a queue reads a phone, not a label.
+
+It **collapses rather than disappearing**, which is the one change to the
+original proposal: `creditBill` looks a customer up **by member code**, so a
+customer redeeming and earning on the same purchase would otherwise have to
+cancel the code, get scanned, and claim again. `<details>` — native, accessible,
+and works with no JavaScript, which is the right dependency for a phone on shop
+wifi.
+
+### ⚠ EVERY REBUILD INVALIDATES OPEN PAGES' SERVER ACTIONS
+
+Seen in the portal log straight after this deploy:
+
+```
+Failed to find Server Action "4073d977…". This request might be from an
+older or newer deployment.
+```
+
+Next embeds a build-specific id in every server action. **A browser tab left open
+across a rebuild fails its next form submit** — a scan, a claim, a sign-in — with
+that error, until the page is reloaded. It does not recur on fresh loads and
+nothing is corrupted.
+
+It matters at a counter: rebuilding while a cashier has the Scan page open makes
+their next scan fail once, and the message explains nothing to them. **Deploy
+between shifts where possible, and tell staff to reload the page after any
+deploy.**
 
 ---
 
