@@ -15,6 +15,88 @@ one — `mohamed.kanzi@` is an admin-portal login and is never shown to customer
 
 ---
 
+## 12 August 2026 — what Arabic exposed, and a spacing scale
+
+**✅ LIVE.** A design pass over the admin portal. Four defects, two visible only
+in Arabic and one that had never worked in either language.
+
+### ⚠ The current-page indicator had NEVER worked
+
+`globals.css` has styled `nav.main a[aria-current='page']` since the portal was
+built, and nothing ever set the attribute — so the rule could not match. On a
+tool used mid-shift with a queue waiting, which page you are on is the one piece
+of state the chrome exists to carry.
+
+It is set now, from a small client component (`usePathname` needs one; the links
+are still plain `<Link>`, so with JavaScript broken the nav navigates and only
+the highlight is lost). And it is styled **distinctly from `:hover`** — the two
+were previously the identical declaration, so even had it matched, hovering any
+link would have looked the same as standing on the current page.
+
+Refactoring it also surfaced that the two role-gated links lived as separate JSX
+branches; the whole nav is one list with a `roles` field now, which is what
+stops a gated link arriving with a label and no glyph.
+
+### ⚠ Two things that broke only in Arabic
+
+1. **The wordmark.** `STACKD<span>.</span>` inherits RTL, and bidi resolves that
+   trailing full stop to the paragraph direction — rendering **`.STACKD`** on
+   every Arabic screen. It is a Latin lockup and the period is part of the mark,
+   so it now carries `dir="ltr"`.
+2. **The sign-out arrow pointed the wrong way.** It is the only directional
+   glyph in the set, so it is the only one that mirrors. Symbols must *not*:
+   flipping a QR square or a receipt makes it wrong, not localised. Opt-in per
+   icon via `.rtl-mirror`, matched with `[dir='rtl']` rather than `:dir(rtl)` —
+   the pseudo-class needs Chrome 120, and this is the same reasoning that turned
+   down `light-dark()` in that file.
+
+Two labels were also never translated: the scan page's bill total, and the
+reward discount.
+
+### Spacing is a scale now
+
+**Nineteen distinct hand-picked pixel values**, six of them odd numbers — 5, 7,
+9, 11, 22, 26 — that no scale explains. Odd values are how a layout stops being
+alignable: two elements set to 5 and 6 look identical alone and never line up
+beside each other.
+
+Replaced with a named scale on a **2px base**. 2 rather than 4 because this is a
+dense Operate surface and a 4-only scale has no step between 8 and 12, which is
+exactly where a table cell and a chip live. Steps are named by role (`--s-cosy`,
+`--s-sect`) so a value can be corrected once without renaming it everywhere.
+
+### ⚠ The Arabic small labels had nothing left holding them up
+
+`.eyebrow`, `.stat .k` and `th` are 11–12px and were carrying their entire
+meaning in **uppercase plus 0.08–0.14em tracking**. Arabic gets neither — it is
+cursive, so tracking pulls the joins open, and there is no case to transform.
+Strip both and what remains is small dim text with nothing marking it as a
+label. The distinction is rebuilt from weight and colour.
+
+Cairo's counters also close up below about 13px where Latin's do not, so small
+type has a higher floor in Arabic; and fixed-height rows get more vertical
+padding, because Arabic has descenders that Latin at this size does not.
+
+### Touch targets were built for a mouse
+
+The primary input here is **a finger on a counter tablet**. The preference
+buttons measured about **25px** and nav links about **34px**, against the 44px a
+fingertip needs. Corrected only under `pointer: coarse`, so a mouse keeps the
+compact chrome that lets ten nav items fit one row — the visible mark is
+unchanged, the box around it is not. `prefers-reduced-motion` is honoured too.
+
+### The recommendation NOT taken
+
+**Every page opens with an eyebrow above its heading** — 15 of them across 10
+files. The craft floor bans the pattern outright. Here it is carrying a real
+category (`Loyalty` above "How points are earned", `People` above "Staff and
+permissions"), it is the incumbent world across the whole portal, and stripping
+it from ten pages hours after staff were trained on those screens is a redesign
+wearing a polish label. Flagged, not done. Worth revisiting after a week of
+trading.
+
+---
+
 ## 12 August 2026 — GO-LIVE PREP: wiped to a clean slate, admin goes bilingual
 
 **✅ ALL LIVE.** The shop opens tomorrow with staff already trained.
