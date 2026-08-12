@@ -46,7 +46,10 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ error?: string; id?: string; from?: string }>;
 }) {
-  if (await currentMember()) redirect('/points');
+  // A signed-in visitor mid-reset goes to /password, not /points, or the
+  // forced screen could be skipped by visiting /login and being bounced past it.
+  const signedIn = await currentMember();
+  if (signedIn) redirect(signedIn.mustChangePassword ? '/password' : '/points');
   const { error, id = '', from } = await searchParams;
 
   return (
@@ -98,7 +101,10 @@ export default async function LoginPage({
           </form>
         </div>
 
-        <p className="muted" style={{ marginBlockStart: 18, textAlign: 'center' }}>
+        <p className="muted">
+          <Link href="/forgot">Forgotten your password?</Link>
+        </p>
+        <p className="muted">
           Not a member yet? <Link href="/registration">Join in a minute</Link>
         </p>
       </div>

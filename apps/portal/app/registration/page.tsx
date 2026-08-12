@@ -35,6 +35,11 @@ async function register(formData: FormData): Promise<void> {
   if (!phone) fail(`"${rawPhone}" is not a Saudi mobile number. Try 050 033 8808.`);
   if (password.length < 8) fail('Your password needs at least 8 characters.');
 
+  // Checked up front so the common case gets a sentence about the field it
+  // belongs to. It is NOT the guarantee — two people submitting at the same
+  // moment both pass this, and the unique indexes on customers.phone and
+  // lower(customers.email) are what actually stop the second one. See the catch
+  // below, and migration 0006.
   if (await queryOne('select 1 from customers where phone = $1', [phone])) {
     fail('That mobile number is already registered. Sign in instead.');
   }
@@ -47,32 +52,54 @@ async function register(formData: FormData): Promise<void> {
   );
   const hash = await hashPassword(password);
 
-  const id = await transaction(async (c) => {
-    // auth.users, the customer, the credential and the bonus land together or
-    // not at all — a half-made account cannot sign in and cannot be repaired
-    // from the outside.
-    const { rows } = await c.query(
-      'insert into auth.users (phone, email) values ($1, $2) returning id',
-      [phone, email],
-    );
-    const customerId = rows[0].id as string;
-    await c.query(
-      'insert into customers (id, full_name, phone, email, locale) values ($1, $2, $3, $4, $5)',
-      [customerId, name, phone, email, 'en'],
-    );
-    await c.query(
-      'insert into customer_credentials (customer_id, password_hash) values ($1, $2)',
-      [customerId, hash],
-    );
-    if (settings && settings.signup_bonus > 0) {
-      await c.query(
-        `insert into loyalty_transactions (customer_id, delta, reason, note)
-         values ($1, $2, 'signup_bonus', 'Registered online')`,
-        [customerId, settings.signup_bonus],
+  // 23505 is unique_violation. It reaches here when two registrations race the
+  // check above, and the constraint name says which field lost — so the person
+  // still gets "that mobile is already registered" rather than a stack trace.
+  // Annotated on the binding, not just the arrow's return type: TypeScript only
+  // treats a call as terminating control flow when the callee's `never` is
+  // declared on a name it can see, and `id` below is otherwise "used before
+  // assigned".
+  const onConflict: (err: unknown) => never = (err) => {
+    const code = (err as { code?: string } | null)?.code;
+    const constraint = String((err as { constraint?: string } | null)?.constraint ?? '');
+    if (code !== '23505') throw err;
+    if (constraint.includes('email')) return fail('That email is already registered. Sign in instead.');
+    return fail('That mobile number is already registered. Sign in instead.');
+  };
+
+  let id: string;
+  try {
+    id = await transaction(async (c) => {
+      // auth.users, the customer, the credential and the bonus land together or
+      // not at all — a half-made account cannot sign in and cannot be repaired
+      // from the outside.
+      const { rows } = await c.query(
+        'insert into auth.users (phone, email) values ($1, $2) returning id',
+        [phone, email],
       );
-    }
-    return customerId;
-  });
+      const customerId = rows[0].id as string;
+      await c.query(
+        'insert into customers (id, full_name, phone, email, locale) values ($1, $2, $3, $4, $5)',
+        [customerId, name, phone, email, 'en'],
+      );
+      await c.query(
+        'insert into customer_credentials (customer_id, password_hash) values ($1, $2)',
+        [customerId, hash],
+      );
+      if (settings && settings.signup_bonus > 0) {
+        await c.query(
+          `insert into loyalty_transactions (customer_id, delta, reason, note)
+           values ($1, $2, 'signup_bonus', 'Registered online')`,
+          [customerId, settings.signup_bonus],
+        );
+      }
+      return customerId;
+    });
+  } catch (err) {
+    // Nothing in the transaction body redirects, so anything caught here is a
+    // real database error. onConflict rethrows whatever is not a duplicate.
+    onConflict(err);
+  }
 
   await startSession(id);
   redirect('/points?welcome=1');
@@ -83,7 +110,8 @@ export default async function RegistrationPage({
 }: {
   searchParams: Promise<{ error?: string; fullName?: string; email?: string; phone?: string }>;
 }) {
-  if (await currentMember()) redirect('/points');
+  const signedIn = await currentMember();
+  if (signedIn) redirect(signedIn.mustChangePassword ? '/password' : '/points');
   const { error, fullName = '', email = '', phone = '' } = await searchParams;
 
   const settings = await queryOne<{ signup_bonus: number; earn_percent: string }>(
@@ -161,7 +189,7 @@ export default async function RegistrationPage({
           </form>
         </div>
 
-        <p className="muted" style={{ marginBlockStart: 18, textAlign: 'center' }}>
+        <p className="muted">
           Already a member? <Link href="/login">Sign in</Link>
         </p>
       </div>

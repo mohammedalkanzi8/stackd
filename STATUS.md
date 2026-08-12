@@ -1,6 +1,6 @@
 # STACKD — where we left off
 
-**Last session:** 8 August 2026
+**Last session:** 12 August 2026
 **Live now:** https://stackd.com.sa — verified serving, `www` 301s to the apex
 **Email:** MXroute, live and working (SPF + DKIM + DMARC all present)
 **Repo:** `/home/kanzi/stackd` (git, all committed)
@@ -9,6 +9,329 @@
 **Hours:** 16:00 – 04:00 daily. Change them in `STACKD_HOURS` *and* a migration
 **Portals:** my.stackd.com.sa (customers) · admin.stackd.com.sa (staff) · Oracle Riyadh
 **POS:** Kashier Pro by DKEYS — integration waiting on their support team
+
+---
+
+## 12 August 2026 — a customer who forgets their password can get back in
+
+**NOT DEPLOYED. Migration `0006_password_reset.sql` is waiting**, and this one
+needs a mailbox and `SMTP_URL` before it is any use at all.
+
+Until now a forgotten password was the end of the account. There was no reset of
+any kind, and the only recovery was a member walking to the counter and asking
+staff to do something the admin portal cannot actually do. The portal now emails
+a six-digit code, good for **15 minutes and 5 wrong guesses**, and forces a new
+password before it shows anything else.
+
+### ⚠ `SMTP_URL` MUST BE SET BEFORE THIS DEPLOYS
+
+With no `SMTP_URL`, mail is written to the server log instead of being sent. That
+is what makes the flow testable on a laptop before a mailbox exists, and it is
+exactly the failure that must never reach production: a reset that silently goes
+nowhere looks identical to a working one from the outside, and the customer is
+simply locked out of their points.
+
+So `assertMailConfigured()` **throws in production**, and it is called *before*
+the code is created rather than after it is sent — a misconfigured deployment
+fails while the customer is still looking at the form and can be told something
+true. `deploy/env.example` has the block.
+
+⚠ **The example value points at Zoho and STACKD's mail is on MXroute.** It is a
+placeholder and it has never been run against the real host. Prove it with
+`node scripts/mail-test.mjs <you@example.com>` before anyone relies on this — it
+sends the real template, imported rather than copied, so it tests the mail that
+actually goes out. It touches no database and is safe to run against production.
+
+### The form must not say whether an address is registered
+
+`issueResetCode` returns the same way for an address that exists and one that
+does not, and the page prints the same sentence either way. Anything else turns
+this form into a tool for testing whether a given person is a STACKD member,
+which is not something a stranger should be able to find out. `verifyResetCode`
+answers `invalid` for "wrong code" and "no such customer" alike.
+
+The cost is that a typo looks like success. The mail that never arrives is the
+feedback, and the form says so before you submit.
+
+### ⚠ The code is stored as a scrypt hash, never in plain text
+
+A six-digit code is a credential — it signs somebody in. In plain text, anyone
+reading a database dump takes every account with a reset in flight. Under a fast
+hash, all one million codes fall to an offline sweep in about a second. scrypt at
+64 MB a guess makes that sweep meaningless. It uses `hashPassword` /
+`verifyPassword` from `packages/server`, the same pair that hash the passwords.
+
+Guesses are counted **in the database, not in memory**: the portal runs more than
+one process, and a counter held in one of them is not a limit.
+
+### The old password keeps working until a new one is chosen
+
+Verifying a code sets `must_change_password` and does **not** touch the existing
+hash. Somebody who starts a reset, then remembers their password, is not locked
+out by having abandoned it halfway. A customer who never had a password — signed
+up at the counter, phone only — gets a row with an unguessable random hash, so
+the code stays the only way in.
+
+`requireMember()` redirects to `/password` while the flag is set, so the block is
+in one place rather than on each page.
+
+⚠ **`/password` is reachable voluntarily too, and there it demands the current
+password.** A forced reset cannot ask for it — not knowing it is why they are
+there — and the one-time code was the proof, already spent. But without that
+check on the voluntary path, a thirty-day session on an unlocked phone is enough
+for whoever picks it up to take the account permanently.
+
+### The unique email index is the part that touches existing data
+
+There was none. Only `phone` was unique, so registration's duplicate check was a
+plain SELECT before an INSERT and two racing submissions could both pass it.
+Survivable while email was a contact detail; not survivable once a password can
+be reset by one, because two rows sharing an address make "which account?"
+unanswerable.
+
+The migration lowercases and trims stored addresses, turns empty strings into
+NULL — that is what an untouched optional field posts, and they would all collide
+with each other — and then **stops with an exception naming the addresses** if
+two customers still share one. Deliberately: merging two loyalty accounts means
+deciding which member code survives and what happens to both balances, which is a
+judgement about somebody's money and not a migration's to make.
+
+**Check production for clashes before applying**, or the migration will tell you
+about them at an inconvenient moment.
+
+### Also
+
+- One live code per customer — `customer_password_resets` is keyed by customer
+  id, so issuing supersedes rather than accumulating. A 60-second cooldown stops
+  the form being a way to have STACKD send somebody a hundred emails on our
+  sender reputation, and stops an impatient double-tap invalidating the code the
+  customer is halfway through typing.
+- RLS on with **no policy**, exactly as `customer_credentials` is. `schema.test.mjs`
+  fails the build if that is ever dropped.
+- `packages/server/src/mail.ts` is one function over SMTP rather than a provider
+  SDK. Every host speaks SMTP, so changing provider is one env var and no code.
+- Expired and spent codes are deleted on the next request for that customer, so
+  reading never writes and there is no sweep to schedule.
+
+10 tests in `supabase/password-reset.test.mjs` cover it: the duplicate address is
+refused whatever the case, an unknown address writes nothing, only a hash is
+stored, the cooldown holds, a wrong code counts an attempt without signing anyone
+in, five kill the code, an expired one is refused, the right one works exactly
+once, and an existing password keeps working until a new one is saved.
+
+**115 tests pass and typecheck is clean across all five workspaces.**
+
+---
+
+## 12 August 2026 — permissions, voiding, and a redemption floor
+
+**NOT DEPLOYED. Two migrations are waiting.** `0004_void_orders.sql` and
+`0005_min_redeem_points.sql`, both safe to run twice, both with their apply
+command in the header.
+
+### ⚠ `mohamed.kanzi@stackd.com.sa` MUST EXIST ON MXROUTE BEFORE THIS DEPLOYS
+
+The published contact address changed from `info@stackd.com.sa`. It is on the
+home page, the visit page, the footer and in the schema.org block Google reads.
+If the mailbox is not there, customer mail bounces the moment the site goes up.
+**Keep `info@` alive as an alias** — it has been live and indexed for months.
+
+### Admin and Super Admin
+
+The database enum is untouched: still `cashier | kitchen | manager | owner`.
+Renaming a Postgres enum means a migration against production and touching every
+policy that names a role, for no behavioural gain, so the rename is in the
+labels. **`manager` IS Admin. `owner` IS Super Admin.** One place to look:
+`ADMIN` and `SUPER_ADMIN` in `apps/admin/lib/auth.ts`.
+
+| | Admin | Super Admin |
+|---|---|---|
+| Menu, photos, rewards | ✅ | ✅ |
+| Delete a member | ✅ | ✅ |
+| Deactivate staff | | ✅ |
+| Void an order | | ✅ |
+| Adjust points, earn rate, awards | | ✅ |
+
+Points **moved up** a tier — Admin could adjust balances before and now cannot.
+Cashiers still enrol members at the counter, which you confirmed: that is where
+signups actually happen.
+
+Staff are still deactivated rather than deleted, and that stays. `actor_id` on
+every ledger row points at them, so deleting one strips the name off every
+adjustment they ever made. Deactivating locks them out and keeps the history.
+
+### Voiding an order — it does not delete, and it must not
+
+`invoice_counters` issues tax invoice numbers that ZATCA requires to be
+sequential per branch **with no gaps**. Deleting an invoiced order punches a hole
+nothing can legitimately fill. So a void marks the row: `voided_at`, `voided_by`,
+`void_reason`, all three or none, enforced by a check constraint. The ticket
+keeps its number and stays in the books.
+
+Three columns rather than an `order_status` value, on purpose: status tracks
+*fulfilment*, voiding is *accounting*, and a ticket can be `completed` (they ate
+it) and voided (it was rung up twice) at once.
+
+**⚠ Every query that sums money now excludes voided rows.** There is one
+definition — `IS_TRADE()` in `reports/page.tsx` — so a void cannot be dropped
+from revenue but counted in the daily chart. Grep `grand_total` before adding
+another.
+
+Points already credited are **not** clawed back by a void. Taking back balance a
+customer banked is worse than a wrong takings figure; the page says so, and the
+ledger is where that decision belongs.
+
+### 500-point floor on counter redemptions
+
+`loyalty_settings.min_redeem_points`, default 500 (= 5.00 SAR). Enforced inside
+`issue_redemption()`, not in the portal that draws the slider — that function is
+reachable from the portal and the till, and a floor enforced in one caller is not
+a floor. 0 switches it off.
+
+**It does not apply to the rewards catalogue, deliberately.** Free Sauce is 300
+points and Free Coleslaw is 400; applying the floor there would leave both listed
+and unclaimable, which reads as a broken app rather than a rule. Raise those two
+to 500 first if you want the floor to cover rewards.
+
+**The website's own copy said points come off a bill "or a few riyals".** That
+stopped being true, so it now reads "Once you reach 500 points…" in English and
+Arabic. The site is a static export with no database, so the number is written
+out in `rewards.ts` — change it there and here together.
+
+Verified against the real database: 499 refused, 500 accepted, a 300-point reward
+still claimable, and a void rejected with no reason, with a blank reason, and
+accepted with one. 105 tests pass, including two new ones for the floor.
+
+---
+
+## 12 August 2026 — new photography, every card now has a real photo
+
+**NOT DEPLOYED. Waiting on your eyes at http://localhost:3000.** The owner
+dropped a folder of new shots and the printed menu PDF into `new_shots/`.
+
+### Every menu item now has a photograph
+
+Coleslaw and Cheesy-Cheese were the last two placeholder cards. They aren't
+anymore, so the menu page has zero branded placeholders left on it.
+
+| Item | Was | Now |
+|---|---|---|
+| Classic / Maple / Big-Stackd | upscaled crops from the July launch post | August shoot, native 4:3, matches the printed menu |
+| Tortilla Strips | July export | full-res original `DSC07611.jpg` (1991×2877) |
+| Scoopy-Doo | launch-post poster | the kraft bowl as served |
+| Fire-Attack | Scoopy-Doo + **drawn-on jalapeños** | Scoopy-Doo, different crop, heat masked to the bowl |
+| Fries | July camera shot, plain | branded scoop packshot |
+| Coleslaw | placeholder | packshot |
+| Cheesy-Cheese | placeholder | fries with a pot of cheese, composited |
+
+### The fabricated jalapeños are gone
+
+The Fire-Attack card carried jalapeño slices that were drawn in and are not in
+the recipe. The owner confirmed on 12 Aug that Fire-Attack and Scoopy-Doo are
+**one dish with a different sauce**, which means the honest way to separate the
+two cards is crop and grade — so that is all that separates them now. Nothing is
+added to the food in any image on the site.
+
+**The heat is masked to the bowl, and the frame is Scoopy-Doo's exactly.** Two
+attempts were rejected before this one: grading the whole photograph turned the
+restaurant behind the bowl orange too and read as a filter over a mild dish, and
+a tighter crop changed the framing when the owner wanted only the sauce to
+change. Now the two Giants cards are the same photograph at the same size, and
+the only difference between them is the colour of the sauce — which is the only
+difference between the dishes.
+
+The bowl, table, coleslaw and pickles are untouched. That last part matters: the
+coleslaw pot has red cabbage in it and sits well outside the mask.
+
+### Cheesy-Cheese is now fries with cheese
+
+Owner's call on 12 Aug. It is **two photographs in one frame** — the STACKD
+fries scoop, with the cheese pot keyed off its own white studio sweep and set
+down beside it with a synthesised contact shadow. Both halves are real
+photographs of real product at the size it is served.
+
+A drizzle poured over the fries was built first and thrown away: with no way to
+light or shade the sauce it read as flat plastic ribbons on top of the picture.
+
+⚠ **The card now reads as a portion of fries WITH a cheese dip.** If
+Cheesy-Cheese is sold as a 6 SAR pot of sauce on its own, that oversells it and
+it should go back to the plain pot. Worth a look before this deploys.
+
+### `scripts/shoot-to-web.mjs` — crops and grades are written down
+
+The shots arrive from three lighting worlds: warm plated (burgers, Giants), the
+steel tray on marble (camera shoot), and white-background packshots. Left raw
+the packshots cut a glaring white rectangle into a near-black page. The script
+grades each world onto the same footing — highlights rolled off, white balance
+warmed, a soft vignette on the bright ones — and writes every file at exactly
+1200×900, which is the size `CardMedia` declares.
+
+It also carries the two composites — `heat` masks a grade to a region, `inset`
+keys a subject off a white sweep and seats it in another frame — so both are
+written down and re-runnable rather than living in an image editor's history.
+
+Re-runnable and deterministic. New shots into `new_shots/`, an entry in `SHOTS`,
+run it. Brief in `docs/menu-photography.md`.
+
+⚠ **Do not `npm run build` while `npm run dev` is up.** Both write
+`apps/web/.next` and the running server then 500s every route with
+`Cannot find module './997.js'`. Kill it, `rm -rf apps/web/.next`, restart.
+
+### ⚠ The rooster's feet are broken in the ARTWORK, not in our code
+
+Reported from the live hero. The right foot is a handful of disconnected black
+shards with a stray red diagonal through it; the left foot is fine.
+
+**It is not the SVG conversion and it is not fixable here.** Checked properly:
+all 450 paths in the PDF reach the SVG, all 450 fills are `f` (nonzero) and all
+450 come out nonzero, the only clip in the file is the full-artboard rect the
+converter documents, no path is displaced outside the artboard, all 9 filled
+rectangles are 1–5px detail marks nowhere near the legs, and there are no
+XObjects, images or soft masks. The converter is faithful.
+
+**Page 2 of `/mnt/d/STACKD LOGO VECTOR.pdf` is an auto-traced bitmap** — 450
+paths and a 32-colour palette carrying `#f7f7f7`, `#f8f8f8`, `#f9f9f9`,
+`#c0c0c0`, `#c5c5c5`, `#c9c9c9`, which is what an image trace produces, not what
+a person draws. The trace degraded below the shins. Deleting the broken
+fragments does not help: it leaves a leg ending in nothing.
+
+Pages 1 and 3 — the flat bust logos actually used for `logo.svg` — convert
+perfectly, so whoever made those has clean source.
+
+**Nothing changed on the site.** A CSS fade over the ankles was tried as a
+stopgap and the owner reverted it — the hero art is exactly as it was, broken
+feet and all, and `globals.css` is untouched.
+
+**The fix is a clean full-body vector. Ask the designer for one.** It is the
+brand mascot on the front page and it is the only thing that will actually solve
+this. Until then the feet stay as they are, which at hero size most visitors
+will never notice.
+
+### Two judgement calls to overrule if you disagree
+
+1. **Scoopy-Doo is now the kraft bowl.** On 3 Aug you preferred the poster
+   because the poster plated it better than the bowl. That was against an older
+   bowl photo; this one is the frame your printed menu uses. One line in
+   `seed.sql` puts the poster back.
+2. **The home page trio changed** from Scoopy-Doo / Big-Stackd / Fire-Attack to
+   Classic / Big-Stackd / Scoopy-Doo. The old flanks are now the same photograph
+   twice, side by side.
+
+### Also
+
+- `apps/web/public/menu/README.md` → `docs/menu-photography.md`. Anything in
+  `public/` is copied into the export, so that file was being served at
+  `stackd.com.sa/menu/README.md`.
+- **The printed menu PDF agrees with the database** — every price and calorie
+  matches what the site already serves. No data changes. It still prints water
+  at 1 SAR in the English column and 2 in the Arabic; 2 is correct and settled
+  (DISCREPANCIES §1), so that is a reprint fix, not a site one.
+- ⚠ **9 `photo_*.jpg` files never copied out of Windows.** `new_shots/` has
+  their `:Zone.Identifier` stubs and no image. Re-copy if they mattered.
+- ⚠ `FIRE-ATTACK.jpg` in `new_shots/` is byte-identical to `SCOOPY-DOO.jpg`
+  (same md5). There is still no photograph of Fire-Attack anywhere.
+- Unused: `STACKD SAUCE.jpg`, `RANCH SAUCE.jpg`. Sauces are deliberately
+  text-only cards, on the printed menu as well as the site.
 
 ---
 

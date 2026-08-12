@@ -333,12 +333,20 @@ create table customers (
   member_code   text not null unique default generate_member_code(),
   full_name     text,
   phone         text unique,          -- E.164, e.g. +9665XXXXXXXX
+  -- Stored lowercase and trimmed, or NULL. Unique — see customers_email_unique
+  -- below: a password reset sends a code to an address and has to be able to
+  -- name exactly one customer from it.
   email         text,
   locale        text not null default 'ar' check (locale in ('ar','en')),
   birthday      date,                 -- drives a birthday reward
   marketing_opt_in boolean not null default false,
   created_at    timestamptz not null default now()
 );
+
+-- One account per email address, case-insensitive, NULLs exempt. Password reset
+-- sends a code to an address and has to resolve it to exactly one customer.
+create unique index customers_email_unique
+  on customers (lower(email)) where email is not null;
 
 -- Cashier-facing member lookup for the scan flow.
 --
@@ -368,8 +376,35 @@ $$;
 create table customer_credentials (
   customer_id   uuid primary key references customers(id) on delete cascade,
   password_hash text not null,
+  -- The portal shows nothing but the set-a-password screen while this is true.
+  -- Set by verifying an emailed reset code; cleared when the new password saves.
+  must_change_password boolean not null default false,
   updated_at    timestamptz not null default now()
 );
+
+-- Forgotten-password codes, one live code per customer.
+--
+-- The primary key is the customer id, so issuing a new code overwrites the old
+-- one rather than leaving two ways in — the same reasoning as issue_redemption()
+-- deleting the previous redemption token instead of keeping it.
+--
+-- ⚠ code_hash is scrypt, never the code. A six-digit code signs somebody in, so
+-- it is a credential: in plain text a database dump would hand over every
+-- account with a reset in flight, and under a fast hash the whole million-code
+-- space falls to an offline sweep in about a second. Hashed by the same
+-- functions that hash the passwords (packages/server/src/password.ts).
+create table customer_password_resets (
+  customer_id uuid primary key references customers(id) on delete cascade,
+  code_hash   text not null,
+  expires_at  timestamptz not null,
+  -- Wrong guesses. The code dies at the cap, so the six-digit space cannot be
+  -- walked online while it is still valid.
+  attempts    int not null default 0,
+  created_at  timestamptz not null default now()
+);
+
+create index customer_password_resets_expires
+  on customer_password_resets (expires_at);
 
 -- Push notification targets. Phase 2 pushes reward milestones; Phase 3 pushes
 -- "your order is ready", which is the whole point of pickup.
@@ -467,6 +502,30 @@ create table orders (
   scheduled_for   timestamptz,  -- null = ASAP
   ready_at        timestamptz,
   completed_at    timestamptz,
+
+  -- Voided by a Super Admin. See migration 0004.
+  --
+  -- Separate from `status`, which tracks FULFILMENT — where the food is. Voiding
+  -- is an accounting act, and the two are independent: a ticket can be
+  -- `completed` (the customer ate it) and still be voided (it was rung up
+  -- twice). One enum cannot hold both facts.
+  --
+  -- ⚠ The row is never deleted and never loses its invoice number: ZATCA
+  -- requires the per-branch invoice sequence to have no gaps. Voiding marks;
+  -- it does not remove.
+  --
+  -- ⚠ EVERY QUERY THAT SUMS MONEY MUST EXCLUDE `voided_at is not null`.
+  voided_at       timestamptz,
+  voided_by       uuid references staff(id),
+  void_reason     text,
+  -- All three or none. A void with nobody's name against it defeats the column.
+  constraint orders_void_complete check (
+    (voided_at is null and voided_by is null and void_reason is null)
+    or
+    (voided_at is not null and voided_by is not null
+     and void_reason is not null and length(btrim(void_reason)) > 0)
+  ),
+
   notes           text,
   created_at      timestamptz not null default now(),
   -- Realtime consumers (the app's status timeline, the kitchen display) need a
@@ -483,6 +542,12 @@ create table orders (
 -- right, since a 01:30 order belongs to the previous evening's numbering.
 create unique index orders_pickup_code_daily
   on orders (branch_id, service_date, pickup_code);
+
+-- Partial: voids are rare and every money query filters on the NULL side, so
+-- indexing only the voided rows keeps this small while still answering "what was
+-- voided this month, and by whom".
+create index orders_voided on orders (branch_id, voided_at)
+  where voided_at is not null;
 create index orders_customer_recent on orders (customer_id, created_at desc);
 -- Kitchen display query: open orders for one branch.
 create index orders_branch_open on orders (branch_id, status)
@@ -663,6 +728,16 @@ create table loyalty_settings (
   -- pocket, short enough that the liability does not sit open forever.
   claim_window_days  int not null default 30 check (claim_window_days > 0),
   signup_bonus       int not null default 0 check (signup_bonus >= 0),
+  -- Floor on a single counter redemption. 500 points = 5.00 SAR off.
+  --
+  -- Applies to issue_redemption() — points spent as money off a bill — and NOT
+  -- to redeem_reward(). A catalogue reward already has a price the owner set,
+  -- and some of them are deliberately cheaper than this floor (Free Sauce is
+  -- 300); applying the floor there would quietly make those rewards
+  -- unredeemable while still listing them.
+  --
+  -- 0 disables the floor.
+  min_redeem_points  int not null default 500 check (min_redeem_points >= 0),
   updated_at         timestamptz not null default now()
 );
 
@@ -1000,9 +1075,19 @@ declare
   bal    int;
   secs   int;
   tok    text;
+  floor_ int;
 begin
   if p_points is null or p_points <= 0 then
     raise exception 'choose how many points to spend';
+  end if;
+
+  -- The minimum a customer may spend in one go. Checked here, in the database,
+  -- rather than only in the portal that offers the slider: this function is
+  -- reachable from the portal AND the till, and a floor enforced in one caller
+  -- is not a floor.
+  select min_redeem_points into floor_ from loyalty_settings;
+  if floor_ > 0 and p_points < floor_ then
+    raise exception 'minimum redemption is % points', floor_;
   end if;
 
   select balance into bal from loyalty_balances
@@ -1290,6 +1375,9 @@ alter table modifiers                 enable row level security;
 alter table menu_item_modifier_groups enable row level security;
 alter table customers                 enable row level security;
 alter table customer_credentials      enable row level security;
+-- No policy, like customer_credentials above: an in-flight reset code is a
+-- credential, and only the portal's server role has any business reading one.
+alter table customer_password_resets  enable row level security;
 alter table device_tokens             enable row level security;
 alter table orders                    enable row level security;
 alter table order_items               enable row level security;

@@ -10,6 +10,8 @@
  */
 
 import { createHmac, timingSafeEqual, randomBytes } from 'node:crypto';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 export interface SessionCookieOptions {
   /** Cookie name. Must differ per app, or one portal's session overwrites the other's. */
@@ -43,13 +45,51 @@ export function createSessions(options: SessionCookieOptions) {
   const globalKey = `stackdSecret_${secretEnv}`;
   const store = globalThis as unknown as Record<string, string | undefined>;
 
+  // ...and globalThis only reaches as far as one process. `next dev` runs a
+  // launcher plus a child `next-server`, restarts that child on a crash, and is
+  // itself restarted constantly during development — every one of which minted a
+  // fresh random key and silently invalidated every session cookie on every
+  // device. What that looks like from a phone is "I reload the page and it logs
+  // me out", with nothing wrong on screen to explain it.
+  //
+  // So in development the key is written next to the app and read back. Same key
+  // across restarts, across the launcher and the server, and across the two
+  // portals' separate processes. Gitignored, and never consulted in production:
+  // there the env var is mandatory and its absence still throws.
+  const devKeyFile = join(process.cwd(), '.stackd-dev-secret');
+
+  function devSecret(): string {
+    if (store[globalKey]) return store[globalKey]!;
+
+    let keys: Record<string, string> = {};
+    try {
+      keys = JSON.parse(readFileSync(devKeyFile, 'utf8')) as Record<string, string>;
+    } catch {
+      // No file yet, or something unreadable in it. Either way it is about to be
+      // rewritten — a corrupt dev key file should cost one re-login, not a crash.
+    }
+
+    if (!keys[secretEnv]) {
+      keys[secretEnv] = randomBytes(32).toString('hex');
+      try {
+        writeFileSync(devKeyFile, JSON.stringify(keys, null, 2), { mode: 0o600 });
+      } catch {
+        // Read-only checkout, or a container with no write access. Fall through
+        // to the in-memory key: sessions still work, they just do not survive a
+        // restart, which is exactly the old behaviour.
+      }
+    }
+
+    return (store[globalKey] = keys[secretEnv]);
+  }
+
   function secret(): string {
     const fromEnv = process.env[secretEnv];
     if (fromEnv) return fromEnv;
     if (process.env.NODE_ENV === 'production') {
       throw new Error(`${secretEnv} must be set in production — sessions cannot be signed without it`);
     }
-    return (store[globalKey] ??= randomBytes(32).toString('hex'));
+    return devSecret();
   }
 
   function sign(value: string): string {

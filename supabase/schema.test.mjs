@@ -560,7 +560,7 @@ dbTest('a redemption code is valid for exactly the configured window', async () 
   await withRollback(async () => {
     await giveBalance(CUSTOMER_1, 11500);
     const token = (
-      await db.query('select issue_redemption($1, $2) as t', [CUSTOMER_1, 400])
+      await db.query('select issue_redemption($1, $2) as t', [CUSTOMER_1, 600])
     ).rows[0].t;
 
     const row = (
@@ -571,7 +571,7 @@ dbTest('a redemption code is valid for exactly the configured window', async () 
       )
     ).rows[0];
 
-    assert.equal(row.points, 400);
+    assert.equal(row.points, 600);
     // Three minutes: long enough to reach the front of a queue, short enough
     // that a photograph of someone's screen is worthless by the time it is used.
     assert.ok(row.secs_left > 170 && row.secs_left <= 180, `got ${row.secs_left}s`);
@@ -582,8 +582,8 @@ dbTest('a redemption code is valid for exactly the configured window', async () 
 dbTest('generating a second code invalidates the first', async () => {
   await withRollback(async () => {
     await giveBalance(CUSTOMER_1, 11500);
-    const first = (await db.query('select issue_redemption($1, 400) as t', [CUSTOMER_1])).rows[0].t;
-    const second = (await db.query('select issue_redemption($1, 250) as t', [CUSTOMER_1])).rows[0].t;
+    const first = (await db.query('select issue_redemption($1, 600) as t', [CUSTOMER_1])).rows[0].t;
+    const second = (await db.query('select issue_redemption($1, 550) as t', [CUSTOMER_1])).rows[0].t;
 
     assert.notEqual(first, second);
     // Otherwise a customer could keep several screenshots and spend the same
@@ -599,18 +599,18 @@ dbTest('generating a second code invalidates the first', async () => {
 dbTest('scanning a code deducts the points and records who did it', async () => {
   await withRollback(async () => {
     await giveBalance(CUSTOMER_1, 11500); // 1150 points
-    const token = (await db.query('select issue_redemption($1, 400) as t', [CUSTOMER_1])).rows[0].t;
+    const token = (await db.query('select issue_redemption($1, 600) as t', [CUSTOMER_1])).rows[0].t;
 
     const out = (
       await db.query('select * from redeem_points_token($1, $2)', [token, CASHIER])
     ).rows[0];
-    assert.equal(out.points, 400);
+    assert.equal(out.points, 600);
     assert.equal(out.member_code, 'DEV22222');
 
     const bal = (
       await db.query('select balance from loyalty_balances where customer_id = $1', [CUSTOMER_1])
     ).rows[0].balance;
-    assert.equal(bal, 1150 - 400);
+    assert.equal(bal, 1150 - 600);
 
     // Points are money. A dispute needs a name against the deduction.
     const entry = (
@@ -620,7 +620,7 @@ dbTest('scanning a code deducts the points and records who did it', async () => 
         [CUSTOMER_1],
       )
     ).rows[0];
-    assert.equal(entry.delta, -400);
+    assert.equal(entry.delta, -600);
     assert.equal(entry.actor_id, CASHIER);
     // Its own reason, not manual_adjust. A customer spending what they saved
     // and a manager correcting a balance are different events, and reporting
@@ -643,7 +643,7 @@ dbTest('a counter redemption cannot be recorded without the cashier', async () =
 dbTest('a code cannot be scanned twice', async () => {
   await withRollback(async () => {
     await giveBalance(CUSTOMER_1, 11500);
-    const token = (await db.query('select issue_redemption($1, 400) as t', [CUSTOMER_1])).rows[0].t;
+    const token = (await db.query('select issue_redemption($1, 600) as t', [CUSTOMER_1])).rows[0].t;
     await db.query('select redeem_points_token($1, $2)', [token, CASHIER]);
     await rejects('select redeem_points_token($1, $2)', [token, CASHIER], 'already been taken off');
   });
@@ -652,7 +652,7 @@ dbTest('a code cannot be scanned twice', async () => {
 dbTest('an expired or unknown code is refused', async () => {
   await withRollback(async () => {
     await giveBalance(CUSTOMER_1, 11500);
-    const token = (await db.query('select issue_redemption($1, 400) as t', [CUSTOMER_1])).rows[0].t;
+    const token = (await db.query('select issue_redemption($1, 600) as t', [CUSTOMER_1])).rows[0].t;
     await db.query(`update redemption_tokens set expires_at = now() - interval '1 second'`);
     await rejects('select redeem_points_token($1, $2)', [token, CASHIER], 'expired');
     await rejects('select redeem_points_token($1, $2)', ['NOTATOKEN', CASHIER], 'not one of ours');
@@ -664,6 +664,49 @@ dbTest('a member cannot ask to spend more than they hold', async () => {
     await giveBalance(CUSTOMER_1, 11500); // 1150
     await rejects('select issue_redemption($1, $2)', [CUSTOMER_1, 1151], 'insufficient points');
     await rejects('select issue_redemption($1, $2)', [CUSTOMER_1, 0], 'how many points');
+  });
+});
+
+dbTest('a counter redemption has a floor, and the rewards catalogue does not', async () => {
+  await withRollback(async () => {
+    await giveBalance(CUSTOMER_1, 11500); // 1150 points
+    const floor = (
+      await db.query('select min_redeem_points from loyalty_settings')
+    ).rows[0].min_redeem_points;
+    assert.equal(floor, 500, 'the seeded floor');
+
+    // One under is refused, exactly on it is allowed. The boundary is the whole
+    // point of a floor and off-by-one here is a customer at a counter being told
+    // no for no reason they can see.
+    await rejects('select issue_redemption($1, $2)', [CUSTOMER_1, floor - 1], 'minimum redemption');
+    const token = (
+      await db.query('select issue_redemption($1, $2) as t', [CUSTOMER_1, floor])
+    ).rows[0].t;
+    assert.ok(token);
+
+    // ⚠ The catalogue is deliberately exempt. Two seeded rewards cost less than
+    // the floor, and applying it to them would leave them listed and
+    // unclaimable — which reads as a broken app rather than a rule.
+    const cheap = (
+      await db.query('select id, points_cost from rewards where points_cost < $1 order by points_cost limit 1', [floor])
+    ).rows[0];
+    assert.ok(cheap, 'a reward priced under the floor exists to test with');
+    const tx = (
+      await db.query('select redeem_reward($1, $2) as tx', [CUSTOMER_1, cheap.id])
+    ).rows[0].tx;
+    assert.ok(tx, `a ${cheap.points_cost}-point reward is still claimable under a ${floor} floor`);
+  });
+});
+
+dbTest('the redemption floor can be switched off', async () => {
+  await withRollback(async () => {
+    await giveBalance(CUSTOMER_1, 11500);
+    await db.query('update loyalty_settings set min_redeem_points = 0');
+    // 0 means no floor, not "nothing may be spent".
+    const token = (
+      await db.query('select issue_redemption($1, $2) as t', [CUSTOMER_1, 1])
+    ).rows[0].t;
+    assert.ok(token);
   });
 });
 

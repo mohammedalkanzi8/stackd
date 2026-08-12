@@ -8,6 +8,7 @@
  */
 
 export * from './db.ts';
+export * from './mail.ts';
 export * from './password.ts';
 export * from './money.ts';
 export * from './qr.ts';

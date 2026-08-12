@@ -70,6 +70,11 @@ services:
       STACKD_DB: ${STACKD_DB:-stackd}
       STACKD_PORTAL_SECRET: ${STACKD_PORTAL_SECRET:?set STACKD_PORTAL_SECRET in .env}
       STACKD_PORTAL_URL: ${STACKD_PORTAL_URL:?set STACKD_PORTAL_URL in .env}
+      # Forgotten-password mail. Required, and required LOUDLY: without a
+      # mailbox the portal refuses to issue reset codes, so a customer who has
+      # forgotten their password has no way back into their points at all.
+      SMTP_URL: ${SMTP_URL:?set SMTP_URL in .env — password reset cannot work without it}
+      MAIL_FROM: ${MAIL_FROM:?set MAIL_FROM in .env}
       # Wallet passes, all optional. Unset means the button is simply not shown,
       # which is why none of these use the :? required form.
       GOOGLE_WALLET_ISSUER_ID: ${GOOGLE_WALLET_ISSUER_ID:-}

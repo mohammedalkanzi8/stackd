@@ -14,7 +14,9 @@
   },
   "dependencies": {
     "@stackd/shared": "*",
+    "@types/nodemailer": "^8.0.1",
     "node-forge": "^1.4.0",
+    "nodemailer": "^9.0.5",
     "pg": "^8.13.1",
     "qrcode": "^1.5.4"
   },
