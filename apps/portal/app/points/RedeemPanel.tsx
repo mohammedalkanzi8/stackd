@@ -22,6 +22,12 @@ export interface ActiveCode {
   points: number;
   qrSvg: string;
   expiresAt: string;
+  /**
+   * Set when the code is a catalogue reward rather than points off a bill.
+   * The customer has to be told WHICH thing they claimed — "3.00 SAR comes off
+   * your bill" is wrong and alarming when what they claimed was a free sauce.
+   */
+  rewardName?: string | null;
 }
 
 export function RedeemPanel({
@@ -198,8 +204,17 @@ function LiveCode({ active, cancel }: { active: ActiveCode; cancel: () => Promis
   return (
     <div className="redeem-live">
       <p className="redeem-instruction">
-        Show this to the cashier. <b>{active.points} points</b> ({asRiyals(active.points)} SAR)
-        comes off your bill.
+        {active.rewardName ? (
+          <>
+            Show this to the cashier for your <b>{active.rewardName}</b>. The{' '}
+            {active.points} points come off when they scan it.
+          </>
+        ) : (
+          <>
+            Show this to the cashier. <b>{active.points} points</b> (
+            {asRiyals(active.points)} SAR) comes off your bill.
+          </>
+        )}
       </p>
       <div className="member-qr" dangerouslySetInnerHTML={{ __html: active.qrSvg }} />
       <p className="member-code mono">{active.token}</p>

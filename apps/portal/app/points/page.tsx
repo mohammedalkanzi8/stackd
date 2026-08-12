@@ -72,9 +72,10 @@ async function redeem(formData: FormData): Promise<void> {
   }
 
   revalidatePath('/points');
-  // To the code, not back to the list: the whole point of claiming is the thing
-  // the cashier has to scan.
-  redirect('/points?claimed=1#redeem');
+  // No fragment: the card renders at the top of the page while a code is live,
+  // so there is nothing to scroll to. Hash scrolling after a server-action
+  // redirect is unreliable in the App Router anyway.
+  redirect('/points?claimed=1');
 }
 
 /**
@@ -176,9 +177,16 @@ export default async function PointsPage({
   // A live redemption code, if one exists and has not expired. Expired rows are
   // left for the next issue() to clear rather than deleted on read, so a GET
   // never writes.
-  const live = await queryOne<{ token: string; points: number; expires_at: Date }>(
-    `select token, points, expires_at from redemption_tokens
-      where customer_id = $1 and redeemed_at is null and expires_at > now()`,
+  const live = await queryOne<{
+    token: string;
+    points: number;
+    expires_at: Date;
+    reward_name: string | null;
+  }>(
+    `select t.token, t.points, t.expires_at, r.name_en as reward_name
+       from redemption_tokens t
+       left join rewards r on r.id = t.reward_id
+      where t.customer_id = $1 and t.redeemed_at is null and t.expires_at > now()`,
     [member.id],
   );
   const activeCode: ActiveCode | null = live
@@ -187,6 +195,7 @@ export default async function PointsPage({
         points: live.points,
         qrSvg: await qrSvg(live.token),
         expiresAt: new Date(live.expires_at).toISOString(),
+        rewardName: live.reward_name,
       }
     : null;
 
@@ -206,6 +215,46 @@ export default async function PointsPage({
     (await queryOne<{ min_redeem_points: number }>(
       'select min_redeem_points from loyalty_settings',
     ))?.min_redeem_points ?? 0;
+
+  /**
+   * The redeem card, held in a variable because WHERE it goes depends on whether
+   * a code is live.
+   *
+   * ⚠ A live code has a three-minute countdown, so it is the most urgent thing
+   * on the page by a wide margin. It goes FIRST while it lasts, above the
+   * balance and the member QR. Anything else is a scroll away from a customer
+   * standing at a till with a cashier waiting.
+   *
+   * This replaced a `#redeem` anchor on the post-claim redirect. Hash scrolling
+   * after a server-action redirect is unreliable in the App Router, and even
+   * when it worked the customer watched the page jump past a full-height QR
+   * card to get there. Putting the card where it needs to be read beats
+   * scrolling to it.
+   */
+  const redeemCard = (
+    <div className="card" id="redeem">
+      <h2>
+        {activeCode?.rewardName
+          ? `Your ${activeCode.rewardName}`
+          : activeCode
+            ? 'Your code'
+            : 'Spend points off your bill'}
+      </h2>
+      {activeCode ? null : (
+        <p className="muted" style={{ fontSize: 13.5, marginBlockStart: 0 }}>
+          Choose an amount, show the code to the cashier, and it comes straight
+          off what you owe. 100 points is 1.00 SAR.
+        </p>
+      )}
+          <RedeemPanel
+            minRedeem={minRedeem}
+            balance={member.balance}
+            active={activeCode}
+            issue={issueCode}
+            cancel={cancelCode}
+          />
+        </div>
+  );
 
   return (
     <>
@@ -254,11 +303,14 @@ export default async function PointsPage({
         ) : null}
         {claimed ? (
           <div className="banner ok">
-            Claimed. Your code is below — show it at the counter and it is yours.
-            The points come off when they scan it.
+            Claimed. Show the code above at the counter and it is yours. The
+            points come off when they scan it.
           </div>
         ) : null}
         {error ? <div className="banner bad">{error}</div> : null}
+
+        {/* A live code goes above everything. See the note on `redeemCard`. */}
+        {activeCode ? redeemCard : null}
 
         <div className="balance" id="balance">
           <div className="k">Your points</div>
@@ -303,20 +355,7 @@ export default async function PointsPage({
           <InstallButton />
         </div>
 
-        <div className="card" id="redeem">
-          <h2>Spend points off your bill</h2>
-          <p className="muted" style={{ fontSize: 13.5, marginBlockStart: 0 }}>
-            Choose an amount, show the code to the cashier, and it comes straight
-            off what you owe. 100 points is 1.00 SAR.
-          </p>
-          <RedeemPanel
-            minRedeem={minRedeem}
-            balance={member.balance}
-            active={activeCode}
-            issue={issueCode}
-            cancel={cancelCode}
-          />
-        </div>
+        {activeCode ? null : redeemCard}
 
         <div className="card" id="rewards">
           <h2>Or swap them for an item</h2>
