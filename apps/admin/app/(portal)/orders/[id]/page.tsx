@@ -66,17 +66,17 @@ async function issueClaim(formData: FormData): Promise<void> {
       [orderId],
     );
     if (!row?.token) {
-      redirect(`${back}?error=${encodeURIComponent('This order earns no points, so there is nothing to claim.')}`);
+      redirect(`${back}?error=${encodeURIComponent(t(await getLang(), 'err.noPointsClaim'))}`);
     }
   } catch (err) {
     // redirect() throws a control-flow signal that must not be swallowed here.
     if (err && typeof err === 'object' && 'digest' in err) throw err;
     redirect(
-      `${back}?error=${encodeURIComponent(err instanceof Error ? err.message : 'Could not issue a code.')}`,
+      `${back}?error=${encodeURIComponent(err instanceof Error ? err.message : t(await getLang(), 'err.noCode'))}`,
     );
   }
   revalidatePath(back);
-  redirect(`${back}?ok=${encodeURIComponent('Code issued. Print it on the bill.')}`);
+  redirect(`${back}?ok=${encodeURIComponent(t(await getLang(), 'err.codeIssued'))}`);
 }
 
 /**
@@ -104,7 +104,7 @@ async function voidOrder(formData: FormData): Promise<void> {
   const back = `/orders/${orderId}`;
   const stop = (m: string): never => redirect(`${back}?error=${encodeURIComponent(m)}`);
 
-  if (reason.length < 4) stop('Say why this is being voided. It goes in the books.');
+  if (reason.length < 4) stop(t(await getLang(), 'err.sayVoid'));
 
   const rows = await query<{ pickup_code: string }>(
     `update orders
@@ -113,7 +113,7 @@ async function voidOrder(formData: FormData): Promise<void> {
       returning pickup_code`,
     [orderId, me.id, reason],
   );
-  if (rows.length === 0) stop('That order is already voided, or no longer exists.');
+  if (rows.length === 0) stop(t(await getLang(), 'err.alreadyVoid'));
 
   revalidatePath(back);
   revalidatePath('/orders');
@@ -177,7 +177,7 @@ export default async function OrderPage({
       <h1>{t(lang, 'od.ticket')}<span className="mono">{order.pickup_code}</span>
       </h1>
       <p className="lede">
-        {order.source === 'pos' ? 'Rung up at the till' : 'Ordered in the app'} ·{' '}
+        {order.source === 'pos' ? t(await getLang(), 'ord.fromTill') : t(await getLang(), 'ord.fromApp')} ·{' '}
         {new Date(order.created_at).toLocaleString('en-GB', {
           day: 'numeric',
           month: 'long',

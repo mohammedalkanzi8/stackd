@@ -43,11 +43,7 @@ export default async function SignupQrPage({
     <>
       <p className="eyebrow">STACKD Rewards</p>
       <h1>{t(uiLang, 'sq.title')}</h1>
-      <p className="lede">
-        The signup artwork, at four sizes. Everything on it is live: the code
-        points at the real registration page and the {earnPercent}% is read from
-        the Points page, so a printed sheet cannot quietly contradict the system.
-      </p>
+      <p className="lede">{t(uiLang, 'sq.lede')}</p>
 
       {onLocalhost ? (
         <div className="banner note">
@@ -91,11 +87,11 @@ export default async function SignupQrPage({
             href={`/signup-qr?f=${format.id}&lang=${loc}`}
             className={`fmt${loc === lead ? ' fmt-on' : ''}`}
           >
-            <b>{loc === 'ar' ? 'Arabic leads' : 'English leads'}</b>
+            <b>{loc === 'ar' ? t(uiLang, 'sq.arLeads') : t(uiLang, 'sq.enLeads')}</b>
             <span>
               {loc === 'ar'
-                ? 'Arabic headline, English underneath.'
-                : 'English headline, Arabic underneath.'}
+                ? t(uiLang, 'sq.arLeadsD')
+                : t(uiLang, 'sq.enLeadsD')}
             </span>
           </Link>
         ))}

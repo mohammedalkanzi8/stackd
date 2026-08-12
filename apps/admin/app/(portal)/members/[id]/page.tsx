@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { ADMIN, SUPER_ADMIN, requireRole, requireStaff } from '@/lib/auth.ts';
 
 import { getLang } from '@/lib/prefs.ts';
-import { t } from '@/lib/i18n.ts';
+import { t, fmtDate } from '@/lib/i18n.ts';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,16 +37,10 @@ interface Entry {
   actor: string | null;
 }
 
-const REASON_LABEL: Record<string, string> = {
-  earn_purchase: 'Earned on a purchase',
-  redeem_reward: 'Redeemed',
-  redeem_counter: 'Spent at the counter',
-  signup_bonus: 'Sign-up bonus',
-  birthday_bonus: 'Birthday bonus',
-  manual_adjust: 'Manual adjustment',
-  expiry: 'Expired',
-  order_refund: 'Clawed back on refund',
-};
+/* Ledger reasons come from the dictionary under `rsn.`, keyed by the database
+   enum. This was the SECOND copy of an English map — the overview held the
+   other — which is how "Sign-up bonus" kept appearing on Arabic screens after
+   everything around it was translated. */
 
 /**
  * Sets or clears the member's email address.
@@ -73,7 +67,7 @@ async function setEmail(formData: FormData): Promise<void> {
     redirect(`/members/${id}?${k}=${encodeURIComponent(m)}`);
 
   if (raw && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(raw)) {
-    back('error', 'That email address does not look right.');
+    back('error', t(await getLang(), 'err.badEmail'));
   }
 
   try {
@@ -91,7 +85,7 @@ async function setEmail(formData: FormData): Promise<void> {
   }
 
   revalidatePath(`/members/${id}`);
-  back('ok', raw ? `Email set to ${raw}. They can now use it to sign in to the portal.` : 'Email cleared.');
+  back('ok', raw ? `Email set to ${raw}. They can now use it to sign in to the portal.` : t(await getLang(), 'err.emailCleared'));
 }
 
 /**
@@ -118,10 +112,10 @@ async function adjustPoints(formData: FormData): Promise<void> {
 
   const delta = Number(raw);
   if (!Number.isInteger(delta) || delta === 0) {
-    redirect(`${back}?error=${encodeURIComponent('Enter a whole number of points, not zero.')}`);
+    redirect(`${back}?error=${encodeURIComponent(t(await getLang(), 'err.deltaWhole'))}`);
   }
   if (!note) {
-    redirect(`${back}?error=${encodeURIComponent('Say why. This is an audit trail.')}`);
+    redirect(`${back}?error=${encodeURIComponent(t(await getLang(), 'err.sayWhy'))}`);
   }
 
   try {
@@ -135,17 +129,17 @@ async function adjustPoints(formData: FormData): Promise<void> {
     // than the member holds. Say that, rather than showing the constraint name.
     const message =
       err instanceof Error && err.message.includes('loyalty_balances_balance_check')
-        ? 'That would take the balance below zero.'
+        ? t(await getLang(), 'err.belowZero')
         : err instanceof Error
           ? err.message
-          : 'Could not apply the adjustment.';
+          : t(await getLang(), 'err.noAdjust');
     redirect(`${back}?error=${encodeURIComponent(message)}`);
   }
 
   revalidatePath(back);
   redirect(
     `${back}?ok=${encodeURIComponent(
-      `${delta > 0 ? 'Added' : 'Removed'} ${Math.abs(delta)} points.`,
+      `${delta > 0 ? t(await getLang(), 'md.added') : t(await getLang(), 'md.removed')} ${Math.abs(delta)} points.`,
     )}`,
   );
 }
@@ -184,7 +178,7 @@ async function deleteMember(formData: FormData): Promise<void> {
     'select member_code, full_name from customers where id = $1',
     [id],
   );
-  if (!member) stop('That member no longer exists.');
+  if (!member) stop(t(await getLang(), 'err.noMember'));
 
   if (typed !== member!.member_code) {
     stop(`Type ${member!.member_code} exactly to confirm the deletion.`);
@@ -199,7 +193,7 @@ async function deleteMember(formData: FormData): Promise<void> {
       `${member!.full_name ?? 'This member'} has ${orders!.n} order${
         orders!.n === 1 ? '' : 's'
       } against their name and cannot be deleted — that is sales history. ` +
-        'Points can still be zeroed from the ledger above.',
+        t(await getLang(), 'err.zeroFromLedger'),
     );
   }
 
@@ -275,7 +269,7 @@ export default async function MemberPage({
       <h1>{member.full_name ?? 'Unnamed member'}</h1>
       <p className="lede">
         Joined{' '}
-        {new Date(member.created_at).toLocaleDateString('en-GB', {
+        {fmtDate(lang, member.created_at, {
           day: 'numeric',
           month: 'long',
           year: 'numeric',
@@ -304,7 +298,7 @@ export default async function MemberPage({
           <div className="k">{t(lang, 'md.lastActivity')}</div>
           <div className="v" style={{ fontSize: 20 }}>
             {member.last_activity_at
-              ? new Date(member.last_activity_at).toLocaleDateString('en-GB', {
+              ? fmtDate(lang, member.last_activity_at, {
                   day: 'numeric',
                   month: 'short',
                   year: 'numeric',
@@ -320,7 +314,7 @@ export default async function MemberPage({
         <h2>{t(lang, 'md.contactEmail')}</h2>
         <p className="lede">
           {member.email
-            ? 'Used to sign in to the customer portal, and to send a code if they forget their password.'
+            ? t(await getLang(), 'err.emailUse')
             : 'This member has no email, so they cannot sign in to the customer portal or reset a password. Add one and they can.'}
         </p>
         <form action={setEmail} className="row">
@@ -391,7 +385,7 @@ export default async function MemberPage({
                 {entries.map((e) => (
                   <tr key={e.id}>
                     <td className="num muted" style={{ whiteSpace: 'nowrap' }}>
-                      {new Date(e.created_at).toLocaleString('en-GB', {
+                      {fmtDate(lang, e.created_at, {
                         day: '2-digit',
                         month: 'short',
                         hour: '2-digit',
@@ -399,7 +393,7 @@ export default async function MemberPage({
                         timeZone: 'Asia/Riyadh',
                       })}
                     </td>
-                    <td>{REASON_LABEL[e.reason] ?? e.reason}</td>
+                    <td>{t(lang, `rsn.${e.reason}`)}</td>
                     <td className="muted">
                       {e.reward ?? null}
                       {e.order_total !== null ? formatSar(e.order_total) : null}

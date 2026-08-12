@@ -51,25 +51,25 @@ async function saveReward(formData: FormData): Promise<void> {
   const discountRaw = String(formData.get('discount') ?? '').trim();
   const freeItemId = String(formData.get('freeItemId') ?? '').trim();
 
-  if (!nameEn || !nameAr) fail('Both the English and Arabic names are required.');
+  if (!nameEn || !nameAr) fail(t(await getLang(), 'err.bothNames'));
   if (!Number.isInteger(pointsCost) || pointsCost <= 0) {
-    fail('Points cost must be a whole number above zero.');
+    fail(t(await getLang(), 'err.costWhole'));
   }
 
   let discount: number | null = null;
   let itemId: string | null = null;
 
   if (benefit === 'item') {
-    if (!freeItemId) fail('Pick which item the reward gives away.');
+    if (!freeItemId) fail(t(await getLang(), 'err.pickFreeItem'));
     itemId = freeItemId;
   } else {
-    if (!discountRaw) fail('Enter the discount amount in riyals.');
+    if (!discountRaw) fail(t(await getLang(), 'err.discountRiyals'));
     try {
       discount = parseRiyals(discountRaw);
     } catch (err) {
-      fail(err instanceof Error ? err.message : 'That discount is not an amount.');
+      fail(err instanceof Error ? err.message : t(await getLang(), 'err.badDiscount'));
     }
-    if (discount <= 0) fail('The discount must be more than zero.');
+    if (discount <= 0) fail(t(await getLang(), 'err.discountZero'));
   }
 
   if (id) {
@@ -106,7 +106,7 @@ async function toggleReward(formData: FormData): Promise<void> {
      returning name_en, is_active`,
     [id],
   );
-  if (rows.length === 0) fail('That reward no longer exists.');
+  if (rows.length === 0) fail(t(await getLang(), 'err.noReward'));
   done(`“${rows[0].name_en}” is now ${rows[0].is_active ? 'available' : 'retired'}.`);
 }
 
@@ -179,7 +179,7 @@ export default async function RewardsPage({
                   <td className="right num muted">{r.redemptions}</td>
                   <td className="right">
                     <span className={`chip ${r.is_active ? 'on' : 'off'}`}>
-                      {r.is_active ? 'Available' : 'Retired'}
+                      {r.is_active ? t(lang, 'rw.available') : t(lang, 'rw.retired')}
                     </span>
                   </td>
                   {canEdit ? (
@@ -188,7 +188,7 @@ export default async function RewardsPage({
                       <form action={toggleReward} style={{ display: 'inline' }}>
                         <input type="hidden" name="id" value={r.id} />
                         <button type="submit" className="quiet">
-                          {r.is_active ? 'Retire' : 'Restore'}
+                          {r.is_active ? t(lang, 'rw.retire') : t(lang, 'rw.restore')}
                         </button>
                       </form>
                     </td>
@@ -274,7 +274,7 @@ export default async function RewardsPage({
                 />
               </div>
               <div className="field">
-                <label htmlFor="freeItemId">{t(lang, 'rw.freeItem')}<span className="hint">used only if “a free item”</span>
+                <label htmlFor="freeItemId">{t(lang, 'rw.freeItem')}<span className="hint">{t(lang, 'rw.freeItemHint')}</span>
                 </label>
                 <select id="freeItemId" name="freeItemId" defaultValue={editing?.free_item_id ?? ''}>
                   <option value="">{t(lang, 'rw.chooseItem')}</option>
@@ -289,7 +289,7 @@ export default async function RewardsPage({
 
             <div className="row">
               <button type="submit" className="primary">
-                {editing ? 'Save changes' : 'Add reward'}
+                {editing ? t(lang, 'rw.saveChanges') : t(lang, 'rw.addReward')}
               </button>
               {editing ? (
                 <a className="btn" href="/rewards">{t(lang, 'a.cancel')}</a>

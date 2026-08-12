@@ -57,16 +57,16 @@ async function saveSettings(formData: FormData): Promise<void> {
   const minRedeem = Number(String(formData.get('minRedeemPoints') ?? '').trim());
 
   if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
-    fail('The earn rate must be a percentage between 0 and 100.');
+    fail(t(await getLang(), 'err.earnPct'));
   }
-  if (!Number.isInteger(expiry) || expiry < 1) fail('Expiry must be at least one month.');
-  if (!Number.isInteger(claimDays) || claimDays < 1) fail('The claim window must be at least a day.');
+  if (!Number.isInteger(expiry) || expiry < 1) fail(t(await getLang(), 'err.expiryMin'));
+  if (!Number.isInteger(claimDays) || claimDays < 1) fail(t(await getLang(), 'err.claimMin'));
   if (!Number.isInteger(redeemSecs) || redeemSecs < 30 || redeemSecs > 3600) {
     fail('A redemption code must last between 30 seconds and an hour.');
   }
-  if (!Number.isInteger(signup) || signup < 0) fail('The sign-up bonus cannot be negative.');
+  if (!Number.isInteger(signup) || signup < 0) fail(t(await getLang(), 'err.bonusNeg'));
   if (!Number.isInteger(minRedeem) || minRedeem < 0) {
-    fail('The minimum redemption cannot be negative. Use 0 for no minimum.');
+    fail(t(await getLang(), 'err.minRedeemNeg'));
   }
 
   await query(
@@ -76,7 +76,7 @@ async function saveSettings(formData: FormData): Promise<void> {
             updated_at = now()`,
     [percent, expiry, claimDays, redeemSecs, signup, minRedeem],
   );
-  done('Programme settings saved.');
+  done(t(await getLang(), 'err.saved'));
 }
 
 /**
@@ -98,7 +98,7 @@ async function saveAward(formData: FormData): Promise<void> {
   let award: number | null = null;
   if (raw !== '') {
     const n = Number(raw);
-    if (!Number.isInteger(n) || n < 0) fail('Points must be a whole number, or left blank.');
+    if (!Number.isInteger(n) || n < 0) fail(t(await getLang(), 'err.pointsWhole'));
     award = n;
   }
 
@@ -106,7 +106,7 @@ async function saveAward(formData: FormData): Promise<void> {
     'update menu_items set points_award = $2 where id = $1 returning name_en',
     [id, award],
   );
-  if (rows.length === 0) fail('That item no longer exists.');
+  if (rows.length === 0) fail(t(await getLang(), 'err.noItem'));
   done(
     award === null
       ? `${rows[0].name_en} now earns by value.`

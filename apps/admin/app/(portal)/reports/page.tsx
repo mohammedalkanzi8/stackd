@@ -20,7 +20,7 @@ import Link from 'next/link';
 import { ADMIN, requireStaff } from '@/lib/auth.ts';
 
 import { getLang } from '@/lib/prefs.ts';
-import { t } from '@/lib/i18n.ts';
+import { t, tf } from '@/lib/i18n.ts';
 
 export const metadata = { title: 'Reports · STACKD admin' };
 export const dynamic = 'force-dynamic';
@@ -104,11 +104,11 @@ const IS_CONSUMED = `(
 )`;
 
 const PERIODS = [
-  { days: 7, label: 'Last 7 days' },
-  { days: 30, label: 'Last 30 days' },
-  { days: 90, label: 'Last 90 days' },
-  { days: 365, label: 'Last 12 months' },
-  { days: 0, label: 'All time' },
+  { days: 7, key: 'per.7' },
+  { days: 30, key: 'per.30' },
+  { days: 90, key: 'per.90' },
+  { days: 365, key: 'per.365' },
+  { days: 0, key: 'per.all' },
 ];
 
 interface Points {
@@ -173,17 +173,12 @@ interface Breakdown {
   points: number;
 }
 
-const BUCKET_LABEL: Record<string, { label: string; note: string }> = {
-  earned: { label: 'Earned on purchases', note: 'the programme running normally' },
-  bonus: { label: 'Sign-up and birthday bonuses', note: 'given, not earned' },
-  staff_credit: { label: 'Staff goodwill credits', note: 'added by hand' },
-  consumed_counter: { label: 'Spent at the counter', note: 'scanned off a bill' },
-  consumed_reward: { label: 'Spent on catalogue rewards', note: 'claimed in the app' },
-  expired: { label: 'Expired unused', note: 'liability released, costs nothing' },
-  clawed_back: { label: 'Clawed back on refunds', note: 'reversing an earn' },
-  staff_deduction: { label: 'Staff corrections', note: 'removed by hand' },
-  other: { label: 'Unclassified', note: 'a reason this page does not know' },
-};
+/* Movement buckets. Label and note both live in the dictionary under `bkt.`,
+   keyed by the bucket id, so the whole table reads in Arabic. */
+const BUCKETS = [
+  'earned', 'bonus', 'staff_credit', 'consumed_counter', 'consumed_reward',
+  'expired', 'clawed_back', 'staff_deduction', 'other',
+] as const;
 
 export default async function ReportsPage({
   searchParams,
@@ -370,7 +365,7 @@ export default async function ReportsPage({
           <select id="days" name="days" defaultValue={String(days)}>
             {PERIODS.map((p) => (
               <option key={p.days} value={p.days}>
-                {p.label}
+                {t(lang, p.key)}
               </option>
             ))}
           </select>
@@ -389,10 +384,10 @@ export default async function ReportsPage({
 
       {/* ---- the headline: what the programme cost ---- */}
       <div className="card">
-        <div className="k-lbl">Points consumed · {period.label.toLowerCase()}</div>
+        <div className="k-lbl">{t(lang, 'rep.pointsConsumed')} · {t(lang, period.key)}</div>
         <div className="hero">{pts(points.consumed)}</div>
         <div className="hero-sub">
-          points, worth <b>{sar(points.consumed)}</b> taken off bills
+          {tf(lang, 'rep.takenOffBills', { sar: sar(points.consumed) })}
         </div>
 
         <div className="split">
@@ -412,7 +407,7 @@ export default async function ReportsPage({
             <div className="sub">
               {points.consumption_events > 0
                 ? `${sar(Math.round(points.consumed / points.consumption_events))} each`
-                : 'none yet'}
+                : t(lang, 'rep.noneYet')}
             </div>
           </div>
         </div>
@@ -422,26 +417,31 @@ export default async function ReportsPage({
         <div className="card stat">
           <div className="k">{t(lang, 'rep.pointsIssued')}</div>
           <div className="v num">{pts(points.issued)}</div>
-          <div className="sub">{sar(points.issued)} handed out</div>
+          <div className="sub">{tf(lang, 'rep.handedOut', { sar: sar(points.issued) })}</div>
         </div>
         <div className="card stat">
           <div className="k">{t(lang, 'rep.outstanding')}</div>
           <div className="v num">{sar(liability.outstanding)}</div>
           <div className="sub">
-            {pts(liability.outstanding)} points held by {liability.holders} of{' '}
-            {liability.members} members
+            {tf(lang, 'rep.heldBy', {
+              pts: pts(liability.outstanding),
+              n: liability.holders,
+              total: liability.members,
+            })}
           </div>
         </div>
         <div className="card stat">
           <div className="k">{t(lang, 'rep.takenUp')}</div>
           <div className="v num">{redemptionRate.toFixed(1)}%</div>
-          <div className="sub">of the points issued in this period</div>
+          <div className="sub">{t(lang, 'rep.ofIssued')}</div>
         </div>
         <div className="card stat">
           <div className="k">{t(lang, 'rep.expiredUnused')}</div>
           <div className="v num">{pts(points.expired)}</div>
           <div className="sub">
-            {points.expired > 0 ? `${sar(points.expired)} never claimed` : 'nothing lapsed'}
+            {points.expired > 0
+              ? tf(lang, 'rep.neverClaimed', { sar: sar(points.expired) })
+              : t(lang, 'rep.nothingLapsed')}
           </div>
         </div>
       </div>
@@ -451,7 +451,7 @@ export default async function ReportsPage({
         <div className="spread" style={{ marginBlockEnd: 6 }}>
           <h2>{t(lang, 'rep.whereWent')}</h2>
           <span className="muted sm">
-            {period.label.toLowerCase()}
+            {t(lang, period.key)}
           </span>
         </div>
         <p className="lede">{t(lang, 'rep.ledgerNote')}<b>{t(lang, 'rep.expiredNotCost')}</b> — they are a
@@ -475,10 +475,10 @@ export default async function ReportsPage({
                 {breakdown.map((b) => (
                   <tr key={b.bucket}>
                     <td>
-                      <b>{BUCKET_LABEL[b.bucket]?.label ?? b.bucket}</b>
+                      <b>{t(lang, `bkt.${b.bucket}`)}</b>
                       <span className="muted xs">
                         {' '}
-                        · {BUCKET_LABEL[b.bucket]?.note ?? ''}
+                        · {t(lang, `bkt.${b.bucket}.n`)}
                       </span>
                     </td>
                     <td className="right num muted">{pts(b.movements)}</td>
@@ -514,7 +514,7 @@ export default async function ReportsPage({
       <div className="spread">
         <h2>{t(lang, 'rep.trade')}</h2>
         <span className="muted sm">
-          {period.label.toLowerCase()}
+          {t(lang, period.key)}
         </span>
       </div>
       <div className="grid">
@@ -533,7 +533,7 @@ export default async function ReportsPage({
         <div className="card stat">
           <div className="k">{t(lang, 'rep.vatWithin')}</div>
           <div className="v num">{sar(trade.vat)}</div>
-          <div className="sub">extracted, never added on top</div>
+          <div className="sub">{t(lang, 'rep.extractedNote')}</div>
         </div>
         <div className="card stat">
           <div className="k">{t(lang, 'rep.identified')}</div>
@@ -541,8 +541,7 @@ export default async function ReportsPage({
             {trade.orders > 0 ? Math.round((trade.member_orders / trade.orders) * 100) : 0}%
           </div>
           <div className="sub">
-            {pts(trade.member_orders)} of {pts(trade.orders)} tickets ·{' '}
-            {trade.distinct_members} members seen
+            {tf(lang, 'rep.ofTickets', { n: pts(trade.orders), m: trade.distinct_members })}
           </div>
         </div>
       </div>
@@ -650,7 +649,7 @@ export default async function ReportsPage({
         <div className="spread">
           <h2>{t(lang, 'rep.bestMembers')}</h2>
           <span className="muted sm">
-            by spend, {period.label.toLowerCase()}
+            by spend, {t(lang, period.key)}
           </span>
         </div>
         {topMembers.length === 0 ? (
@@ -671,7 +670,7 @@ export default async function ReportsPage({
                 {topMembers.map((m) => (
                   <tr key={m.id}>
                     <td>
-                      <Link href={`/members/${m.id}`}>{m.full_name ?? 'Unnamed'}</Link>{' '}
+                      <Link href={`/members/${m.id}`}>{m.full_name ?? t(lang, 'rep.unnamed2')}</Link>{' '}
                       <span className="mono muted xs">
                         {m.member_code}
                       </span>
@@ -702,7 +701,7 @@ export default async function ReportsPage({
         <div className="spread">
           <h2>{t(lang, 'rep.whatSells')}</h2>
           <span className="muted sm">
-            by revenue, {period.label.toLowerCase()}
+            by revenue, {t(lang, period.key)}
           </span>
         </div>
         {topItems.length === 0 ? (

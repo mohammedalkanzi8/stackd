@@ -538,22 +538,27 @@ table.data th {
      landed on the leading edge and the trailing edge got 0. Adjacent columns
      then touched, and a balance printed hard against a phone number. Shorthand
      is how a physical value hides from a grep for `padding-left`. */
+  /* ⚠ SYMMETRIC, not one-sided. The first fix made this logical but kept the
+     padding on ONE edge, so a cell whose content sits on its start edge still
+     touched the neighbour whose content sat on its end edge — a member name
+     printed hard against a timestamp. Padding on both sides is the only version
+     that cannot collide, whichever way the text is aligned or the page runs. */
   padding-block: 0 var(--s-cosy);
-  padding-inline: 0 var(--s-base);
+  padding-inline: var(--s-base);
   border-block-end: 1px solid var(--rule-strong);
   white-space: nowrap;
 }
 table.data td {
   padding-block: var(--s-cosy);
-  padding-inline: 0 var(--s-base);
+  padding-inline: var(--s-base);
   border-block-end: 1px solid var(--rule);
   vertical-align: middle;
 }
 table.data tr:last-child td { border-block-end: 0; }
 table.data td.right, table.data th.right { text-align: end; }
-/* Only the LAST column hugs the edge. Zeroing this on every `.right` cell is
-   what let a right-aligned number sit flush against the column beside it. */
-table.data td.right:last-child, table.data th.right:last-child { padding-inline-end: 0; }
+/* The outer edges hug the card; only the gaps between columns are padded. */
+table.data td:first-child, table.data th:first-child { padding-inline-start: 0; }
+table.data td:last-child, table.data th:last-child { padding-inline-end: 0; }
 
 /* ---------- chips + banners ---------- */
 .chip {

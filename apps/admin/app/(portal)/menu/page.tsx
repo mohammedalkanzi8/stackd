@@ -86,7 +86,7 @@ async function saveItem(formData: FormData): Promise<void> {
   try {
     price = parseRiyals(priceRaw);
   } catch (err) {
-    fail(err instanceof Error ? err.message : 'That price is not an amount.');
+    fail(err instanceof Error ? err.message : t(await getLang(), 'err.badPrice'));
   }
 
   // Empty means "we know the printed figure is wrong and will not publish it" —
@@ -95,7 +95,7 @@ async function saveItem(formData: FormData): Promise<void> {
   let calories: number | null = null;
   if (caloriesRaw !== '') {
     const n = Number(caloriesRaw);
-    if (!Number.isInteger(n) || n < 0) fail('Calories must be a whole number, or left blank.');
+    if (!Number.isInteger(n) || n < 0) fail(t(await getLang(), 'err.calWhole'));
     calories = n;
   }
 
@@ -106,7 +106,7 @@ async function saveItem(formData: FormData): Promise<void> {
       returning name_en`,
     [id, price, calories, spicy, isActive],
   );
-  if (rows.length === 0) fail('That item no longer exists.');
+  if (rows.length === 0) fail(t(await getLang(), 'err.noItem'));
 
   await query(
     `insert into branch_menu_availability (branch_id, menu_item_id, is_available)
@@ -138,10 +138,10 @@ async function uploadPhoto(formData: FormData): Promise<void> {
     'select slug, name_en, image_url from menu_items where id = $1',
     [id],
   );
-  if (!item) fail('That item no longer exists.');
-  if (!/^[a-z0-9-]+$/.test(item.slug)) fail('That item has an unusable slug.');
+  if (!item) fail(t(await getLang(), 'err.noItem'));
+  if (!/^[a-z0-9-]+$/.test(item.slug)) fail(t(await getLang(), 'err.badSlug'));
 
-  if (!(file instanceof File) || file.size === 0) fail('Choose an image to upload.');
+  if (!(file instanceof File) || file.size === 0) fail(t(await getLang(), 'err.pickImage'));
   const ext = ALLOWED[file.type];
   if (!ext) fail(`${file.type || 'That file'} is not an image we can use. Try webp, jpg or png.`);
   if (file.size > MAX_BYTES) {
@@ -177,7 +177,7 @@ async function removePhoto(formData: FormData): Promise<void> {
     'select name_en, image_url from menu_items where id = $1',
     [id],
   );
-  if (!item) fail('That item no longer exists.');
+  if (!item) fail(t(await getLang(), 'err.noItem'));
 
   const filename = item.image_url?.split('/').pop();
   if (filename && /^[a-z0-9-]+\.(webp|jpg|png)$/.test(filename)) {
@@ -216,9 +216,7 @@ export default async function MenuPage({
     <>
       <p className="eyebrow">{t(lang, 'mnu.title')}</p>
       <h1>{t(lang, 'mnu.heading')}</h1>
-      <p className="lede">
-        The database is the source of truth for the website. Names stay in{' '}
-        <code>seed.sql</code>. The Arabic came off STACKD&rsquo;s own menu board
+      <p className="lede">{t(lang, 'mnu.lede')}<code>seed.sql</code>. The Arabic came off STACKD&rsquo;s own menu board
         and posters, and is not something to retype from here.
       </p>
 

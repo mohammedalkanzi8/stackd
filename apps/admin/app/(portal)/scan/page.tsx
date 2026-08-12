@@ -3,7 +3,7 @@ import { formatSar, queryOne } from '@stackd/server';
 
 import { requireStaff } from '@/lib/auth.ts';
 import { getLang } from '@/lib/prefs.ts';
-import { t } from '@/lib/i18n.ts';
+import { t, fmtDate } from '@/lib/i18n.ts';
 import { ScanClient } from './ScanClient.tsx';
 import { claimForMember, creditBill, identify, takePoints } from './actions.ts';
 
@@ -155,7 +155,7 @@ export default async function ScanPage({
           {redemption.redeemed_at ? (
             <div className="banner bad">
               Already used at{' '}
-              {new Date(redemption.redeemed_at).toLocaleTimeString('en-GB', {
+              {fmtDate(lang, redemption.redeemed_at, {
                 hour: '2-digit',
                 minute: '2-digit',
                 timeZone: 'Asia/Riyadh',

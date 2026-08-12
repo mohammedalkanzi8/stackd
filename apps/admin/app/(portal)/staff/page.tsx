@@ -50,13 +50,13 @@ async function addStaff(formData: FormData): Promise<void> {
   const role = String(formData.get('role') ?? '') as Role;
   const password = String(formData.get('password') ?? '');
 
-  if (!name) fail('Give them a name. It appears on every point adjustment they make.');
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail('That is not an email address.');
-  if (!ROLES.includes(role)) fail('Pick a role.');
-  if (password.length < 8) fail('The password must be at least 8 characters.');
+  if (!name) fail(t(await getLang(), 'err.staffName'));
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail(t(await getLang(), 'err.notEmail'));
+  if (!ROLES.includes(role)) fail(t(await getLang(), 'err.pickRole'));
+  if (password.length < 8) fail(t(await getLang(), 'err.pw8'));
 
   const branch = await queryOne<{ id: string }>('select id from branches order by created_at limit 1');
-  if (!branch) fail('There is no branch to attach them to.');
+  if (!branch) fail(t(await getLang(), 'err.noBranch'));
 
   const existing = await queryOne('select 1 from auth.users where lower(email) = $1', [email]);
   if (existing) fail(`${email} is already in use.`);
@@ -90,14 +90,14 @@ async function changeRole(formData: FormData): Promise<void> {
 
   const id = String(formData.get('id') ?? '');
   const role = String(formData.get('role') ?? '') as Role;
-  if (!ROLES.includes(role)) fail('Pick a role.');
-  if (id === me.id) fail('You cannot change your own role. Ask another owner.');
+  if (!ROLES.includes(role)) fail(t(await getLang(), 'err.pickRole'));
+  if (id === me.id) fail(t(await getLang(), 'err.ownRole'));
 
   const rows = await query<{ full_name: string | null }>(
     'update staff set role = $2 where id = $1 returning full_name',
     [id, role],
   );
-  if (rows.length === 0) fail('That person is no longer here.');
+  if (rows.length === 0) fail(t(await getLang(), 'err.noPerson'));
   done(`${rows[0].full_name} is now ${ROLE_LABEL[role].toLowerCase()}.`);
 }
 
@@ -115,13 +115,13 @@ async function setActive(formData: FormData): Promise<void> {
 
   const id = String(formData.get('id') ?? '');
   const active = formData.get('active') === '1';
-  if (id === me.id) fail('You cannot deactivate yourself.');
+  if (id === me.id) fail(t(await getLang(), 'err.selfDeactivate'));
 
   const rows = await query<{ full_name: string | null }>(
     'update staff set is_active = $2 where id = $1 returning full_name',
     [id, active],
   );
-  if (rows.length === 0) fail('That person is no longer here.');
+  if (rows.length === 0) fail(t(await getLang(), 'err.noPerson'));
   done(`${rows[0].full_name} ${active ? 'can sign in again' : 'can no longer sign in'}.`);
 }
 
@@ -131,13 +131,13 @@ async function resetPassword(formData: FormData): Promise<void> {
 
   const id = String(formData.get('id') ?? '');
   const password = String(formData.get('password') ?? '');
-  if (password.length < 8) fail('The password must be at least 8 characters.');
+  if (password.length < 8) fail(t(await getLang(), 'err.pw8'));
 
   const person = await queryOne<{ full_name: string | null }>(
     'select full_name from staff where id = $1',
     [id],
   );
-  if (!person) fail('That person is no longer here.');
+  if (!person) fail(t(await getLang(), 'err.noPerson'));
 
   await query(
     `insert into staff_credentials (staff_id, password_hash) values ($1, $2)
@@ -200,9 +200,7 @@ export default async function StaffPage({
                   <td>
                     <b>{p.full_name ?? '-'}</b>
                     {p.id === me.id ? (
-                      <span className="chip" style={{ marginInlineStart: 6 }}>
-                        you
-                      </span>
+                      <span className="chip" style={{ marginInlineStart: 6 }}>{t(lang, 'stf.you')}</span>
                     ) : null}
                     {!p.has_password ? (
                       <span className="chip warn" style={{ marginInlineStart: 6 }}>
@@ -222,7 +220,7 @@ export default async function StaffPage({
                             </option>
                           ))}
                         </select>
-                        <button type="submit">Set</button>
+                        <button type="submit">{t(lang, 'stf.set')}</button>
                       </form>
                     ) : (
                       ROLE_LABEL[p.role]
@@ -231,7 +229,7 @@ export default async function StaffPage({
                   <td className="right num muted">{p.adjustments}</td>
                   <td className="right">
                     <span className={`chip ${p.is_active ? 'on' : 'off'}`}>
-                      {p.is_active ? 'Active' : 'Deactivated'}
+                      {p.is_active ? t(lang, 'stf.active') : t(lang, 'stf.deactivated')}
                     </span>
                   </td>
                   {isOwner ? (
@@ -247,7 +245,7 @@ export default async function StaffPage({
                             <input type="hidden" name="id" value={p.id} />
                             <input type="hidden" name="active" value={p.is_active ? '0' : '1'} />
                             <button type="submit" className="quiet">
-                              {p.is_active ? 'Deactivate' : 'Reactivate'}
+                              {p.is_active ? t(lang, 'stf.deactivate') : t(lang, 'stf.reactivate')}
                             </button>
                           </form>
                         </>
@@ -315,7 +313,7 @@ export default async function StaffPage({
                   autoComplete="new-password"
                 />
               </div>
-              <SubmitButton className="primary" pendingLabel="Adding…">Add</SubmitButton>
+              <SubmitButton className="primary" pendingLabel={`${t(lang, 'a.adding')}…`}>{t(lang, 'stf.add')}</SubmitButton>
             </div>
           </form>
           <p className="muted" style={{ fontSize: 13, marginBlockStart: 14, marginBlockEnd: 0 }}>{t(lang, 'stf.writesTo')}<code>auth.users</code>, which is ours only while the

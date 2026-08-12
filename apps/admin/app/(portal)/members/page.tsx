@@ -37,7 +37,7 @@ async function addMember(formData: FormData): Promise<void> {
 
   const fail = (m: string) => redirect(`/members?error=${encodeURIComponent(m)}`);
 
-  if (!name) fail('Enter their name.');
+  if (!name) fail(t(await getLang(), 'err.name'));
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     fail(`"${email}" is not an email address. Leave it blank if they would rather not say.`);
   }
@@ -50,7 +50,7 @@ async function addMember(formData: FormData): Promise<void> {
   else if (/^5\d{8}$/.test(digits)) phone = `+966${digits}`;
   else fail(`"${rawPhone}" is not a Saudi mobile number. Try 050 033 8808.`);
 
-  if (!['ar', 'en'].includes(locale)) fail('Pick a language.');
+  if (!['ar', 'en'].includes(locale)) fail(t(await getLang(), 'err.lang'));
 
   if (await queryOne('select 1 from customers where phone = $1', [phone!])) {
     fail(`${phone!} is already a member.`);
@@ -80,7 +80,7 @@ async function addMember(formData: FormData): Promise<void> {
     if (settings && settings.signup_bonus > 0) {
       await c.query(
         `insert into loyalty_transactions (customer_id, delta, reason, note)
-         values ($1, $2, 'signup_bonus', 'Signed up at the counter')`,
+         values ($1, $2, 'signup_bonus', t(await getLang(), 'err.signedCounter'))`,
         [id, settings.signup_bonus],
       );
     }

@@ -2,7 +2,7 @@ import { formatSar, query, queryOne } from '@stackd/server';
 import Link from 'next/link';
 
 import { getLang } from '@/lib/prefs.ts';
-import { t } from '@/lib/i18n.ts';
+import { t, tf, fmtDate } from '@/lib/i18n.ts';
 
 
 export const metadata = { title: 'Overview · STACKD admin' };
@@ -73,7 +73,7 @@ export default async function OverviewPage() {
           <div className="k">{t(lang, 'ov.pointsOut')}</div>
           <div className="v num">{totals.points_outstanding.toLocaleString('en')}</div>
           <div className="sub">
-            {totals.lifetime_earned.toLocaleString('en')} {t(lang, 'ov.earnedAllTime')}
+            {tf(lang, 'ov.earnedTotal', { n: totals.lifetime_earned.toLocaleString('en') })}
           </div>
         </div>
         <div className="card stat">
@@ -89,7 +89,7 @@ export default async function OverviewPage() {
           <div className="sub">
             {totals.items_missing_calories > 0 ? (
               <span className="warn-text" style={{ color: 'var(--warn)' }}>
-                {totals.items_missing_calories} {t(lang, 'ov.missingCalories')}
+                {tf(lang, 'ov.missingCal', { n: totals.items_missing_calories })}
               </span>
             ) : (
               t(lang, 'ov.allCalories')
@@ -121,7 +121,7 @@ export default async function OverviewPage() {
                 {recent.map((m) => (
                   <tr key={m.id}>
                     <td className="num muted" style={{ whiteSpace: 'nowrap' }}>
-                      {new Date(m.created_at).toLocaleString('en-GB', {
+                      {fmtDate(lang, m.created_at, {
                         day: '2-digit',
                         month: 'short',
                         hour: '2-digit',

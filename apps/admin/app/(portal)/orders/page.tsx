@@ -2,7 +2,7 @@ import { formatSar, query } from '@stackd/server';
 import Link from 'next/link';
 
 import { getLang, type Lang } from '@/lib/prefs.ts';
-import { t } from '@/lib/i18n.ts';
+import { t, fmtDate } from '@/lib/i18n.ts';
 
 
 export const metadata = { title: 'Orders · STACKD admin' };
@@ -155,7 +155,7 @@ export default async function OrdersPage({
                       </span>
                     </td>
                     <td className="num muted" style={{ whiteSpace: 'nowrap' }}>
-                      {new Date(o.created_at).toLocaleString('en-GB', {
+                      {fmtDate(lang, o.created_at, {
                         day: '2-digit',
                         month: 'short',
                         hour: '2-digit',
