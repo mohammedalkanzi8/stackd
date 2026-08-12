@@ -13,10 +13,99 @@ one — `mohamed.kanzi@` is an admin-portal login and is never shown to customer
 
 ---
 
+## 12 August 2026 — deployed: both portals, all three migrations
+
+**✅ LIVE.** The VM went `47c651c` → `f8bd7b5`, migrations `0004`, `0005` and
+`0006` are applied to production, and both portals are rebuilt and serving.
+**The website is NOT part of this** — see the bottom of this entry.
+
+### ⚠ Migrations went FIRST here, which is the opposite of the 0002 rule
+
+The 0002 entry says deploy the app first, because a database ahead of the app
+showed customers a raw enum label. **That reasoning inverts for these three.**
+All three are purely additive, so the old running app neither knows nor cares
+about the new columns — but the new app cannot start without them:
+`apps/portal/lib/session.ts` selects `must_change_password` on every page load,
+so an app deployed ahead of `0006` 500s the entire portal.
+
+The rule that actually generalises: **additive schema goes first, changes to what
+existing data *means* go after the app.** Ask which one you have before choosing.
+
+⚠ One consequence worth knowing: `0005` makes the 500-point floor live inside
+`issue_redemption()` the moment it applies, so for the few minutes between the
+migration and the rebuild the *old* portal was refusing small redemptions
+without being able to explain why. Harmless at this size, and it would not be on
+a busy night.
+
+### The order that was actually run
+
+1. Verified backup — `backups/stackd_pre_0004-0006_2026-08-12_1252.sql.gz`.
+   Checked, not assumed: gzip integrity, 3,123 lines, 28 tables, 21 functions,
+   and it ends with pg_dump's `\unrestrict` terminator, so it is not truncated.
+2. `SMTP_URL` and `MAIL_FROM` appended to `/opt/stackd/deploy/.env`, verified by
+   comparing a SHA-256 of the value against the local one rather than printing it.
+3. `git pull --ff-only`.
+4. `0004` → `0005` → `0006`, each with `ON_ERROR_STOP=1`.
+5. `build admin`, then `build portal`, then `up -d`. One at a time; the box has
+   two cores.
+
+`0006` printed `UPDATE 0` twice, which is the proof that the normalisation step
+had nothing to do and the clash check could not fire. Production carries **3
+customers, 5 orders, 10 ledger rows**, all three addresses already lowercase and
+trimmed, no duplicates raw or normalised.
+
+### Verified after
+
+- Portal: `/login`, `/forgot`, `/registration` all **200**; `/password`,
+  `/points`, `/` all **307**; a route that does not exist **404**. That last one
+  is the point — it is what makes the 307s a working gate rather than missing
+  pages.
+- Admin: `/login` **200**, `/reports`, `/orders`, `/staff`, `/points` all **307**,
+  nonsense **404**.
+- `/forgot` renders and **contains no `SMTP_URL` banner**, which is the proof
+  production picked up real mail config and `NODE_ENV=production` — that banner
+  only appears when mail would go to the log.
+- Ledger and cached balances both **2,460 and reconciling**, unchanged from 8 Aug.
+- `min_redeem_points` 500, `earn_percent` 10.00, 0 voided orders of 5.
+
+### ⚠ The container-grep check from the 8 Aug entry silently reports nothing
+
+That entry recommends verifying a deploy by grepping the running containers for
+new label strings. It is still the right idea, but **the form written there
+returns zero hits for strings that are definitely present** — `--include=*.js`
+gets expanded by an intermediate shell somewhere in `ssh` → `docker exec` and
+never reaches the container's grep. It reads exactly like a failed deploy.
+
+Wrap the whole thing in `sh -c` and drop `--include`:
+
+```bash
+docker exec stackd-portal-1 sh -c "grep -rl 'Forgotten your password' /app"
+```
+
+Done that way: `Super Admin` in 3 admin files, `void_reason` 1, `min_redeem_points`
+1, `Forgotten your password` 2 portal files, `must_change_password` 4,
+`customer_password_resets` 3.
+
+### ⚠ THE WEBSITE IS STILL NOT DEPLOYED, AND THAT IS DELIBERATE
+
+`stackd.com.sa` is a static export on Cloudflare Pages and ships separately with
+`npm run deploy`. It was **not** run. So the live site still shows the old
+photography and still tells customers points come off a bill "or a few riyals",
+which stopped being true when the 500-point floor went in.
+
+It is held for one reason: **nobody has looked at the new photographs.** There is
+no browser in this environment, so every "verified" above is markup, status codes
+and SQL — not whether a picture of a burger looks like one. `npm run dev` →
+localhost:3000 first. The two judgement calls flagged in the photography entry
+(Scoopy-Doo as the kraft bowl, and the home-page trio) are both one line to undo
+and much more expensive to undo after they are indexed.
+
+---
+
 ## 12 August 2026 — a customer who forgets their password can get back in
 
-**NOT DEPLOYED. Migration `0006_password_reset.sql` is waiting**, and this one
-needs a mailbox and `SMTP_URL` before it is any use at all.
+**✅ Deployed 12 Aug**, migration `0006_password_reset.sql` applied to production.
+See the deploy entry above.
 
 Until now a forgotten password was the end of the account. There was no reset of
 any kind, and the only recovery was a member walking to the counter and asking
@@ -139,9 +228,8 @@ once, and an existing password keeps working until a new one is saved.
 
 ## 12 August 2026 — permissions, voiding, and a redemption floor
 
-**NOT DEPLOYED. Two migrations are waiting.** `0004_void_orders.sql` and
-`0005_min_redeem_points.sql`, both safe to run twice, both with their apply
-command in the header.
+**✅ Deployed 12 Aug.** `0004_void_orders.sql` and `0005_min_redeem_points.sql`
+are both applied to production. See the deploy entry above.
 
 ### The two addresses, and which is which
 
@@ -235,8 +323,12 @@ accepted with one. 105 tests pass, including two new ones for the floor.
 
 ## 12 August 2026 — new photography, every card now has a real photo
 
-**NOT DEPLOYED. Waiting on your eyes at http://localhost:3000.** The owner
-dropped a folder of new shots and the printed menu PDF into `new_shots/`.
+**STILL NOT DEPLOYED as of the 12 Aug portal deploy — waiting on your eyes at
+http://localhost:3000.** This is the one piece of that day's work that did not
+ship, and deliberately: the portals went out because they could be verified
+without a browser, and photographs cannot be. `npm run deploy` is the step.
+The owner dropped a folder of new shots and the printed menu PDF into
+`new_shots/`.
 
 ### Every menu item now has a photograph
 
