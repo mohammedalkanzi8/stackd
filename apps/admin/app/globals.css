@@ -583,7 +583,25 @@ table.data td {
   vertical-align: middle;
 }
 table.data tr:last-child td { border-block-end: 0; }
+/* ⚠ `end` ALIGNMENT ON A NUMERIC COLUMN CREATES A PINCH POINT NEXT TO A NORMAL
+   ONE. The `.right` column puts its content on its end edge while the column
+   beside it puts content on its start edge, so the two collide in the middle
+   with a wide empty gutter on the far side of each. Which header owns which
+   value stops being obvious — on the Rewards table the cost and the benefit
+   read as swapped.
+
+   In LTR the convention is worth the pinch: right-aligned figures share a
+   decimal rail that makes a column of money scannable, and English readers
+   expect it.
+
+   ⚠ IN RTL THEY DO NOT. Arabic text already starts on the right, so aligning
+   numbers to `end` throws them to the LEFT, away from every heading and every
+   other column. Aligning to `start` there keeps one rail down the right for the
+   whole table — figures still line up with each other, and each value sits
+   directly under its own heading. */
 table.data td.right, table.data th.right { text-align: end; }
+[dir='rtl'] table.data td.right,
+[dir='rtl'] table.data th.right { text-align: start; }
 /* The outer edges hug the card; only the gaps between columns are padded. */
 table.data td:first-child, table.data th:first-child { padding-inline-start: 0; }
 table.data td:last-child, table.data th:last-child { padding-inline-end: 0; }
@@ -855,11 +873,6 @@ html[lang='ar'] select { line-height: 1.6; }
    bilingual direction internally, so the frame is pinned to ltr rather than
    inheriting the portal's. */
 .sheet-frame { direction: ltr; }
-html[lang='ar'] table.data td.right,
-html[lang='ar'] table.data th.right {
-  text-align: end;
-}
-
 /* ── PREFERENCE SWITCHES ──────────────────────────────────────────────────────
    Language and theme, in the topbar beside the signed-in name. Plain forms
    posting server actions, so they work with no JavaScript. */
