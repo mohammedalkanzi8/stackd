@@ -5,7 +5,8 @@
 **Email:** MXroute, live and working (SPF + DKIM + DMARC all present)
 **Repo:** `/home/kanzi/stackd` (git, all committed)
 **Theme:** dark for everyone; light only via the header toggle
-**Phone:** 050 033 8808 · **Contact email published:** info@stackd.com.sa
+**Phone:** 050 033 8808 · **Published contact:** info@stackd.com.sa (the public
+one — `mohamed.kanzi@` is an admin-portal login and is never shown to customers)
 **Hours:** 16:00 – 04:00 daily. Change them in `STACKD_HOURS` *and* a migration
 **Portals:** my.stackd.com.sa (customers) · admin.stackd.com.sa (staff) · Oracle Riyadh
 **POS:** Kashier Pro by DKEYS — integration waiting on their support team
@@ -142,12 +143,27 @@ once, and an existing password keeps working until a new one is saved.
 `0005_min_redeem_points.sql`, both safe to run twice, both with their apply
 command in the header.
 
-### ⚠ `mohamed.kanzi@stackd.com.sa` MUST EXIST ON MXROUTE BEFORE THIS DEPLOYS
+### The two addresses, and which is which
 
-The published contact address changed from `info@stackd.com.sa`. It is on the
-home page, the visit page, the footer and in the schema.org block Google reads.
-If the mailbox is not there, customer mail bounces the moment the site goes up.
-**Keep `info@` alive as an alias** — it has been live and indexed for months.
+**⚠ An earlier version of this entry said the published contact address had
+changed to `mohamed.kanzi@stackd.com.sa` and called that a deploy blocker. It is
+not, and it was never true for longer than part of one day.** The change was made
+and reverted on 12 Aug; `BRANCH.email` in `packages/shared/src/menu.ts` has said
+`info@` throughout, with a comment recording the reversal. The warning outlived
+the thing it warned about, which is the failure mode this file has to avoid.
+
+| Address | What it is for | Where it appears |
+|---|---|---|
+| `info@stackd.com.sa` | **The public address.** The restaurant's, the owner's. | Home page, visit page, footer, the schema.org block Google reads — all from `BRANCH.email`, one constant |
+| `mohamed.kanzi@stackd.com.sa` | **An admin-portal login.** Never shown to a customer. | A `staff` row. `dev-data.sql` locally; on production created through Staff → Add |
+
+Both mailboxes exist on MXroute. Nothing about the website deploy depends on the
+second one — staff sign in with email and password and the admin portal sends no
+mail at all, so it is an identifier rather than a mailbox as far as the app is
+concerned.
+
+**`info@` must stay alive whatever else changes.** It has been live and indexed
+for months, and it is the address on every printed and cached copy of the site.
 
 ### Admin and Super Admin
 
