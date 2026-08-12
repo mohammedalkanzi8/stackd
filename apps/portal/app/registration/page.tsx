@@ -5,6 +5,10 @@ import { hashPassword, queryOne, transaction } from '@stackd/server';
 import { SubmitButton } from '../SubmitButton.tsx';
 import { currentMember, normalisePhone, startSession } from '@/lib/session.ts';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+import { LangSwitch } from '@/app/LangSwitch.tsx';
+
 export const metadata = { title: 'Join STACKD Rewards' };
 export const dynamic = 'force-dynamic';
 
@@ -28,12 +32,12 @@ async function register(formData: FormData): Promise<void> {
     redirect(`${BACK}?${keep}`);
   };
 
-  if (name.length < 2) fail('Please enter your name.');
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail('That email address does not look right.');
+  if (name.length < 2) fail(t(await getLang(), 'reg.errName'));
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail(t(await getLang(), 'reg.errEmail'));
 
   const phone = normalisePhone(rawPhone);
   if (!phone) fail(`"${rawPhone}" is not a Saudi mobile number. Try 050 033 8808.`);
-  if (password.length < 8) fail('Your password needs at least 8 characters.');
+  if (password.length < 8) fail(t(await getLang(), 'reg.errPw'));
 
   // Checked up front so the common case gets a sentence about the field it
   // belongs to. It is NOT the guarantee — two people submitting at the same
@@ -41,10 +45,10 @@ async function register(formData: FormData): Promise<void> {
   // lower(customers.email) are what actually stop the second one. See the catch
   // below, and migration 0006.
   if (await queryOne('select 1 from customers where phone = $1', [phone])) {
-    fail('That mobile number is already registered. Sign in instead.');
+    fail(t(await getLang(), 'reg.dupPhone'));
   }
   if (await queryOne('select 1 from customers where lower(email) = $1', [email])) {
-    fail('That email is already registered. Sign in instead.');
+    fail(t(await getLang(), 'reg.dupEmail'));
   }
 
   const settings = await queryOne<{ signup_bonus: number }>(
@@ -59,12 +63,15 @@ async function register(formData: FormData): Promise<void> {
   // treats a call as terminating control flow when the callee's `never` is
   // declared on a name it can see, and `id` below is otherwise "used before
   // assigned".
+  // Resolved before the callback because `onConflict` is synchronous — it is
+  // passed to a .catch() and cannot await.
+  const lg = await getLang();
   const onConflict: (err: unknown) => never = (err) => {
     const code = (err as { code?: string } | null)?.code;
     const constraint = String((err as { constraint?: string } | null)?.constraint ?? '');
     if (code !== '23505') throw err;
-    if (constraint.includes('email')) return fail('That email is already registered. Sign in instead.');
-    return fail('That mobile number is already registered. Sign in instead.');
+    if (constraint.includes('email')) return fail(t(lg, 'reg.dupEmail'));
+    return fail(t(lg, 'reg.dupPhone'));
   };
 
   let id: string;
@@ -110,6 +117,7 @@ export default async function RegistrationPage({
 }: {
   searchParams: Promise<{ error?: string; fullName?: string; email?: string; phone?: string }>;
 }) {
+  const lang = await getLang();
   const signedIn = await currentMember();
   if (signedIn) redirect(signedIn.mustChangePassword ? '/password' : '/points');
   const { error, fullName = '', email = '', phone = '' } = await searchParams;
@@ -123,7 +131,7 @@ export default async function RegistrationPage({
     <div className="narrow">
       <div className="narrow-inner">
         <p className="eyebrow">STACKD Rewards</p>
-        <h1>Join and start earning</h1>
+        <h1>{t(lang, 'reg.lede')}</h1>
         <p className="lede">
           {bonus > 0
             ? `${bonus} points the moment you sign up, then ${Number(settings?.earn_percent ?? 10)}% of every bill back as points.`
@@ -135,7 +143,7 @@ export default async function RegistrationPage({
         <div className="card">
           <form action={register} className="stack">
             <div>
-              <label htmlFor="fullName">Your name</label>
+              <label htmlFor="fullName">{t(lang, 'reg.name')}</label>
               <input
                 id="fullName"
                 name="fullName"
@@ -146,7 +154,7 @@ export default async function RegistrationPage({
               />
             </div>
             <div>
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">{t(lang, 'w.email')}</label>
               <input
                 id="email"
                 name="email"
@@ -157,8 +165,7 @@ export default async function RegistrationPage({
               />
             </div>
             <div>
-              <label htmlFor="phone">
-                Mobile <span className="hint">050 033 8808</span>
+              <label htmlFor="phone">{t(lang, 'reg.mobile')}<span className="hint">050 033 8808</span>
               </label>
               <input
                 id="phone"
@@ -171,8 +178,7 @@ export default async function RegistrationPage({
               />
             </div>
             <div>
-              <label htmlFor="password">
-                Password <span className="hint">at least 8 characters</span>
+              <label htmlFor="password">{t(lang, 'w.password')}<span className="hint">at least 8 characters</span>
               </label>
               <input
                 id="password"
@@ -184,13 +190,13 @@ export default async function RegistrationPage({
               />
             </div>
             <SubmitButton className="primary wide" pendingLabel="Creating your account…">
-              Create my account
+              {t(lang, 'reg.create')}
             </SubmitButton>
           </form>
         </div>
 
         <p className="muted">
-          Already a member? <Link href="/login">Sign in</Link>
+          {t(lang, 'reg.already')} <Link href="/login">{t(lang, 'a.signIn')}</Link>
         </p>
       </div>
     </div>

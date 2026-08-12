@@ -10,6 +10,7 @@
  * sign in every time.
  */
 
+import { seedLangFrom } from './prefs.ts';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createSessions, queryOne } from '@stackd/server';
@@ -43,6 +44,17 @@ export interface Member {
 
 export async function startSession(customerId: string): Promise<void> {
   sessions.start(await cookies(), customerId);
+
+  // Seed the interface language from the customer's own record, unless this
+  // device has already chosen one. `customers.locale` has defaulted to 'ar'
+  // since the schema was written and is set at registration and at the counter,
+  // so this is a preference the shop already collected — it was simply never
+  // used. Done here rather than in the layout so the common request path does
+  // not carry an extra query.
+  const row = await queryOne<{ locale: string }>('select locale from customers where id = $1', [
+    customerId,
+  ]);
+  await seedLangFrom(row?.locale);
 }
 
 export async function endSession(): Promise<void> {

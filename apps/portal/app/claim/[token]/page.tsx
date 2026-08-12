@@ -14,6 +14,10 @@ import { queryOne } from '@stackd/server';
 import { SubmitButton } from '../../SubmitButton.tsx';
 import { currentMember } from '@/lib/session.ts';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+import { LangSwitch } from '@/app/LangSwitch.tsx';
+
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Collect your points · STACKD' };
 
@@ -38,7 +42,7 @@ async function claim(formData: FormData): Promise<void> {
     const code = String(formData.get('memberCode') ?? '')
       .trim()
       .toUpperCase();
-    if (!code) redirect(`${back}?error=${encodeURIComponent('Enter your member code.')}`);
+    if (!code) redirect(`${back}?error=${encodeURIComponent(t(await getLang(), 'cl.enterMemberCode'))}`);
 
     const member = await queryOne<{ id: string }>(
       'select id from customers where member_code = $1',
@@ -66,7 +70,7 @@ async function claim(formData: FormData): Promise<void> {
       `${back}?error=${encodeURIComponent(
         err instanceof Error
           ? err.message.replace(/^[^:]*:\s*/, '')
-          : 'Could not collect those points.',
+          : t(await getLang(), 'cl.failed'),
       )}`,
     );
   }
@@ -79,6 +83,7 @@ export default async function ClaimPage({
   params: Promise<{ token: string }>;
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
+  const lang = await getLang();
   const { token } = await params;
   const { ok, error } = await searchParams;
   const member = await currentMember();
@@ -107,14 +112,14 @@ export default async function ClaimPage({
         {ok ? (
           <>
             <h1>{ok} points added</h1>
-            <p className="lede">They are in your account now.</p>
+            <p className="lede">{t(lang, 'cl.inAccount')}</p>
             <Link href="/points" className="btn primary wide">
-              See my points
+              {t(lang, 'cl.seePoints')}
             </Link>
           </>
         ) : !found ? (
           <>
-            <h1>We don&rsquo;t know that code</h1>
+            <h1>{t(lang, 'cl.unknown')}</h1>
             <p className="lede">
               Check the code printed under the QR on your receipt. It never contains
               the digits 0 or 1, or the letters O, I and L.
@@ -122,7 +127,7 @@ export default async function ClaimPage({
           </>
         ) : found.claimed_at ? (
           <>
-            <h1>Already collected</h1>
+            <h1>{t(lang, 'cl.already')}</h1>
             <p className="lede">
               The points from ticket {found.pickup_code} went onto an account on{' '}
               {when(found.claimed_at)}. Each receipt can only be collected once.
@@ -130,7 +135,7 @@ export default async function ClaimPage({
           </>
         ) : new Date(found.expires_at) < new Date() ? (
           <>
-            <h1>That receipt has expired</h1>
+            <h1>{t(lang, 'cl.expired')}</h1>
             <p className="lede">
               Points had to be collected by {when(found.expires_at)}. Ask at the
               counter and we will sort it out.
@@ -140,7 +145,7 @@ export default async function ClaimPage({
           <>
             <h1>Collect {found.points} points</h1>
             <p className="lede">
-              From ticket <span className="mono">{found.pickup_code}</span>
+              {t(lang, 'cl.fromTicket')} <span className="mono">{found.pickup_code}</span>
               {member ? `, onto ${member.fullName}'s account.` : '.'}
             </p>
 
@@ -151,7 +156,7 @@ export default async function ClaimPage({
                 <input type="hidden" name="token" value={found.token} />
                 {member ? null : (
                   <div>
-                    <label htmlFor="memberCode">Your member code</label>
+                    <label htmlFor="memberCode">{t(lang, 'cl.yourMemberCode')}</label>
                     <input
                       id="memberCode"
                       name="memberCode"
@@ -175,7 +180,7 @@ export default async function ClaimPage({
 
             {member ? null : (
               <p className="muted">
-                <Link href={`/login?from=claim`}>Sign in</Link> instead, or{' '}
+                <Link href={`/login?from=claim`}>{t(lang, 'a.signIn')}</Link> instead, or{' '}
                 <Link href="/registration">join now</Link>. This receipt stays valid
                 until {when(found.expires_at)}.
               </p>

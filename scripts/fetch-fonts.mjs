@@ -190,17 +190,22 @@ be sold by itself, and the copyright and licence notices must be retained.
  * The url() paths are already absolute /fonts/..., and each Next app serves its
  * own public/, so one stylesheet is correct in both without rewriting.
  */
-const adminFontDir = join(root, 'apps/admin/public/fonts');
-mkdirSync(adminFontDir, { recursive: true });
-for (const file of readdirSync(fontDir)) {
-  copyFileSync(join(fontDir, file), join(adminFontDir, file));
+// ⚠ EVERY APP THAT RENDERS ARABIC NEEDS THESE, and they are mirrored rather
+// than hand-copied so they cannot drift on the next run of this script — a
+// drifted font shows up as a heading set in the wrong typeface, which nobody
+// notices until it is on a wall.
+for (const app of ['apps/admin', 'apps/portal']) {
+  const dir = join(root, app, 'public/fonts');
+  mkdirSync(dir, { recursive: true });
+  for (const file of readdirSync(fontDir)) {
+    copyFileSync(join(fontDir, file), join(dir, file));
+  }
+  writeFileSync(join(root, app, 'app/fonts.generated.css'), header + cssBlocks.join('\n\n') + '\n');
 }
-writeFileSync(
-  join(root, 'apps/admin/app/fonts.generated.css'),
-  header + cssBlocks.join('\n\n') + '\n',
-);
 
 console.log(
   `\nDone. ${downloaded} file(s) downloaded, ${(totalBytes / 1024).toFixed(1)} kB total.`,
 );
-console.log(`Wrote fonts.generated.css for apps/web and apps/admin, and ${join(fontDir, "OFL.txt")}`);
+console.log(
+  `Wrote fonts.generated.css for apps/web, apps/admin and apps/portal, and ${join(fontDir, 'OFL.txt')}`,
+);

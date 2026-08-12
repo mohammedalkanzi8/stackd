@@ -5,6 +5,10 @@ import { queryOne, verifyPassword } from '@stackd/server';
 import { SubmitButton } from '../SubmitButton.tsx';
 import { currentMember, normalisePhone, startSession } from '@/lib/session.ts';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+import { LangSwitch } from '@/app/LangSwitch.tsx';
+
 export const metadata = { title: 'Sign in · STACKD Rewards' };
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +22,7 @@ async function signIn(formData: FormData): Promise<void> {
   const identifier = String(formData.get('identifier') ?? '').trim();
   const password = String(formData.get('password') ?? '');
 
-  // Mobile or email, whichever they remember. A number typed any way normalises
+  // {t(lang, 'login.id')}, whichever they remember. A number typed any way normalises
   // first so 0500338808 and +966500338808 find the same account.
   const phone = normalisePhone(identifier);
   const row = await queryOne<{ id: string; password_hash: string }>(
@@ -46,6 +50,7 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ error?: string; id?: string; from?: string }>;
 }) {
+  const lang = await getLang();
   // A signed-in visitor mid-reset goes to /password, not /points, or the
   // forced screen could be skipped by visiting /login and being bounced past it.
   const signedIn = await currentMember();
@@ -56,24 +61,24 @@ export default async function LoginPage({
     <div className="narrow">
       <div className="narrow-inner">
         <p className="eyebrow">STACKD Rewards</p>
-        <h1>Sign in</h1>
-        <p className="lede">Your points, and what you can swap them for.</p>
+        <h1>{t(lang, 'login.title')}</h1>
+        <p className="lede">{t(lang, 'login.lede')}</p>
 
         {from === 'claim' ? (
           <div className="banner ok">
-            Sign in and the points from your receipt will be waiting.
+            {t(lang, 'login.receiptWaiting')}
           </div>
         ) : null}
         {error ? (
           <div className="banner bad">
-            That mobile number or email and password do not match an account.
+            {t(lang, 'login.failed')}
           </div>
         ) : null}
 
         <div className="card">
           <form action={signIn} className="stack">
             <div>
-              <label htmlFor="identifier">Mobile or email</label>
+              <label htmlFor="identifier">{t(lang, 'login.id')}</label>
               <input
                 id="identifier"
                 name="identifier"
@@ -86,7 +91,7 @@ export default async function LoginPage({
               />
             </div>
             <div>
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">{t(lang, 'w.password')}</label>
               <input
                 id="password"
                 name="password"
@@ -95,17 +100,15 @@ export default async function LoginPage({
                 autoComplete="current-password"
               />
             </div>
-            <SubmitButton className="primary wide" pendingLabel="Signing you in…">
-              Sign in
-            </SubmitButton>
+            <SubmitButton className="primary wide" pendingLabel="Signing you in…">{t(lang, 'a.signIn')}</SubmitButton>
           </form>
         </div>
 
         <p className="muted">
-          <Link href="/forgot">Forgotten your password?</Link>
+          <Link href="/forgot">{t(lang, 'login.forgot')}</Link>
         </p>
         <p className="muted">
-          Not a member yet? <Link href="/registration">Join in a minute</Link>
+          {t(lang, 'login.notMember')} <Link href="/registration">{t(lang, 'login.join')}</Link>
         </p>
       </div>
     </div>

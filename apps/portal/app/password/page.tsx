@@ -5,6 +5,10 @@ import { SubmitButton } from '../SubmitButton.tsx';
 import { currentMember } from '@/lib/session.ts';
 import { setPassword } from '@/lib/reset.ts';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+import { LangSwitch } from '@/app/LangSwitch.tsx';
+
 export const metadata = { title: 'Choose a password · STACKD Rewards' };
 export const dynamic = 'force-dynamic';
 
@@ -33,12 +37,12 @@ async function save(formData: FormData): Promise<void> {
       [member.id],
     );
     if (!row || !(await verifyPassword(current, row.password_hash))) {
-      fail('That is not your current password.');
+      fail(t(await getLang(), 'pw.notCurrent'));
     }
   }
 
-  if (password.length < 8) fail('Your password needs at least 8 characters.');
-  if (password !== confirm) fail('Those two passwords are not the same.');
+  if (password.length < 8) fail(t(await getLang(), 'pw.tooShort'));
+  if (password !== confirm) fail(t(await getLang(), 'pw.mismatch'));
 
   await setPassword(member.id, password);
   redirect('/points?password=1');
@@ -49,6 +53,7 @@ export default async function PasswordPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  const lang = await getLang();
   const member = await currentMember();
   if (!member) redirect('/login');
 
@@ -61,11 +66,9 @@ export default async function PasswordPage({
     <div className="narrow">
       <div className="narrow-inner">
         <p className="eyebrow">STACKD Rewards</p>
-        <h1>{forced ? 'Choose a new password' : 'Change your password'}</h1>
+        <h1>{forced ? t(lang, 'pw.chooseTitle') : t(lang, 'pw.changeTitle')}</h1>
         <p className="lede">
-          {forced
-            ? 'Your code worked. Pick a password and you are back in — your points are exactly where you left them.'
-            : 'Pick something you will remember. You stay signed in on this device.'}
+          {forced ? t(lang, 'pw.forcedLede') : t(lang, 'pw.lede')}
         </p>
 
         {error ? <div className="banner bad">{error}</div> : null}
@@ -84,7 +87,7 @@ export default async function PasswordPage({
             />
             {forced ? null : (
               <div>
-                <label htmlFor="current">Current password</label>
+                <label htmlFor="current">{t(lang, 'pw.current')}</label>
                 <input
                   id="current"
                   name="current"
@@ -97,7 +100,7 @@ export default async function PasswordPage({
             )}
             <div>
               <label htmlFor="password">
-                New password <span className="hint">at least 8 characters</span>
+                {t(lang, 'pw.new')} <span className="hint">at least 8 characters</span>
               </label>
               <input
                 id="password"
@@ -110,7 +113,7 @@ export default async function PasswordPage({
               />
             </div>
             <div>
-              <label htmlFor="confirm">Again, to be sure</label>
+              <label htmlFor="confirm">{t(lang, 'pw.again')}</label>
               <input
                 id="confirm"
                 name="confirm"
@@ -121,7 +124,7 @@ export default async function PasswordPage({
               />
             </div>
             <SubmitButton className="primary wide" pendingLabel="Saving…">
-              Save and continue
+              {t(lang, 'pw.save')}
             </SubmitButton>
           </form>
         </div>
@@ -131,7 +134,7 @@ export default async function PasswordPage({
             reachable by one. Signing out is the only other door. */}
         {forced ? null : (
           <p className="muted">
-            <a href="/points">Back to your points</a>
+            <a href="/points">{t(lang, 'pw.back')}</a>
           </p>
         )}
       </div>

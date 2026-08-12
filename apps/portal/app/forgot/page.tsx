@@ -6,6 +6,10 @@ import { SubmitButton } from '../SubmitButton.tsx';
 import { currentMember } from '@/lib/session.ts';
 import { issueResetCode, normaliseEmail, RESET } from '@/lib/reset.ts';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+import { LangSwitch } from '@/app/LangSwitch.tsx';
+
 export const metadata = { title: 'Forgotten password · STACKD Rewards' };
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +19,7 @@ async function request(formData: FormData): Promise<void> {
   const email = normaliseEmail(String(formData.get('email') ?? ''));
 
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    redirect(`/forgot?error=${encodeURIComponent('That email address does not look right.')}`);
+    redirect(`/forgot?error=${encodeURIComponent(t(await getLang(), 'fg.badEmail'))}`);
   }
 
   // Checked before the code is created rather than after, so a deployment with
@@ -36,6 +40,7 @@ export default async function ForgotPage({
 }: {
   searchParams: Promise<{ error?: string; email?: string }>;
 }) {
+  const lang = await getLang();
   if (await currentMember()) redirect('/points');
   const { error, email = '' } = await searchParams;
 
@@ -43,10 +48,9 @@ export default async function ForgotPage({
     <div className="narrow">
       <div className="narrow-inner">
         <p className="eyebrow">STACKD Rewards</p>
-        <h1>Forgotten your password?</h1>
+        <h1>{t(lang, 'fg.title')}</h1>
         <p className="lede">
-          Type the email address on your account and we will send you a code to
-          get back in.
+          {t(lang, 'fg.lede')}
         </p>
 
         {error ? <div className="banner bad">{error}</div> : null}
@@ -65,7 +69,7 @@ export default async function ForgotPage({
         <div className="card">
           <form action={request} className="stack">
             <div>
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">{t(lang, 'w.email')}</label>
               <input
                 id="email"
                 name="email"
@@ -77,7 +81,7 @@ export default async function ForgotPage({
               />
             </div>
             <SubmitButton className="primary wide" pendingLabel="Sending your code…">
-              Email me a code
+              {t(lang, 'fg.send')}
             </SubmitButton>
           </form>
         </div>
@@ -91,7 +95,7 @@ export default async function ForgotPage({
           <Link href="/registration">join</Link>.
         </p>
         <p className="muted">
-          Remembered it? <Link href="/login">Sign in</Link>
+          {t(lang, 'fg.remembered')} <Link href="/login">{t(lang, 'a.signIn')}</Link>
         </p>
       </div>
     </div>

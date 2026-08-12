@@ -5,14 +5,22 @@ import { SubmitButton } from '../../SubmitButton.tsx';
 import { currentMember, startSession } from '@/lib/session.ts';
 import { normaliseEmail, RESET, verifyResetCode } from '@/lib/reset.ts';
 
+import { getLang, type Lang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+import { LangSwitch } from '@/app/LangSwitch.tsx';
+
 export const metadata = { title: 'Enter your code · STACKD Rewards' };
 export const dynamic = 'force-dynamic';
 
-const MESSAGE = {
-  invalid: 'That code is not right. Check the email and try again.',
-  expired: `That code has expired. Codes last ${RESET.TTL_MINUTES} minutes — ask for a new one.`,
-  locked: 'Too many wrong tries, so that code has been cancelled. Ask for a new one.',
-} as const;
+/* Built per request rather than at module scope: the wording depends on the
+   language, and a module-level constant is evaluated once per process. */
+function messages(lang: Lang) {
+  return {
+    invalid: t(lang, 'fg.wrong'),
+    expired: t(lang, 'fg.expired'),
+    locked: t(lang, 'fg.locked'),
+  } as const;
+}
 
 async function submit(formData: FormData): Promise<void> {
   'use server';
@@ -27,9 +35,9 @@ async function submit(formData: FormData): Promise<void> {
     // Expired and cancelled codes are gone from the database, so there is
     // nothing left to retry against — those two go back to the start.
     if (result.reason !== 'invalid') {
-      redirect(`/forgot?error=${encodeURIComponent(MESSAGE[result.reason])}`);
+      redirect(`/forgot?error=${encodeURIComponent(messages(await getLang())[result.reason])}`);
     }
-    back(MESSAGE.invalid);
+    back(messages(await getLang()).invalid);
   }
 
   // Signed in, but `must_change_password` is set, so requireMember() on every
@@ -43,6 +51,7 @@ export default async function VerifyPage({
 }: {
   searchParams: Promise<{ email?: string; error?: string }>;
 }) {
+  const lang = await getLang();
   if (await currentMember()) redirect('/points');
   const { email = '', error } = await searchParams;
 
@@ -52,7 +61,7 @@ export default async function VerifyPage({
     <div className="narrow">
       <div className="narrow-inner">
         <p className="eyebrow">STACKD Rewards</p>
-        <h1>Check your email</h1>
+        <h1>{t(lang, 'fg.checkTitle')}</h1>
         <p className="lede">
           If <b>{email}</b> is on an account, a six-digit code is on its way. It
           works once, for {RESET.TTL_MINUTES} minutes.
@@ -64,7 +73,7 @@ export default async function VerifyPage({
           <form action={submit} className="stack">
             <input type="hidden" name="email" value={email} />
             <div>
-              <label htmlFor="code">Your code</label>
+              <label htmlFor="code">{t(lang, 'fg.codeLabel')}</label>
               <input
                 id="code"
                 name="code"
@@ -83,14 +92,12 @@ export default async function VerifyPage({
                 className="mono code-input"
               />
             </div>
-            <SubmitButton className="primary wide" pendingLabel="Checking…">
-              Continue
-            </SubmitButton>
+            <SubmitButton className="primary wide" pendingLabel="Checking…">{t(lang, 'a.continue')}</SubmitButton>
           </form>
         </div>
 
         <p className="muted">
-          No mail? Check spam, or <Link href="/forgot">send another code</Link>.
+          {t(lang, 'fg.noMail')} <Link href="/forgot">send another code</Link>.
         </p>
       </div>
     </div>

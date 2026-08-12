@@ -1,4 +1,8 @@
 import { redirect } from 'next/navigation';
+
+import { getLang } from '@/lib/prefs.ts';
+import { t, tf, fmtDate } from '@/lib/i18n.ts';
+import { LangSwitch } from '../LangSwitch.tsx';
 import { revalidatePath } from 'next/cache';
 import { formatSar, qrSvg, query, queryOne, walletOptions } from '@stackd/server';
 
@@ -65,8 +69,8 @@ async function redeem(formData: FormData): Promise<void> {
     redirect(
       `/points?error=${encodeURIComponent(
         raw.startsWith('insufficient points')
-          ? 'You do not have enough points for that yet.'
-          : raw || 'Could not claim that reward.',
+          ? t(await getLang(), 'pt.notEnough')
+          : raw || t(await getLang(), 'pt.claimFailed'),
       )}`,
     );
   }
@@ -93,7 +97,7 @@ async function issueCode(formData: FormData): Promise<void> {
 
   const points = Number(String(formData.get('points') ?? ''));
   if (!Number.isInteger(points) || points < 1) {
-    redirect(`/points?error=${encodeURIComponent('Choose how many points to spend.')}`);
+    redirect(`/points?error=${encodeURIComponent(t(await getLang(), 'pt.chooseAmount'))}`);
   }
 
   try {
@@ -110,7 +114,7 @@ async function issueCode(formData: FormData): Promise<void> {
             // 500 points", which is accurate and reads like an error code.
             raw.startsWith('minimum redemption is')
             ? `You need at least ${raw.replace(/\D/g, '')} points to spend any.`
-            : raw || 'Could not create a code.',
+            : raw || t(await getLang(), 'pt.codeFailed'),
       )}`,
     );
   }
@@ -143,6 +147,7 @@ export default async function PointsPage({
 }: {
   searchParams: Promise<{ error?: string; claimed?: string; welcome?: string; password?: string }>;
 }) {
+  const lang = await getLang();
   // requireMember, not currentMember: it also bounces anyone who arrived by a
   // one-time code and has not chosen a password yet.
   const member = await requireMember();
@@ -235,21 +240,21 @@ export default async function PointsPage({
     <div className="card" id="redeem">
       <h2>
         {activeCode?.rewardName
-          ? `Your ${activeCode.rewardName}`
+          ? tf(lang, 'pt.yourThing', { what: activeCode.rewardName })
           : activeCode
-            ? 'Your code'
-            : 'Spend points off your bill'}
+            ? t(lang, 'pt.yourCode')
+            : t(lang, 'pt.spendTitle')}
       </h2>
       {activeCode ? null : (
         <p className="muted" style={{ fontSize: 13.5, marginBlockStart: 0 }}>
-          Choose an amount, show the code to the cashier, and it comes straight
-          off what you owe. 100 points is 1.00 SAR.
+          {t(lang, 'pt.spendLede')}
         </p>
       )}
           <RedeemPanel
             minRedeem={minRedeem}
             balance={member.balance}
             active={activeCode}
+            lang={lang}
             issue={issueCode}
             cancel={cancelCode}
           />
@@ -268,23 +273,24 @@ export default async function PointsPage({
           {/* `title` on each: below 560px the words are hidden and only the
               glyph shows, so the tooltip is the only thing left naming it. */}
           <nav className="main">
-            <a href="#balance" title="Points">
+            <a href="#balance" title={t(lang, 'nav.points')}>
               <IconPoints />
-              <span>Points</span>
+              <span>{t(lang, 'nav.points')}</span>
             </a>
-            <a href="#code" title="My code">
+            <a href="#code" title={t(lang, 'nav.myCode')}>
               <IconQr />
-              <span>My code</span>
+              <span>{t(lang, 'nav.myCode')}</span>
             </a>
-            <a href="#rewards" title="Rewards">
+            <a href="#rewards" title={t(lang, 'nav.rewards')}>
               <IconRewards />
-              <span>Rewards</span>
+              <span>{t(lang, 'nav.rewards')}</span>
             </a>
           </nav>
+          <LangSwitch lang={lang} />
           <form action={signOut}>
             <SubmitButton className="quiet" pendingLabel="…">
               <IconSignOut />
-              Sign out
+              {t(lang, 'nav.signOut')}
             </SubmitButton>
           </form>
         </div>
@@ -293,18 +299,17 @@ export default async function PointsPage({
       <main>
         {welcome ? (
           <div className="banner ok">
-            Welcome to STACKD Rewards. Show the code below whenever you order.
+            {t(lang, 'pt.welcome')}
           </div>
         ) : null}
         {password ? (
           <div className="banner ok">
-            Password saved. Use it next time you sign in.
+            {t(lang, 'pw.saved')}
           </div>
         ) : null}
         {claimed ? (
           <div className="banner ok">
-            Claimed. Show the code above at the counter and it is yours. The
-            points come off when they scan it.
+            {t(lang, 'pt.claimedBanner')}
           </div>
         ) : null}
         {error ? <div className="banner bad">{error}</div> : null}
@@ -313,7 +318,7 @@ export default async function PointsPage({
         {activeCode ? redeemCard : null}
 
         <div className="balance" id="balance">
-          <div className="k">Your points</div>
+          <div className="k">{t(lang, 'pt.title')}</div>
           <div className="n num">{member.balance}</div>
           <div className="sub">
             {member.lifetimeEarned} earned since you joined
@@ -339,12 +344,12 @@ export default async function PointsPage({
         */}
         <details className="card member-card" id="code" open={!activeCode}>
           <summary>
-            {activeCode ? 'Show my member code' : 'Show this at the counter'}
+            {activeCode ? t(lang, 'pt.showMyCode') : t(lang, 'pt.showCounter')}
           </summary>
           <div className="member-qr" dangerouslySetInnerHTML={{ __html: qr }} />
           <p className="member-code mono">{member.memberCode}</p>
           <p className="muted" style={{ textAlign: 'center', fontSize: 13 }}>
-            Scanned when you order, so your points go on automatically.
+            {t(lang, 'pt.scannedNote')}
           </p>
 
           {wallet.googleUrl || wallet.appleAvailable ? (
@@ -353,7 +358,7 @@ export default async function PointsPage({
                 <a className="wallet-btn" href="/wallet/apple">
                   <AppleMark />
                   <span>
-                    <small>Add to</small>
+                    <small>{t(lang, 'pt.addTo')}</small>
                     Apple Wallet
                   </span>
                 </a>
@@ -362,7 +367,7 @@ export default async function PointsPage({
                 <a className="wallet-btn" href={wallet.googleUrl}>
                   <GoogleMark />
                   <span>
-                    <small>Add to</small>
+                    <small>{t(lang, 'pt.addTo')}</small>
                     Google Wallet
                   </span>
                 </a>
@@ -370,15 +375,15 @@ export default async function PointsPage({
             </div>
           ) : null}
 
-          <InstallButton />
+          <InstallButton lang={lang} />
         </details>
 
         {activeCode ? null : redeemCard}
 
         <div className="card" id="rewards">
-          <h2>Or swap them for an item</h2>
+          <h2>{t(lang, 'pt.swapTitle')}</h2>
           {rewards.length === 0 ? (
-            <p className="empty">No rewards available right now.</p>
+            <p className="empty">{t(lang, 'pt.noRewards')}</p>
           ) : (
             rewards.map((r) => {
               const affordable = member.balance >= r.points_cost;
@@ -398,12 +403,14 @@ export default async function PointsPage({
                   {affordable ? (
                     <form action={redeem}>
                       <input type="hidden" name="rewardId" value={r.id} />
-                      <SubmitButton className="primary" pendingLabel="Claiming…">
-                        Claim
+                      <SubmitButton className="primary" pendingLabel={t(lang, 'pt.claiming')}>
+                        {t(lang, 'pt.claim')}
                       </SubmitButton>
                     </form>
                   ) : (
-                    <span className="chip">{r.points_cost - member.balance} more</span>
+                    <span className="chip">
+                      {r.points_cost - member.balance} {t(lang, 'pt.more')}
+                    </span>
                   )}
                 </div>
               );
@@ -412,11 +419,10 @@ export default async function PointsPage({
         </div>
 
         <div className="card">
-          <h2>Your history</h2>
+          <h2>{t(lang, 'pt.historyTitle')}</h2>
           {entries.length === 0 ? (
             <p className="empty">
-              Nothing yet. Show your code next time you order and points start
-              landing here.
+              {t(lang, 'pt.noHistory')}
             </p>
           ) : (
             entries.map((e) => (
@@ -446,7 +452,7 @@ export default async function PointsPage({
         </div>
 
         <p className="muted" style={{ fontSize: 13, marginBlockStart: 22, textAlign: 'center' }}>
-          Ordering from here is coming next. For now, points and rewards.
+          {t(lang, 'pt.orderingSoon')}
         </p>
       </main>
     </>

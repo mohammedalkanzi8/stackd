@@ -1,5 +1,8 @@
 'use client';
 
+import { t } from '@/lib/i18n.ts';
+import type { Lang } from '@/lib/prefs.ts';
+
 import { useEffect, useState } from 'react';
 
 /**
@@ -25,7 +28,7 @@ interface InstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-export function InstallButton() {
+export function InstallButton({ lang }: { lang: Lang }) {
   const [prompt, setPrompt] = useState<InstallPromptEvent | null>(null);
   const [isIos, setIsIos] = useState(false);
   const [installed, setInstalled] = useState(true); // assume yes until proven otherwise
@@ -74,9 +77,7 @@ export function InstallButton() {
           setPrompt(null);
         }}
       >
-        <PhoneIcon />
-        Add to home screen
-      </button>
+        <PhoneIcon />{t(lang, 'ins.add')}</button>
     );
   }
 
@@ -84,13 +85,10 @@ export function InstallButton() {
     return (
       <div className="install-ios">
         <button type="button" className="install-btn" onClick={() => setShowIosHelp((v) => !v)}>
-          <PhoneIcon />
-          Add to home screen
-        </button>
+          <PhoneIcon />{t(lang, 'ins.add')}</button>
         {showIosHelp ? (
-          <p className="install-help">
-            Tap <ShareIcon /> at the bottom of Safari, then choose{' '}
-            <b>Add to Home Screen</b>.
+          <p className="install-help">{t(lang, 'ins.tap')}<ShareIcon /> at the bottom of Safari, then choose{' '}
+            <b>{t(lang, 'ins.add')}</b>.
           </p>
         ) : null}
       </div>

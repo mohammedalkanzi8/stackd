@@ -1,0 +1,14 @@
+Tajawal and Cairo are licensed under the SIL Open Font License, Version 1.1.
+
+Tajawal — Copyright (c) Boutros International
+Cairo — Copyright (c) The Cairo Project Authors
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+The full licence text is available at:
+https://scripts.sil.org/OFL
+
+PERMISSION & CONDITIONS (summary — the full licence governs):
+Permission is granted, free of charge, to use, study, copy, merge, embed,
+modify, redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the conditions in the licence. The Font Software may not
+be sold by itself, and the copyright and licence notices must be retained.

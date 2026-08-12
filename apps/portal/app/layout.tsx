@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 
+import { dirFor, getLang } from '@/lib/prefs.ts';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -38,7 +39,13 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Read per request, so the HTML that leaves the server is already in the right
+  // language and direction. ⚠ `dir` in particular MUST be server-rendered:
+  // applied by JavaScript after paint it mirrors the whole page in front of a
+  // customer who is mid-scan at a counter.
+  const lang = await getLang();
+
   return (
     // suppressHydrationWarning applies to THIS element's attributes only, one
     // level deep — children are still fully hydration-checked.
@@ -47,7 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // (Modernizr-style `no-touch`, dark-mode forcers, password managers). The
     // server cannot know about them, so React reports a mismatch it can never
     // reconcile. Same fix as the website's root layout, which hit this first.
-    <html lang="en" suppressHydrationWarning>
+    <html lang={lang} dir={dirFor(lang)} suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );

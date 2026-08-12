@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+
+import { t, tf } from '@/lib/i18n.ts';
+import type { Lang } from '@/lib/prefs.ts';
 import { useFormStatus } from 'react-dom';
 
 /**
@@ -36,7 +39,12 @@ export function RedeemPanel({
   active,
   issue,
   cancel,
+  lang,
 }: {
+  /* Passed down: the language lives in a cookie, and cookies are a server
+     concern. `t()` is safe here because lib/i18n.ts imports Lang as a TYPE
+     only and so pulls in no server code. */
+  lang: Lang;
   balance: number;
   /** Fewest points that may be spent in one go. 0 means no floor. */
   minRedeem: number;
@@ -44,8 +52,8 @@ export function RedeemPanel({
   issue: (formData: FormData) => Promise<void>;
   cancel: () => Promise<void>;
 }) {
-  if (active) return <LiveCode active={active} cancel={cancel} />;
-  return <AmountForm balance={balance} minRedeem={minRedeem} issue={issue} />;
+  if (active) return <LiveCode active={active} cancel={cancel} lang={lang} />;
+  return <AmountForm balance={balance} minRedeem={minRedeem} issue={issue} lang={lang} />;
 }
 
 /** 1 point = 1 halala, so the riyal value is the balance with a decimal point. */
@@ -57,7 +65,9 @@ function AmountForm({
   balance,
   minRedeem,
   issue,
+  lang,
 }: {
+  lang: Lang;
   balance: number;
   minRedeem: number;
   issue: (formData: FormData) => Promise<void>;
@@ -69,8 +79,7 @@ function AmountForm({
   if (balance <= 0) {
     return (
       <p className="empty">
-        No points to spend yet. Show your code when you order and 10% of the bill
-        comes back.
+        {t(lang, 'rp.noPoints')}
       </p>
     );
   }
@@ -81,9 +90,8 @@ function AmountForm({
   if (minRedeem > 0 && balance < minRedeem) {
     return (
       <p className="empty">
-        You need <b>{minRedeem} points</b> before you can spend any off a bill.
-        That is {minRedeem - balance} more — about{' '}
-        {asRiyals((minRedeem - balance) * 10)} SAR of spending away.
+        {tf(lang, 'rp.needMore', { n: minRedeem })}{' '}
+        {tf(lang, 'rp.thatIs', { n: minRedeem - balance })}
       </p>
     );
   }
@@ -97,10 +105,10 @@ function AmountForm({
        counter on bad shop wifi is exactly who cannot afford that. */
     <form action={issue} className="redeem-form">
       <label htmlFor="points">
-        How many points?{' '}
+        {t(lang, 'rp.howMany')}{' '}
         <span className="hint">
-          you have {balance}
-          {minRedeem > 0 ? ` · ${minRedeem} minimum` : ''}
+          {tf(lang, 'rp.youHave', { n: balance })}
+          {minRedeem > 0 ? ` · ${tf(lang, 'rp.minimum', { n: minRedeem })}` : ''}
         </span>
       </label>
       <div className="redeem-input">
@@ -129,18 +137,18 @@ function AmountForm({
           onClick={() => setPoints(balance)}
           disabled={points === balance}
         >
-          All
+          {t(lang, 'rp.all')}
         </button>
       </div>
 
       <p className="redeem-worth" id="points-worth">
         {invalid ? (
           <span className="neg">
-            Enter between {floor} and {balance} points.
+            {tf(lang, 'rp.between', { a: floor, b: balance })}
           </span>
         ) : (
           <>
-            Worth <b>{asRiyals(points)} SAR</b> off your bill
+            {tf(lang, 'rp.worthOff', { sar: asRiyals(points) })}
           </>
         )}
       </p>
@@ -167,7 +175,7 @@ function RedeemSubmit({ disabled }: { disabled: boolean }) {
   );
 }
 
-function LiveCode({ active, cancel }: { active: ActiveCode; cancel: () => Promise<void> }) {
+function LiveCode({ active, cancel, lang }: { active: ActiveCode; cancel: () => Promise<void>; lang: Lang }) {
   const [left, setLeft] = useState(() =>
     Math.max(0, Math.round((new Date(active.expiresAt).getTime() - Date.now()) / 1000)),
   );
@@ -186,12 +194,11 @@ function LiveCode({ active, cancel }: { active: ActiveCode; cancel: () => Promis
     return (
       <div className="redeem-expired">
         <p>
-          That code expired. Codes last three minutes so a photo of your screen is
-          worthless afterwards.
+          {t(lang, 'rp.expired')}
         </p>
         <form action={cancel}>
           <button type="submit" className="primary wide">
-            Create a new one
+            {t(lang, 'rp.newOne')}
           </button>
         </form>
       </div>
@@ -206,24 +213,22 @@ function LiveCode({ active, cancel }: { active: ActiveCode; cancel: () => Promis
       <p className="redeem-instruction">
         {active.rewardName ? (
           <>
-            Show this to the cashier for your <b>{active.rewardName}</b>. The{' '}
-            {active.points} points come off when they scan it.
+            {tf(lang, 'rp.showReward', { what: active.rewardName, n: active.points })}
           </>
         ) : (
           <>
-            Show this to the cashier. <b>{active.points} points</b> (
-            {asRiyals(active.points)} SAR) comes off your bill.
+            {tf(lang, 'rp.showCashier', { n: active.points, sar: asRiyals(active.points) })}
           </>
         )}
       </p>
       <div className="member-qr" dangerouslySetInnerHTML={{ __html: active.qrSvg }} />
       <p className="member-code mono">{active.token}</p>
       <p className={`redeem-timer${left <= 30 ? ' urgent' : ''}`}>
-        Expires in {mm}:{ss}
+        {tf(lang, 'rp.expiresIn', { t: `${mm}:${ss}` })}
       </p>
       <form action={cancel}>
         <button type="submit" className="quiet">
-          Cancel
+          {t(lang, 'a.cancel')}
         </button>
       </form>
     </div>
