@@ -351,6 +351,91 @@ dbTest('balance always equals the sum of the ledger', async () => {
   }
 });
 
+// Regression, reported from production 12 Aug 2026: a member who had just
+// joined and bought nothing showed 100 lifetime points, which is the welcome
+// bonus. The trigger counted every positive row. See migration 0007.
+dbTest('a gift is not something the customer earned', async () => {
+  await beginNested();
+  try {
+    // Written exactly as registration and the counter signup write it.
+    await db.query(
+      `insert into loyalty_transactions (customer_id, delta, reason, note)
+       values ($1, 100, 'signup_bonus', 'Registered online')`,
+      [CUSTOMER_1],
+    );
+
+    const joined = (
+      await db.query(
+        'select balance, lifetime_earned from loyalty_balances where customer_id = $1',
+        [CUSTOMER_1],
+      )
+    ).rows[0];
+    assert.equal(joined.balance, 100, 'the bonus is still spendable');
+    assert.equal(joined.lifetime_earned, 0, 'a welcome bonus must not read as earned');
+
+    // Buying is the only thing that does count.
+    const order = await makeOrder({ gross: 6000 });
+    await db.query('select mint_loyalty_points($1)', [order.id]);
+
+    const bought = (
+      await db.query(
+        'select balance, lifetime_earned from loyalty_balances where customer_id = $1',
+        [CUSTOMER_1],
+      )
+    ).rows[0];
+    assert.equal(bought.balance, 700, 'the bonus and the purchase are both spendable');
+    assert.equal(bought.lifetime_earned, 600, 'only the purchase is earned');
+  } finally {
+    await rollbackNested();
+  }
+});
+
+dbTest('a refund takes back what its order added to lifetime earned', async () => {
+  await beginNested();
+  try {
+    const order = await makeOrder({ gross: 6000 });
+    await db.query('select mint_loyalty_points($1)', [order.id]);
+
+    // Without this, refunding every purchase you ever made leaves a lifetime
+    // figure claiming you earned it.
+    await db.query(
+      `insert into loyalty_transactions (customer_id, delta, reason, order_id)
+       values ($1, -600, 'order_refund', $2)`,
+      [CUSTOMER_1, order.id],
+    );
+
+    const { rows } = await db.query(
+      'select balance, lifetime_earned from loyalty_balances where customer_id = $1',
+      [CUSTOMER_1],
+    );
+    assert.equal(rows[0].balance, 0);
+    assert.equal(rows[0].lifetime_earned, 0, 'a clawback must reduce lifetime earned');
+  } finally {
+    await rollbackNested();
+  }
+});
+
+dbTest('a manager credit is goodwill, not earnings', async () => {
+  await beginNested();
+  try {
+    const actor = (await db.query(`select id from staff where role = 'owner' limit 1`)).rows[0].id;
+    await db.query(
+      `insert into loyalty_transactions (customer_id, delta, reason, actor_id, note)
+       values ($1, 250, 'manual_adjust', $2, 'Goodwill')`,
+      [CUSTOMER_1, actor],
+    );
+
+    const { rows } = await db.query(
+      'select balance, lifetime_earned from loyalty_balances where customer_id = $1',
+      [CUSTOMER_1],
+    );
+    assert.equal(rows[0].balance, 250, 'goodwill is spendable');
+    assert.equal(rows[0].lifetime_earned, 0, 'goodwill is not earned');
+  } finally {
+    await rollbackNested();
+  }
+});
+
 dbTest('an order can only ever mint once', async () => {
   await beginNested();
   try {

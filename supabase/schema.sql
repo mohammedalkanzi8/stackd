@@ -804,6 +804,12 @@ create unique index loyalty_tx_one_clawback_per_order
 create table loyalty_balances (
   customer_id      uuid primary key references customers(id) on delete cascade,
   balance          int not null default 0 check (balance >= 0),
+  -- Net points earned by BUYING: 'earn_purchase' plus 'order_refund', nothing
+  -- else. Gifts — signup_bonus, birthday_bonus, manual_adjust — are excluded on
+  -- purpose. The portal renders this as "earned since you joined" and the admin
+  -- as "earned all time", and a welcome bonus is not something anybody earned.
+  -- Always rebuildable from loyalty_transactions; migration 0007 does exactly
+  -- that and is the reference for the rule.
   lifetime_earned  int not null default 0,
   -- Drives rolling expiry. See expire_stale_points().
   last_activity_at timestamptz not null default now(),
@@ -835,7 +841,18 @@ begin
 
   update loyalty_balances set
     balance          = balance + new.delta,
-    lifetime_earned  = lifetime_earned + greatest(new.delta, 0),
+    -- ⚠ BUYING ONLY. See the comment on lifetime_earned above: this counted every
+    -- positive row until migration 0007, so a member who had just joined and
+    -- bought nothing showed the welcome bonus as points they had "earned".
+    --
+    -- earn_purchase is positive and order_refund is negative, so adding both
+    -- deltas nets a refund back out. greatest(0, ...) guards the one case the
+    -- ledger permits but nothing produces: a clawback with no earn to reverse.
+    lifetime_earned  = greatest(0, lifetime_earned + case
+                         when new.reason in ('earn_purchase', 'order_refund')
+                         then new.delta
+                         else 0
+                       end),
     -- Expiry is not activity. Counting it would reset the clock it just fired
     -- on, and the same points would never lapse twice.
     last_activity_at = case when new.reason = 'expiry' then last_activity_at else now() end,
