@@ -15,6 +15,58 @@ one — `mohamed.kanzi@` is an admin-portal login and is never shown to customer
 
 ---
 
+## 12 August 2026 — the second screenshot round: expressions, dates, cell gaps
+
+**✅ LIVE.** The portal is fully Arabic: **479 dictionary keys, Arabic covers
+479**, guarded by a test that fails when an English key has no translation.
+
+### ⚠ A regex over text nodes cannot see a translated UI
+
+The first pass matched `>Text<`. It was blind to every string inside a JSX
+**expression** — `{r.is_active ? 'Available' : 'Retired'}`, select options, chip
+labels, button text, and all 47 server-action error messages. About 170 strings,
+invisible to the tool and obvious in a screenshot.
+
+If this ever needs doing again: sweep for quoted string literals in `.tsx`, not
+just text nodes.
+
+### ⚠ The reason map existed TWICE
+
+An English `Record<string, string>` of ledger reasons lived in **both** the
+overview and the member-detail page. The first pass replaced one and left the
+other, which is exactly why "Sign-up bonus" kept appearing on an Arabic screen
+after everything around it was translated. Both are gone; reasons come from the
+dictionary keyed by the database enum.
+
+### ⚠ The table fix was half a fix
+
+Making the cell padding logical kept it on **one edge**. A cell whose content
+sits on its start edge still touched a neighbour whose content sits on its end
+edge — a member name printed hard against a timestamp,
+`FUSAUJY9 Mohamed Kanzi12 Aug, 18:00`.
+
+**One-sided padding cannot be correct in a table whose columns mix start and end
+alignment.** It is symmetric now, with only the outer edges trimmed.
+
+### ⚠ `ar-SA` DEFAULTS TO THE ISLAMIC CALENDAR
+
+Formatting a date in Arabic without forcing `ca-gregory` prints a **Hijri date
+against a Gregorian receipt and a Gregorian POS**. Arabic locales also default to
+Arabic-Indic digits, which this portal forbids so figures can be read aloud
+against a printed receipt.
+
+`fmtDate()` in `lib/i18n.ts` forces `ca-gregory` and `nu-latn`: an Arabic month
+name with Western numerals, which is what a Saudi till actually uses. Use it for
+every date; do not call `toLocaleString` directly.
+
+### Deliberately left in English
+
+`Redeemed % points at the counter` in `reports/page.tsx` is a SQL `LIKE` pattern
+matching a stored note, not UI text. Translating it breaks the pre-migration
+classification fallback.
+
+---
+
 ## 12 August 2026 — the Arabic portal, reviewed against real screenshots
 
 **✅ LIVE.** The owner sent screenshots of the running portal, which is the check
