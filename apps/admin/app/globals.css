@@ -928,3 +928,39 @@ html[lang='ar'] table.data th.right {
     scroll-behavior: auto !important;
   }
 }
+
+/* ── PROSE MEASURE ────────────────────────────────────────────────────────────
+   ⚠ ONLY `.lede` AND `h1` HAD A MEASURE. Every other paragraph in the portal —
+   the explanatory notes under a form, the sync banner on the menu page, the
+   footnote under the overview — ran the full 1080px container. At 13px that is
+   roughly 130 characters a line, about double a comfortable measure, and it is
+   why paragraphs on pages other than the scan page still read as badly wrapped
+   even after their phrases were bound.
+
+   Block-level selectors on purpose. `.muted` is also used on inline spans, where
+   a max-width would do nothing and a text-wrap would be meaningless.
+
+   `pretty` rather than `balance` here: these run longer than three lines, which
+   is where balance stops helping and pretty's orphan control starts to. */
+p.muted,
+.banner,
+.notes li,
+.hero-sub,
+.empty {
+  max-width: 68ch;
+  text-wrap: pretty;
+}
+html[lang='ar'] p.muted,
+html[lang='ar'] .banner,
+html[lang='ar'] .notes li,
+html[lang='ar'] .hero-sub,
+html[lang='ar'] .empty {
+  /* Same reasoning as `.lede`: `ch` is the width of the digit zero and
+     under-describes an Arabic line, so the Arabic measure is set wider to land
+     on a comparable number of words. */
+  max-width: 78ch;
+}
+
+/* Centred text has no measure to speak of, so it keeps the full width but still
+   gets sensible break points. */
+.empty { margin-inline: auto; }

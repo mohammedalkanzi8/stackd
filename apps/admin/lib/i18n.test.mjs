@@ -82,13 +82,40 @@ test('Arabic noun phrases stay bound with non-breaking spaces', () => {
   // A plain space between any of these pairs means somebody retyped the string
   // and lost the binding, which is invisible until an Arabic screen is narrow
   // enough to wrap there.
+  // ⚠ TERMS ONLY. Each is one concept in the product's vocabulary — the kind of
+  // thing that goes on a label and is read aloud, and that reads as damaged when
+  // a line break lands inside it. Demonstratives and prepositions ("هذه الصفحة",
+  // "على الفاتورة") are deliberately absent: they break freely in Arabic, and
+  // binding them would make paragraphs rigid enough to overflow a narrow screen.
   const BOUND = [
     ['قارئ', 'الباركود'],
     ['لوحة', 'المفاتيح'],
     ['بطاقة', 'العضو'],
     ['رمز', 'الاستبدال'],
     ['صفحة', 'النقاط'],
+    ['كلمة', 'المرور'],
+    ['البريد', 'الإلكتروني'],
+    ['الحد', 'الأدنى'],
+    ['رقم', 'الجوال'],
+    ['قائمة', 'المكافآت'],
+    ['استوديو', 'الطباعة'],
+    ['تسجيل', 'الدخول'],
+    ['تسجيل', 'الخروج'],
+    ['النقطة', 'الواحدة'],
+    ['نسبة', 'الكسب'],
+    ['انتهاء', 'الصلاحية'],
+    ['تكلفة', 'النقاط'],
+    ['عند', 'الكاشير'],
+    ['حسب', 'القيمة'],
+    ['يوم', 'العمل'],
+    ['النقاط', 'المتاحة'],
+    ['الالتزام', 'القائم'],
+    ['نسبة', 'المشاركة'],
+    ['متوسط', 'التذكرة'],
+    ['رصيد', 'النقاط'],
+    ['قاعدة', 'البيانات'],
   ];
+
   const start = SRC.indexOf('const AR: Dict = {');
   const body = SRC.slice(start, SRC.indexOf('\n};', start));
   const broken = BOUND.filter(([a, b]) => body.includes(`${a} ${b}`)).map((p) => p.join(' '));
