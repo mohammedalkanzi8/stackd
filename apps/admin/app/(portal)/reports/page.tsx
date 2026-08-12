@@ -201,9 +201,13 @@ export default async function ReportsPage({
       <>
         <p className="eyebrow">{t(lang, 'rep.title')}</p>
         <h1>{t(lang, 'rep.heading')}</h1>
+        {/* Split around the two links rather than one string with markup in
+            it. The connecting word is its own key so Arabic can supply "و",
+            which attaches to the following word rather than standing alone. */}
         <p className="lede">
-          These are for managers and the owner. Everything you need for a shift is
-          on <Link href="/scan">Scan</Link> and <Link href="/members">Members</Link>.
+          {t(lang, 'rep.lede')} <Link href="/scan">{t(lang, 'nav.scan')}</Link>{' '}
+          {t(lang, 'rep.ledeAnd')}
+          <Link href="/members">{t(lang, 'ov.members')}</Link>.
         </p>
       </>
     );
@@ -358,10 +362,7 @@ export default async function ReportsPage({
     <>
       <p className="eyebrow">{t(lang, 'rep.title')}</p>
       <h1>{t(lang, 'rep.heading')}</h1>
-      <p className="lede">
-        One point is one halala, so every riyal figure here is the points figure
-        with the decimal point moved — not a conversion anyone chose.
-      </p>
+      <p className="lede">{t(lang, 'rep.halalaNote')}</p>
 
       <form className="card row">
         <div className="field field-sm">
@@ -374,9 +375,7 @@ export default async function ReportsPage({
             ))}
           </select>
         </div>
-        <button type="submit" className="primary">
-          Show
-        </button>
+        <button type="submit" className="primary">{t(lang, 'a.show')}</button>
       </form>
 
       {points.unclassified !== 0 ? (
@@ -398,17 +397,17 @@ export default async function ReportsPage({
 
         <div className="split">
           <div>
-            <div className="k-lbl">Spent at the counter</div>
+            <div className="k-lbl">{t(lang, 'rep.spentCounter')}</div>
             <div className="v2 num">{pts(points.consumed_counter)}</div>
             <div className="sub">{sar(points.consumed_counter)}</div>
           </div>
           <div>
-            <div className="k-lbl">Spent on rewards</div>
+            <div className="k-lbl">{t(lang, 'rep.spentRewards')}</div>
             <div className="v2 num">{pts(points.consumed_reward)}</div>
             <div className="sub">{sar(points.consumed_reward)}</div>
           </div>
           <div>
-            <div className="k-lbl">Redemptions</div>
+            <div className="k-lbl">{t(lang, 'rep.redemptions')}</div>
             <div className="v2 num">{pts(points.consumption_events)}</div>
             <div className="sub">
               {points.consumption_events > 0
@@ -421,12 +420,12 @@ export default async function ReportsPage({
 
       <div className="grid">
         <div className="card stat">
-          <div className="k">Points issued</div>
+          <div className="k">{t(lang, 'rep.pointsIssued')}</div>
           <div className="v num">{pts(points.issued)}</div>
           <div className="sub">{sar(points.issued)} handed out</div>
         </div>
         <div className="card stat">
-          <div className="k">Outstanding liability</div>
+          <div className="k">{t(lang, 'rep.outstanding')}</div>
           <div className="v num">{sar(liability.outstanding)}</div>
           <div className="sub">
             {pts(liability.outstanding)} points held by {liability.holders} of{' '}
@@ -434,12 +433,12 @@ export default async function ReportsPage({
           </div>
         </div>
         <div className="card stat">
-          <div className="k">Taken up</div>
+          <div className="k">{t(lang, 'rep.takenUp')}</div>
           <div className="v num">{redemptionRate.toFixed(1)}%</div>
           <div className="sub">of the points issued in this period</div>
         </div>
         <div className="card stat">
-          <div className="k">Expired unused</div>
+          <div className="k">{t(lang, 'rep.expiredUnused')}</div>
           <div className="v num">{pts(points.expired)}</div>
           <div className="sub">
             {points.expired > 0 ? `${sar(points.expired)} never claimed` : 'nothing lapsed'}
@@ -455,23 +454,21 @@ export default async function ReportsPage({
             {period.label.toLowerCase()}
           </span>
         </div>
-        <p className="lede">
-          Every movement in the ledger, so the number above can be checked rather
-          than trusted. <b>Expired points are not a cost</b> — they are a
+        <p className="lede">{t(lang, 'rep.ledgerNote')}<b>{t(lang, 'rep.expiredNotCost')}</b> — they are a
           liability that lapsed, which is the opposite.
         </p>
 
         {breakdown.length === 0 ? (
-          <p className="empty">No points moved in this period.</p>
+          <p className="empty">{t(lang, 'rep.noPoints')}</p>
         ) : (
           <div className="table-wrap">
             <table className="data">
               <thead>
                 <tr>
                   <th>{t(lang, 'rep.movement')}</th>
-                  <th className="right">Times</th>
-                  <th className="right">Points</th>
-                  <th className="right">In riyals</th>
+                  <th className="right">{t(lang, 'rep.times')}</th>
+                  <th className="right">{t(lang, 'w.points2')}</th>
+                  <th className="right">{t(lang, 'rep.inRiyals')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -496,7 +493,7 @@ export default async function ReportsPage({
                 ))}
                 <tr>
                   <td>
-                    <b>Net change in points held</b>
+                    <b>{t(lang, 'rep.netChange')}</b>
                   </td>
                   <td className="right num muted">-</td>
                   <td className={`right num ${netChange >= 0 ? 'pos' : 'neg'}`}>
@@ -522,24 +519,24 @@ export default async function ReportsPage({
       </div>
       <div className="grid">
         <div className="card stat">
-          <div className="k">Taken</div>
+          <div className="k">{t(lang, 'rep.taken')}</div>
           <div className="v num">{sar(trade.revenue)}</div>
           <div className="sub">
             {pts(trade.orders)} {trade.orders === 1 ? 'ticket' : 'tickets'}
           </div>
         </div>
         <div className="card stat">
-          <div className="k">Average ticket</div>
+          <div className="k">{t(lang, 'rep.avgTicket')}</div>
           <div className="v num">{sar(trade.avg_ticket)}</div>
-          <div className="sub">VAT included, as printed</div>
+          <div className="sub">{t(lang, 'rep.vatIncluded')}</div>
         </div>
         <div className="card stat">
-          <div className="k">VAT within that</div>
+          <div className="k">{t(lang, 'rep.vatWithin')}</div>
           <div className="v num">{sar(trade.vat)}</div>
           <div className="sub">extracted, never added on top</div>
         </div>
         <div className="card stat">
-          <div className="k">Identified at the till</div>
+          <div className="k">{t(lang, 'rep.identified')}</div>
           <div className="v num">
             {trade.orders > 0 ? Math.round((trade.member_orders / trade.orders) * 100) : 0}%
           </div>
@@ -572,14 +569,11 @@ export default async function ReportsPage({
             last {trend.length} trading days
           </span>
         </div>
-        <p className="lede">
-          Trading days run to 03:00, so a 01:30 ticket belongs to the night
-          before. The table below carries the same figures.
-        </p>
+        <p className="lede">{t(lang, 'rep.tradingNote')}</p>
 
         <div className="chart">
           <div className="chart-hd">
-            <span className="k-lbl">Taken</span>
+            <span className="k-lbl">{t(lang, 'rep.taken')}</span>
             <span className="muted xs">
               peak {sar(maxRevenue)}
             </span>
@@ -599,7 +593,7 @@ export default async function ReportsPage({
 
         <div className="chart">
           <div className="chart-hd">
-            <span className="k-lbl">Points spent</span>
+            <span className="k-lbl">{t(lang, 'rep.pointsSpent')}</span>
             <span className="muted xs">
               peak {pts(maxConsumed)} ({sar(maxConsumed)})
             </span>
@@ -623,18 +617,16 @@ export default async function ReportsPage({
         </div>
 
         <details style={{ marginBlockStart: 16 }}>
-          <summary className="muted" style={{ fontSize: 13, cursor: 'pointer' }}>
-            The same days as a table
-          </summary>
+          <summary className="muted" style={{ fontSize: 13, cursor: 'pointer' }}>{t(lang, 'rep.sameDays')}</summary>
           <div className="table-wrap" style={{ marginBlockStart: 12 }}>
             <table className="data">
               <thead>
                 <tr>
                   <th>{t(lang, 'ord.tradingDay')}</th>
-                  <th className="right">Tickets</th>
-                  <th className="right">Taken</th>
-                  <th className="right">Points spent</th>
-                  <th className="right">Worth</th>
+                  <th className="right">{t(lang, 'rep.tickets')}</th>
+                  <th className="right">{t(lang, 'rep.taken')}</th>
+                  <th className="right">{t(lang, 'rep.pointsSpent')}</th>
+                  <th className="right">{t(lang, 'rep.worth')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -662,19 +654,17 @@ export default async function ReportsPage({
           </span>
         </div>
         {topMembers.length === 0 ? (
-          <p className="empty">
-            No member was identified on a ticket in this period.
-          </p>
+          <p className="empty">{t(lang, 'rep.noMember')}</p>
         ) : (
           <div className="table-wrap">
             <table className="data">
               <thead>
                 <tr>
                   <th>{t(lang, 'ord.member')}</th>
-                  <th className="right">Visits</th>
+                  <th className="right">{t(lang, 'rep.visits')}</th>
                   <th>{t(lang, 'rep.spend')}</th>
-                  <th className="right">Points held</th>
-                  <th className="right">Spent to date</th>
+                  <th className="right">{t(lang, 'rep.pointsHeld')}</th>
+                  <th className="right">{t(lang, 'rep.spentToDate')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -716,14 +706,14 @@ export default async function ReportsPage({
           </span>
         </div>
         {topItems.length === 0 ? (
-          <p className="empty">No lines were rung up in this period.</p>
+          <p className="empty">{t(lang, 'rep.noLines')}</p>
         ) : (
           <div className="table-wrap">
             <table className="data">
               <thead>
                 <tr>
                   <th>{t(lang, 'pts.item')}</th>
-                  <th className="right">Sold</th>
+                  <th className="right">{t(lang, 'rep.sold')}</th>
                   <th>{t(lang, 'rep.revenue')}</th>
                 </tr>
               </thead>
@@ -751,11 +741,7 @@ export default async function ReportsPage({
             </table>
           </div>
         )}
-        <p className="muted" style={{ fontSize: 13, marginBlockEnd: 0, marginBlockStart: 14 }}>
-          Line items are what the till recorded. A ticket sent through with only a
-          total — which is every POS integration until one is written — has no
-          lines and cannot appear here, though its money is counted above.
-        </p>
+        <p className="muted" style={{ fontSize: 13, marginBlockEnd: 0, marginBlockStart: 14 }}>{t(lang, 'rep.lineNote')}</p>
       </div>
     </>
   );

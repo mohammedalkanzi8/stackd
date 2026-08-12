@@ -270,7 +270,7 @@ export default async function MemberPage({
   return (
     <>
       <p className="eyebrow">
-        <Link href="/members">Members</Link> · {member.member_code}
+        <Link href="/members">{t(lang, 'mem.title')}</Link> · {member.member_code}
       </p>
       <h1>{member.full_name ?? 'Unnamed member'}</h1>
       <p className="lede">
@@ -289,19 +289,19 @@ export default async function MemberPage({
 
       <div className="grid">
         <div className="card stat">
-          <div className="k">Points balance</div>
+          <div className="k">{t(lang, 'md.pointsBalance')}</div>
           <div className="v num">{member.balance}</div>
           <div className="sub">{member.lifetime_earned} earned all time</div>
         </div>
         <div className="card stat">
-          <div className="k">Member code</div>
+          <div className="k">{t(lang, 'md.memberCode')}</div>
           <div className="v mono" style={{ fontSize: 22 }}>
             {member.member_code}
           </div>
           <div className="sub">what the QR carries</div>
         </div>
         <div className="card stat">
-          <div className="k">Last activity</div>
+          <div className="k">{t(lang, 'md.lastActivity')}</div>
           <div className="v" style={{ fontSize: 20 }}>
             {member.last_activity_at
               ? new Date(member.last_activity_at).toLocaleDateString('en-GB', {
@@ -326,10 +326,9 @@ export default async function MemberPage({
         <form action={setEmail} className="row">
           <input type="hidden" name="customerId" value={member.id} />
           <div className="field">
-            <label htmlFor="email">
-              Email <span className="hint">leave blank to remove</span>
+            <label htmlFor="email">{t(lang, 'w.email')}<span className="hint">leave blank to remove</span>
             </label>
-            <input
+            <input dir="ltr"
               id="email"
               name="email"
               type="email"
@@ -337,28 +336,22 @@ export default async function MemberPage({
               placeholder="name@example.com"
             />
           </div>
-          <SubmitButton className="primary" pendingLabel="Saving…">
-            Save email
-          </SubmitButton>
+          <SubmitButton className="primary" pendingLabel="Saving…">{t(lang, 'md.saveEmail')}</SubmitButton>
         </form>
       </div>
 
       {canAdjust ? (
         <div className="card">
           <h2>{t(lang, 'md.adjustPoints')}</h2>
-          <p className="lede">
-            Goodwill, or fixing a mistake. Recorded against your name in the ledger
-            and never removable. Use a negative number to take points away.
-          </p>
+          <p className="lede">{t(lang, 'md.adjustNote')}</p>
           <form action={adjustPoints} className="row">
             <input type="hidden" name="customerId" value={member.id} />
             <div className="field field-sm">
               <label htmlFor="delta">{t(lang, 'nav.points')}</label>
-              <input id="delta" name="delta" type="number" step="1" placeholder="50" required />
+              <input dir="ltr" id="delta" name="delta" type="number" step="1" placeholder="50" required />
             </div>
             <div className="field">
-              <label htmlFor="note">
-                Reason <span className="hint">shown in the ledger</span>
+              <label htmlFor="note">{t(lang, 'w.reason')}<span className="hint">shown in the ledger</span>
               </label>
               <input
                 id="note"
@@ -368,7 +361,7 @@ export default async function MemberPage({
                 required
               />
             </div>
-            <SubmitButton className="primary" pendingLabel="Applying…">Apply</SubmitButton>
+            <SubmitButton className="primary" pendingLabel="Applying…">{t(lang, 'md.apply')}</SubmitButton>
           </form>
         </div>
       ) : null}
@@ -382,7 +375,7 @@ export default async function MemberPage({
         </div>
 
         {entries.length === 0 ? (
-          <p className="empty">Nothing yet. This member has not earned or spent any points.</p>
+          <p className="empty">{t(lang, 'md.noLedger')}</p>
         ) : (
           <div className="table-wrap">
             <table className="data">
@@ -391,7 +384,7 @@ export default async function MemberPage({
                   <th>{t(lang, 'w.when')}</th>
                   <th>{t(lang, 'w.reason')}</th>
                   <th>{t(lang, 'w.detail')}</th>
-                  <th className="right">Points</th>
+                  <th className="right">{t(lang, 'w.points2')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -465,9 +458,7 @@ export default async function MemberPage({
                     required
                   />
                 </div>
-                <SubmitButton className="danger" pendingLabel="Deleting…">
-                  Delete permanently
-                </SubmitButton>
+                <SubmitButton className="danger" pendingLabel="Deleting…">{t(lang, 'md.deletePermanently')}</SubmitButton>
               </form>
             </>
           )}

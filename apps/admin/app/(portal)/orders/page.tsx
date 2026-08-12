@@ -175,7 +175,7 @@ export default async function OrdersPage({
                           </span>
                         </>
                       ) : o.claim_token && !o.claimed_at ? (
-                        <span className="chip warn">QR unclaimed</span>
+                        <span className="chip warn">{t(lang, 'od.qrUnclaimed')}</span>
                       ) : (
                         <span className="muted">{t(lang, 'ord.walkIn')}</span>
                       )}

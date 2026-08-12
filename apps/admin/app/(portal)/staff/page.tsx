@@ -176,10 +176,7 @@ export default async function StaffPage({
     <>
       <p className="eyebrow">{t(lang, 'stf.eyebrow')}</p>
       <h1>{t(lang, 'stf.heading')}</h1>
-      <p className="lede">
-        Cashiers and the kitchen can look members up. Managers can also change
-        points, rewards and prices. Only an owner can manage this page.
-      </p>
+      <p className="lede">{t(lang, 'stf.rolesNote')}</p>
 
       {ok ? <div className="banner ok">{ok}</div> : null}
       {error ? <div className="banner bad">{error}</div> : null}
@@ -245,9 +242,7 @@ export default async function StaffPage({
                         </span>
                       ) : (
                         <>
-                          <a className="btn" href={`?reset=${p.id}`}>
-                            Password
-                          </a>{' '}
+                          <a className="btn" href={`?reset=${p.id}`}>{t(lang, 'stf.password')}</a>{' '}
                           <form action={setActive} style={{ display: 'inline' }}>
                             <input type="hidden" name="id" value={p.id} />
                             <input type="hidden" name="active" value={p.is_active ? '0' : '1'} />
@@ -264,11 +259,7 @@ export default async function StaffPage({
             </tbody>
           </table>
         </div>
-        <p className="muted" style={{ fontSize: 13, marginBlockEnd: 0 }}>
-          Staff are deactivated, never deleted. Their name is on every point
-          adjustment they ever made, and that history is the reason the column
-          exists.
-        </p>
+        <p className="muted" style={{ fontSize: 13, marginBlockEnd: 0 }}>{t(lang, 'stf.deactivateNote')}</p>
       </div>
 
       {isOwner && resetting ? (
@@ -279,17 +270,12 @@ export default async function StaffPage({
           <form action={resetPassword} className="row" style={{ marginBlockStart: 12 }}>
             <input type="hidden" name="id" value={resetting.id} />
             <div className="field">
-              <label htmlFor="password">
-                Password <span className="hint">at least 8 characters</span>
+              <label htmlFor="password">{t(lang, 'stf.password')}<span className="hint">at least 8 characters</span>
               </label>
               <input id="password" name="password" type="password" required autoFocus minLength={8} />
             </div>
-            <button type="submit" className="primary">
-              Set password
-            </button>
-            <a className="btn" href="/staff">
-              Cancel
-            </a>
+            <button type="submit" className="primary">{t(lang, 'stf.setPassword')}</button>
+            <a className="btn" href="/staff">{t(lang, 'a.cancel')}</a>
           </form>
         </div>
       ) : null}
@@ -297,9 +283,7 @@ export default async function StaffPage({
       {isOwner ? (
         <div className="card">
           <h2>{t(lang, 'stf.addSomeone')}</h2>
-          <p className="lede">
-            They can sign in immediately with the password you set here.
-          </p>
+          <p className="lede">{t(lang, 'stf.signInNote')}</p>
           <form action={addStaff} className="stack">
             <div className="row">
               <div className="field">
@@ -334,14 +318,13 @@ export default async function StaffPage({
               <SubmitButton className="primary" pendingLabel="Adding…">Add</SubmitButton>
             </div>
           </form>
-          <p className="muted" style={{ fontSize: 13, marginBlockStart: 14, marginBlockEnd: 0 }}>
-            This writes to <code>auth.users</code>, which is ours only while the
+          <p className="muted" style={{ fontSize: 13, marginBlockStart: 14, marginBlockEnd: 0 }}>{t(lang, 'stf.writesTo')}<code>auth.users</code>, which is ours only while the
             database is self-hosted. If staff ever move to Supabase&rsquo;s own auth,
             adding people happens there instead and this form goes away.
           </p>
         </div>
       ) : (
-        <p className="muted">Only an owner can add or change staff.</p>
+        <p className="muted">{t(lang, 'stf.onlyOwner')}</p>
       )}
     </>
   );

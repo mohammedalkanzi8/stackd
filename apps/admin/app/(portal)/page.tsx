@@ -28,16 +28,9 @@ interface Movement {
   reward: string | null;
 }
 
-const REASON_LABEL: Record<string, string> = {
-  earn_purchase: 'Earned on a purchase',
-  redeem_reward: 'Redeemed',
-  redeem_counter: 'Spent at the counter',
-  signup_bonus: 'Sign-up bonus',
-  birthday_bonus: 'Birthday bonus',
-  manual_adjust: 'Manual adjustment',
-  expiry: 'Expired',
-  order_refund: 'Clawed back on refund',
-};
+/* Ledger reasons live in the dictionary, keyed by the database's own enum
+   values under `rsn.`. They were a module-level English map in TWO files, which
+   is also why "Sign-up bonus" was still showing on an Arabic screen. */
 
 export default async function OverviewPage() {
   const lang = await getLang();
@@ -108,16 +101,11 @@ export default async function OverviewPage() {
       <div className="card">
         <div className="spread">
           <h2>{t(lang, 'ov.latestMovements')}</h2>
-          <span className="muted sm">
-            newest first
-          </span>
+          <span className="muted sm">{t(lang, 'ov.newestFirst')}</span>
         </div>
 
         {recent.length === 0 ? (
-          <p className="empty">
-            No points have moved yet. They appear here as soon as an order earns or
-            a reward is redeemed.
-          </p>
+          <p className="empty">{t(lang, 'ov.noMovements')}</p>
         ) : (
           <div className="table-wrap">
             <table className="data">
@@ -126,7 +114,7 @@ export default async function OverviewPage() {
                   <th>{t(lang, 'w.when')}</th>
                   <th>{t(lang, 'ord.member')}</th>
                   <th>{t(lang, 'w.reason')}</th>
-                  <th className="right">Points</th>
+                  <th className="right">{t(lang, 'w.points2')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -143,14 +131,14 @@ export default async function OverviewPage() {
                     </td>
                     <td>
                       <Link href={`/members/${m.customer_id}`}>
-                        {m.member ?? 'Unnamed'}
+                        {m.member ?? t(lang, 'mem.unnamed')}
                       </Link>{' '}
                       <span className="mono muted xs">
                         {m.member_code}
                       </span>
                     </td>
                     <td>
-                      {REASON_LABEL[m.reason] ?? m.reason}
+                      {t(lang, `rsn.${m.reason}`)}
                       {m.reward ? <span className="muted"> · {m.reward}</span> : null}
                     </td>
                     <td className={`right num ${m.delta > 0 ? 'pos' : 'neg'}`}>

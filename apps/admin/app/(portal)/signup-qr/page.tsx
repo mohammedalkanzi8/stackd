@@ -51,8 +51,7 @@ export default async function SignupQrPage({
 
       {onLocalhost ? (
         <div className="banner note">
-          <b>
-            This code points at <code>{url}</code> and will not work on a phone.
+          <b>{t(uiLang, 'sq.pointsAt')}<code>{url}</code> and will not work on a phone.
           </b>{' '}
           Set <code>STACKD_PORTAL_URL</code> to the portal&rsquo;s real public
           address before sending anything to a printer. Paper cannot be corrected
@@ -113,10 +112,7 @@ export default async function SignupQrPage({
         >
           Open the {format.label}, {lead === 'ar' ? 'Arabic' : 'English'} first
         </a>
-        <span className="muted sm">
-          Opens clean, with no portal chrome. Print from there, or save it as a
-          PDF to send to a print shop.
-        </span>
+        <span className="muted sm">{t(uiLang, 'sq.opensClean')}</span>
       </div>
 
       {/* ---- Preview -------------------------------------------------------
@@ -135,14 +131,10 @@ export default async function SignupQrPage({
       </div>
 
       <div className="card" style={{ maxWidth: 640 }}>
-        <p className="eyebrow">Sending this to a print shop</p>
+        <p className="eyebrow">{t(uiLang, 'sq.toPrintShop')}</p>
         <ul className="notes">
-          <li>
-            Save the print sheet as a PDF. The code, the wordmark and the mark are
-            all vector, so there is no resolution to get wrong at any size.
-          </li>
-          <li>
-            Ask for <b>3&nbsp;mm bleed</b>. The background is a flat dark fill to
+          <li>{t(uiLang, 'sq.savePdf')}</li>
+          <li>{t(uiLang, 'sq.askFor')}<b>3&nbsp;mm bleed</b>. The background is a flat dark fill to
             the edge, so extending it is trivial for them.
           </li>
           <li>
@@ -157,26 +149,16 @@ export default async function SignupQrPage({
             </li>
           ) : null}
           {format.id === 'a5' ? (
-            <li>
-              For a table tent, print two of these back to back and fold down the
-              middle, or ask the shop for a 148&nbsp;&times;&nbsp;210&nbsp;mm tent
-              card carrying this artwork on both faces.
-            </li>
+            <li>{t(uiLang, 'sq.tableTent')}</li>
           ) : null}
-          <li>
-            Both language versions are the same artwork with the headline
-            languages swapped, so a shop can treat them as one job in two files.
-          </li>
-          <li>
-            Test before the full run: print one on an ordinary printer and scan it
-            with a phone that has never seen the portal.
-          </li>
+          <li>{t(uiLang, 'sq.bothLangs')}</li>
+          <li>{t(uiLang, 'sq.testFirst')}</li>
         </ul>
       </div>
 
       <p className="muted" style={{ fontSize: 13, marginBlockStart: 18 }}>
         Change the earn rate or the joining bonus on the{' '}
-        <Link href="/points">Points page</Link> and this artwork follows. Anything
+        <Link href="/points">{t(uiLang, 'sq.pointsPage')}</Link> and this artwork follows. Anything
         already printed will not, which is the one thing worth checking before a
         rate change.
       </p>

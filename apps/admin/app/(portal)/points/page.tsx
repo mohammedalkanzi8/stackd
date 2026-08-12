@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { SUPER_ADMIN, requireRole, requireStaff } from '@/lib/auth.ts';
 
 import { getLang } from '@/lib/prefs.ts';
-import { t } from '@/lib/i18n.ts';
+import { t, tf } from '@/lib/i18n.ts';
 
 export const metadata = { title: 'Points · STACKD admin' };
 export const dynamic = 'force-dynamic';
@@ -143,35 +143,22 @@ export default async function PointsPage({
     <>
       <p className="eyebrow">{t(lang, 'pts.eyebrow')}</p>
       <h1>{t(lang, 'pts.heading')}</h1>
-      <p className="lede">
-        By default every riyal spent earns points at the rate below, on the pre-VAT
-        net. Any dish can override that with a flat number, the lever for pushing
-        one item without discounting it.
-      </p>
+      <p className="lede">{t(lang, 'pts.lede')}</p>
 
       {ok ? <div className="banner ok">{ok}</div> : null}
       {error ? <div className="banner bad">{error}</div> : null}
 
       <div className="card">
         <h2>{t(lang, 'pts.programme')}</h2>
-        <p className="lede">
-          These apply to every order from the moment you save. Points already
-          earned are untouched. The ledger is a record of what was, not a formula.
-        </p>
-        <p className="lede">
-          <b>Min redemption</b> is the fewest points a customer may take off a
-          bill in one go — 500 points is 5.00 SAR. It does not apply to the
-          rewards below, which are already priced individually; Free Sauce at 300
-          stays claimable. The website states this figure in its own copy, so a
-          change here needs the site deployed with it.
-        </p>
+        <p className="lede">{t(lang, 'pts.programmeLede')}</p>
+        <p className="lede">{t(lang, 'pts.minRedeemLede')}</p>
 
         {canEdit ? (
           <form action={saveSettings} className="stack">
             <div className="row">
               <div className="field field-sm">
                 <label htmlFor="earnPercent">
-                  Earn rate <span className="hint">% of the bill</span>
+                  {t(lang, 'pts.earnPercent')} <span className="hint">{t(lang, 'pts.pctOfBill')}</span>
                 </label>
                 <input
                   id="earnPercent"
@@ -198,7 +185,7 @@ export default async function PointsPage({
               </div>
               <div className="field field-sm">
                 <label htmlFor="minRedeemPoints">
-                  Min redemption <span className="hint">points, 0 = none</span>
+                  {t(lang, 'pts.minRedemption')} <span className="hint">{t(lang, 'pts.pointsZeroNone')}</span>
                 </label>
                 <input
                   id="minRedeemPoints"
@@ -212,7 +199,7 @@ export default async function PointsPage({
               </div>
               <div className="field field-sm">
                 <label htmlFor="expiryMonths">
-                  Expiry <span className="hint">months idle</span>
+                  {t(lang, 'pts.expiry')} <span className="hint">{t(lang, 'pts.monthsIdle')}</span>
                 </label>
                 <input
                   id="expiryMonths"
@@ -226,7 +213,7 @@ export default async function PointsPage({
               </div>
               <div className="field field-sm">
                 <label htmlFor="claimWindowDays">
-                  Bill QR lasts <span className="hint">days</span>
+                  {t(lang, 'pts.billQrLasts')} <span className="hint">{t(lang, 'pts.days')}</span>
                 </label>
                 <input
                   id="claimWindowDays"
@@ -240,7 +227,7 @@ export default async function PointsPage({
               </div>
               <div className="field field-sm">
                 <label htmlFor="redeemWindowSecs">
-                  Redeem QR lasts <span className="hint">seconds</span>
+                  {t(lang, 'pts.redeemQrLasts')} <span className="hint">{t(lang, 'pts.seconds')}</span>
                 </label>
                 <input
                   id="redeemWindowSecs"
@@ -254,25 +241,26 @@ export default async function PointsPage({
                 />
               </div>
               <button type="submit" className="primary">
-                Save
+                {t(lang, 'a.save')}
               </button>
             </div>
             <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              <b>One point is one halala.</b> At {Number(settings.earn_percent)}% a{' '}
-              {formatSar(11500)} bill earns{' '}
-              <b>{Math.floor((11500 * Number(settings.earn_percent)) / 100)}</b> points,
-              worth {formatSar(Math.floor((11500 * Number(settings.earn_percent)) / 100))}{' '}
-              off a later bill. The basis is the total paid, VAT included, so a
-              customer can check it against their own receipt.
+              {tf(lang, 'pts.halalaNote', {
+                pct: Number(settings.earn_percent),
+                bill: formatSar(11500),
+                pts: Math.floor((11500 * Number(settings.earn_percent)) / 100),
+                worth: formatSar(Math.floor((11500 * Number(settings.earn_percent)) / 100)),
+              })}
             </p>
           </form>
         ) : (
           <p className="muted">
-            {Number(settings.earn_percent)}% back · expires after{' '}
-            {settings.expiry_months} months idle · bill QR lasts{' '}
-            {settings.claim_window_days} days · redeem QR lasts{' '}
-            {settings.redeem_window_secs} seconds. Only a manager or the owner can
-            change these.
+            {tf(lang, 'pts.readOnly', {
+              pct: Number(settings.earn_percent),
+              months: settings.expiry_months,
+              days: settings.claim_window_days,
+              secs: settings.redeem_window_secs,
+            })}
           </p>
         )}
       </div>
@@ -280,7 +268,7 @@ export default async function PointsPage({
       <div className="spread">
         <h2>{t(lang, 'pts.perDish')}</h2>
         <span className="muted sm">
-          {overridden} of {items.length} overridden
+          {overridden} {t(lang, 'pts.of')} {items.length} {t(lang, 'pts.overridden')}
         </span>
       </div>
 
@@ -321,10 +309,10 @@ export default async function PointsPage({
                               step="1"
                               placeholder={t(lang, 'pts.byValue')}
                               defaultValue={i.points_award ?? ''}
-                              style={{ width: 96, textAlign: 'end' }}
+                              style={{ width: 118, textAlign: 'end' }}
                               aria-label={`Fixed points for ${i.name_en}`}
                             />
-                            <button type="submit">Set</button>
+                            <button type="submit">{t(lang, 'pts.set')}</button>
                           </form>
                         ) : i.points_award === null ? (
                           <span className="muted">by value</span>
@@ -347,10 +335,7 @@ export default async function PointsPage({
         </div>
       ))}
 
-      <p className="muted sm">
-        Leave the box empty to earn by value. Enter <code>0</code> to make an item
-        earn nothing at all. They are not the same thing.
-      </p>
+      <p className="muted sm">{t(lang, 'pts.emptyNote')}</p>
     </>
   );
 }

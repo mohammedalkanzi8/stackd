@@ -81,12 +81,10 @@ export default async function ScanPage({
 
   return (
     <>
-      <p className="eyebrow">Counter</p>
+      <p className="eyebrow">{t(lang, 'scan.eyebrow')}</p>
       <h1>{t(lang, 'scan.title')}</h1>
       <p className="lede">
-        Their member card to give points, or a redemption code to take points off
-        a bill. A barcode scanner works here as a keyboard; the field is already
-        focused.
+        {t(lang, 'scan.lede')}
       </p>
 
       {ok ? <div className="banner ok">{ok}</div> : null}
@@ -104,7 +102,7 @@ export default async function ScanPage({
 
       {member ? (
         <div className="card">
-          <p className="eyebrow">Give points</p>
+          <p className="eyebrow">{t(lang, 'scan.givePoints')}</p>
           <h2>
             {member.full_name ?? 'Member'}{' '}
             <span className="mono muted" style={{ fontSize: 14 }}>
@@ -122,7 +120,7 @@ export default async function ScanPage({
                 {t(lang, 'scan.billTotal')}{' '}
                 <span className="hint" dir="ltr">SAR</span>
               </label>
-              <input
+              <input dir="ltr"
                 id="bill"
                 name="bill"
                 type="text"
@@ -133,10 +131,10 @@ export default async function ScanPage({
               />
             </div>
             <button type="submit" className="primary">
-              Add points
+              {t(lang, 'scan.addPoints')}
             </button>
             <Link href="/scan" className="btn">
-              Cancel
+              {t(lang, 'a.cancel')}
             </Link>
           </form>
         </div>
@@ -144,7 +142,7 @@ export default async function ScanPage({
 
       {redemption ? (
         <div className="card">
-          <p className="eyebrow">Take points off</p>
+          <p className="eyebrow">{t(lang, 'scan.takeOff')}</p>
           <h2>
             {redemption.points} points ={' '}
             <span style={{ color: 'var(--accent)' }}>{formatSar(redemption.points)}</span> off
@@ -166,7 +164,7 @@ export default async function ScanPage({
             </div>
           ) : expired ? (
             <div className="banner bad">
-              This code expired. Ask them to tap Redeem again for a fresh one.
+              {t(lang, 'scan.expired')}
             </div>
           ) : (
             <form action={takePoints} className="row">
@@ -175,7 +173,7 @@ export default async function ScanPage({
                 Confirm, take {formatSar(redemption.points)} off
               </button>
               <Link href="/scan" className="btn">
-                Cancel
+                {t(lang, 'a.cancel')}
               </Link>
             </form>
           )}
@@ -184,18 +182,17 @@ export default async function ScanPage({
 
       {claimRow ? (
         <div className="card">
-          <p className="eyebrow">Receipt code</p>
+          <p className="eyebrow">{t(lang, 'scan.receiptCode')}</p>
           <h2>
             {claimRow.points} points from ticket{' '}
             <span className="mono">{claimRow.pickup_code}</span>
           </h2>
           {claimRow.claimed_at ? (
-            <div className="banner bad">Those points have already been claimed.</div>
+            <div className="banner bad">{t(lang, 'scan.alreadyClaimed')}</div>
           ) : (
             <>
               <p className="lede">
-                Scan or type the customer&rsquo;s member code to put these on their
-                account.
+                {t(lang, 'scan.putOnAccount')}
               </p>
               <form action={claimForMember} className="row">
                 <input type="hidden" name="token" value={claimRow.token} />
@@ -213,7 +210,7 @@ export default async function ScanPage({
                   />
                 </div>
                 <button type="submit" className="primary">
-                  Add the points
+                  {t(lang, 'scan.addThePoints')}
                 </button>
               </form>
             </>
@@ -221,10 +218,7 @@ export default async function ScanPage({
         </div>
       ) : null}
 
-      <p className="muted sm">
-        Earning is 10% of the bill, and one point is one halala &mdash; so 100
-        points takes 1.00 SAR off. Both figures are on the Points page.
-      </p>
+      <p className="muted sm">{t(lang, 'scan.foot')}</p>
     </>
   );
 }

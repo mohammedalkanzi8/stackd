@@ -267,6 +267,10 @@ export function Scanner({
             ref={inputRef}
             id="code"
             name="code"
+            /* A member code is Latin letters and digits. Without this the caret
+               starts mid-string on an Arabic page and the code renders in an
+               order that does not match the card being scanned. */
+            dir="ltr"
             value={code}
             onChange={(e) => handleInput(e.target.value)}
             // A hardware scanner types fast and presses Enter. Autocomplete and

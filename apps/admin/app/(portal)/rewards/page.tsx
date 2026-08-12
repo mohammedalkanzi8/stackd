@@ -140,10 +140,7 @@ export default async function RewardsPage({
     <>
       <p className="eyebrow">{t(lang, 'rw.eyebrow')}</p>
       <h1>{t(lang, 'rw.heading')}</h1>
-      <p className="lede">
-        What points buy. The five seeded rewards are tuned to roughly a 7% return
-        at one point per riyal. Changing a points cost changes that maths.
-      </p>
+      <p className="lede">{t(lang, 'rw.lede')}</p>
 
       {ok ? <div className="banner ok">{ok}</div> : null}
       {error ? <div className="banner bad">{error}</div> : null}
@@ -187,9 +184,7 @@ export default async function RewardsPage({
                   </td>
                   {canEdit ? (
                     <td className="right" style={{ whiteSpace: 'nowrap' }}>
-                      <a className="btn" href={`?edit=${r.id}`}>
-                        Edit
-                      </a>{' '}
+                      <a className="btn" href={`?edit=${r.id}`}>{t(lang, 'a.edit')}</a>{' '}
                       <form action={toggleReward} style={{ display: 'inline' }}>
                         <input type="hidden" name="id" value={r.id} />
                         <button type="submit" className="quiet">
@@ -208,9 +203,7 @@ export default async function RewardsPage({
       {canEdit ? (
         <div className="card">
           <h2>{editing ? `${t(lang, 'rw.editTitle')} “${editing.name_en}”` : t(lang, 'rw.addTitle')}</h2>
-          <p className="lede">
-            A reward gives either a free item or a flat discount, never both.
-          </p>
+          <p className="lede">{t(lang, 'rw.eitherOr')}</p>
 
           <form action={saveReward} className="stack" key={editing?.id ?? 'new'}>
             {editing ? <input type="hidden" name="id" value={editing.id} /> : null}
@@ -269,7 +262,7 @@ export default async function RewardsPage({
                   {t(lang, 'rw.discount')}{' '}
                   <span className="hint" dir="ltr">SAR</span>
                 </label>
-                <input
+                <input dir="ltr"
                   id="discount"
                   name="discount"
                   type="text"
@@ -281,11 +274,10 @@ export default async function RewardsPage({
                 />
               </div>
               <div className="field">
-                <label htmlFor="freeItemId">
-                  Free item <span className="hint">used only if “a free item”</span>
+                <label htmlFor="freeItemId">{t(lang, 'rw.freeItem')}<span className="hint">used only if “a free item”</span>
                 </label>
                 <select id="freeItemId" name="freeItemId" defaultValue={editing?.free_item_id ?? ''}>
-                  <option value="">Choose an item…</option>
+                  <option value="">{t(lang, 'rw.chooseItem')}</option>
                   {items.map((i) => (
                     <option key={i.id} value={i.id}>
                       {i.name_en} · {formatSar(i.price)}
@@ -300,15 +292,13 @@ export default async function RewardsPage({
                 {editing ? 'Save changes' : 'Add reward'}
               </button>
               {editing ? (
-                <a className="btn" href="/rewards">
-                  Cancel
-                </a>
+                <a className="btn" href="/rewards">{t(lang, 'a.cancel')}</a>
               ) : null}
             </div>
           </form>
         </div>
       ) : (
-        <p className="muted">Only a manager or the owner can change the catalogue.</p>
+        <p className="muted">{t(lang, 'rw.onlyManager')}</p>
       )}
     </>
   );

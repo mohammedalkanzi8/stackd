@@ -223,7 +223,7 @@ export default async function MenuPage({
       </p>
 
       <div className="banner note">
-        <b>Changes here do not reach the live site on their own.</b> Run{' '}
+        <b>{t(lang, 'mnu.notLive')}</b> Run{' '}
         <code>npm run sync:menu</code> to regenerate <code>menu.ts</code>, then{' '}
         <code>npm run deploy</code>. Until both run, the site keeps showing the old
         price.
@@ -251,8 +251,7 @@ export default async function MenuPage({
             <input type="hidden" name="id" value={editing.id} />
             <div className="row">
               <div className="field field-sm">
-                <label htmlFor="price">
-                  Price <span className="hint">SAR, VAT included</span>
+                <label htmlFor="price">{t(lang, 'mnu.price')}<span className="hint">{t(lang, 'mnu.sarVat')}</span>
                 </label>
                 <input
                   id="price"
@@ -264,8 +263,7 @@ export default async function MenuPage({
                 />
               </div>
               <div className="field field-sm">
-                <label htmlFor="calories">
-                  Calories <span className="hint">blank = unknown</span>
+                <label htmlFor="calories">{t(lang, 'mnu.calories')}<span className="hint">blank = unknown</span>
                 </label>
                 <input
                   id="calories"
@@ -279,9 +277,7 @@ export default async function MenuPage({
               <div className="field" style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
                 <span className="check">
                   <input id="spicy" name="spicy" type="checkbox" defaultChecked={editing.spicy} />
-                  <label htmlFor="spicy" style={{ margin: 0 }}>
-                    Spicy
-                  </label>
+                  <label htmlFor="spicy" style={{ margin: 0 }}>{t(lang, 'mnu.spicy')}</label>
                 </span>
                 <span className="check">
                   <input
@@ -290,9 +286,7 @@ export default async function MenuPage({
                     type="checkbox"
                     defaultChecked={editing.is_active}
                   />
-                  <label htmlFor="isActive" style={{ margin: 0 }}>
-                    On the menu
-                  </label>
+                  <label htmlFor="isActive" style={{ margin: 0 }}>{t(lang, 'mnu.onMenu')}</label>
                 </span>
                 <span className="check">
                   <input
@@ -301,23 +295,17 @@ export default async function MenuPage({
                     type="checkbox"
                     defaultChecked={editing.available}
                   />
-                  <label htmlFor="available" style={{ margin: 0 }}>
-                    In stock
-                  </label>
+                  <label htmlFor="available" style={{ margin: 0 }}>{t(lang, 'mnu.inStock')}</label>
                 </span>
               </div>
             </div>
             <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              <b>On the menu</b> removes the item from the website entirely.{' '}
-              <b>In stock</b> keeps it listed but marks it sold out at the branch.
+              <b>{t(lang, 'mnu.onMenu')}</b> removes the item from the website entirely.{' '}
+              <b>{t(lang, 'mnu.inStock')}</b> keeps it listed but marks it sold out at the branch.
             </p>
             <div className="row">
-              <button type="submit" className="primary">
-                Save
-              </button>
-              <a className="btn" href="/menu">
-                Cancel
-              </a>
+              <button type="submit" className="primary">{t(lang, 'a.save')}</button>
+              <a className="btn" href="/menu">{t(lang, 'a.cancel')}</a>
             </div>
           </form>
 
@@ -360,9 +348,7 @@ export default async function MenuPage({
                     color: 'var(--faint)',
                     fontSize: 13,
                   }}
-                >
-                  No photo
-                </div>
+                >{t(lang, 'mnu.noPhoto')}</div>
               )}
             </div>
 
@@ -370,8 +356,7 @@ export default async function MenuPage({
               <form action={uploadPhoto} className="stack">
                 <input type="hidden" name="id" value={editing.id} />
                 <div>
-                  <label htmlFor="photo">
-                    Replace it <span className="hint">webp, jpg or png, under 4 MB</span>
+                  <label htmlFor="photo">{t(lang, 'mnu.replaceIt')}<span className="hint">webp, jpg or png, under 4 MB</span>
                   </label>
                   <input
                     id="photo"
@@ -386,15 +371,13 @@ export default async function MenuPage({
                     {t(lang, 'mnu.upload')}
                   </SubmitButton>
                   {editing.image_url ? (
-                    <button type="submit" formAction={removePhoto} className="quiet">
-                      Remove photo
-                    </button>
+                    <button type="submit" formAction={removePhoto} className="quiet">{t(lang, 'mnu.removePhoto')}</button>
                   ) : null}
                 </div>
               </form>
 
               <p className="muted" style={{ fontSize: 13, marginBlockStart: 12 }}>
-                <b>Crop to 4:3 before uploading.</b> Anything else is cropped to fit
+                <b>{t(lang, 'mnu.cropNote')}</b> Anything else is cropped to fit
                 and you lose control of what gets cut. The file is saved into{' '}
                 <code>apps/web/public/menu/</code> as <code>{editing.slug}.webp</code>{' '}
                 . It reaches the site on the next <code>npm run build</code>, not
@@ -402,7 +385,7 @@ export default async function MenuPage({
               </p>
               {editing.photo_note ? (
                 <p className="muted sm">
-                  <b>Note on the current photo:</b> {editing.photo_note}
+                  <b>{t(lang, 'mnu.photoNote')}</b> {editing.photo_note}
                 </p>
               ) : null}
             </div>
@@ -458,9 +441,7 @@ export default async function MenuPage({
                       </td>
                       {canEdit ? (
                         <td className="right">
-                          <a className="btn" href={`?edit=${i.id}`}>
-                            Edit
-                          </a>
+                          <a className="btn" href={`?edit=${i.id}`}>{t(lang, 'a.edit')}</a>
                         </td>
                       ) : null}
                     </tr>
@@ -472,7 +453,7 @@ export default async function MenuPage({
       ))}
 
       {!canEdit ? (
-        <p className="muted">Only a manager or the owner can change prices.</p>
+        <p className="muted">{t(lang, 'mnu.onlyManager')}</p>
       ) : null}
     </>
   );

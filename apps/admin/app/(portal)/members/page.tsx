@@ -155,7 +155,7 @@ export default async function MembersPage({
             {t(lang, 'mem.searchLabel')}{' '}
             <span className="hint">{t(lang, 'mem.searchHint')}</span>
           </label>
-          <input id="q" name="q" type="text" defaultValue={term} autoFocus placeholder="DEV22222" />
+          <input dir="ltr" id="q" name="q" type="text" defaultValue={term} autoFocus placeholder="DEV22222" />
         </div>
         <button type="submit" className="primary">
           {t(lang, 'a.search')}

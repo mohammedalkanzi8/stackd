@@ -172,10 +172,9 @@ export default async function OrderPage({
   return (
     <>
       <p className="eyebrow">
-        <Link href="/orders">Orders</Link> · {order.service_date}
+        <Link href="/orders">{t(lang, 'od.orders')}</Link> · {order.service_date}
       </p>
-      <h1>
-        Ticket <span className="mono">{order.pickup_code}</span>
+      <h1>{t(lang, 'od.ticket')}<span className="mono">{order.pickup_code}</span>
       </h1>
       <p className="lede">
         {order.source === 'pos' ? 'Rung up at the till' : 'Ordered in the app'} ·{' '}
@@ -194,11 +193,9 @@ export default async function OrderPage({
 
       <div className="grid">
         <div className="card">
-          <h2 style={{ marginBlockEnd: 12 }}>What they bought</h2>
+          <h2 style={{ marginBlockEnd: 12 }}>{t(lang, 'od.whatBought')}</h2>
           {lines.length === 0 ? (
-            <p className="empty" style={{ padding: '10px 0' }}>
-              No line detail. The till sent a total only.
-            </p>
+            <p className="empty" style={{ padding: '10px 0' }}>{t(lang, 'od.noLines')}</p>
           ) : (
             <div className="table-wrap">
               <table className="data">
@@ -224,12 +221,12 @@ export default async function OrderPage({
           <table className="data" style={{ marginBlockStart: 12 }}>
             <tbody>
               <tr>
-                <td className="muted">Subtotal</td>
+                <td className="muted">{t(lang, 'od.subtotal')}</td>
                 <td className="right num">{formatSar(order.subtotal)}</td>
               </tr>
               {order.discount_total > 0 ? (
                 <tr>
-                  <td className="muted">Reward discount</td>
+                  <td className="muted">{t(lang, 'od.rewardDiscount')}</td>
                   <td className="right num neg">−{formatSar(order.discount_total)}</td>
                 </tr>
               ) : null}
@@ -242,7 +239,7 @@ export default async function OrderPage({
               </tr>
               <tr>
                 <td>
-                  <b>Total paid</b>
+                  <b>{t(lang, 'od.totalPaid')}</b>
                 </td>
                 <td className="right num">
                   <b>{formatSar(order.grand_total)}</b>
@@ -253,12 +250,12 @@ export default async function OrderPage({
         </div>
 
         <div className="card">
-          <h2 style={{ marginBlockEnd: 12 }}>Points</h2>
+          <h2 style={{ marginBlockEnd: 12 }}>{t(lang, 'w.points2')}</h2>
 
           {alreadyEarned ? (
             <>
               <div className="stat">
-                <div className="k">Earned by</div>
+                <div className="k">{t(lang, 'od.earnedBy')}</div>
                 <div className="v" style={{ fontSize: 20 }}>
                   {order.member ?? 'a member'}
                 </div>
@@ -266,16 +263,13 @@ export default async function OrderPage({
                   <b>{order.points_earned}</b> points already credited
                 </div>
               </div>
-              <p className="muted" style={{ fontSize: 13, marginBlockStart: 12 }}>
-                One sale pays out once. There is no bill QR for an order that has
-                already credited someone.
-              </p>
+              <p className="muted" style={{ fontSize: 13, marginBlockStart: 12 }}>{t(lang, 'od.paidOnce')}</p>
             </>
           ) : claim ? (
             claim.claimed_at ? (
               <>
                 <div className="stat">
-                  <div className="k">Claimed</div>
+                  <div className="k">{t(lang, 'od.claimed')}</div>
                   <div className="v" style={{ fontSize: 20 }}>
                     {claim.claimed_by_name ?? 'a member'}
                   </div>
@@ -291,8 +285,7 @@ export default async function OrderPage({
               </>
             ) : (
               <>
-                <p style={{ marginBlockStart: 0 }}>
-                  Print this on the bill. Scanning it adds <b>{claim.points} points</b> to
+                <p style={{ marginBlockStart: 0 }}>{t(lang, 'od.printAdds')}<b>{claim.points} points</b> to
                   whoever scans.
                 </p>
                 <div
@@ -321,21 +314,17 @@ export default async function OrderPage({
           ) : (
             <>
               <div className="stat">
-                <div className="k">Would earn</div>
+                <div className="k">{t(lang, 'od.wouldEarn')}</div>
                 <div className="v num">{order.would_earn}</div>
                 <div className="sub">nobody has been credited yet</div>
               </div>
               {canIssue ? (
                 <form action={issueClaim} style={{ marginBlockStart: 14 }}>
                   <input type="hidden" name="orderId" value={order.id} />
-                  <button type="submit" className="primary">
-                    Issue a bill QR
-                  </button>
+                  <button type="submit" className="primary">{t(lang, 'od.issueQr')}</button>
                 </form>
               ) : null}
-              <p className="muted" style={{ fontSize: 13, marginBlockStart: 12 }}>
-                For a walk-in who is not a member yet, or who forgot to scan.
-              </p>
+              <p className="muted" style={{ fontSize: 13, marginBlockStart: 12 }}>{t(lang, 'od.walkInNote')}</p>
             </>
           )}
         </div>
@@ -386,8 +375,7 @@ export default async function OrderPage({
           <form action={voidOrder} className="row">
             <input type="hidden" name="orderId" value={order.id} />
             <div className="field">
-              <label htmlFor="reason">
-                Reason <span className="hint">kept with the ticket</span>
+              <label htmlFor="reason">{t(lang, 'w.reason')}<span className="hint">kept with the ticket</span>
               </label>
               <input
                 id="reason"
@@ -397,9 +385,7 @@ export default async function OrderPage({
                 required
               />
             </div>
-            <SubmitButton className="danger" pendingLabel="Voiding…">
-              Void ticket
-            </SubmitButton>
+            <SubmitButton className="danger" pendingLabel="Voiding…">{t(lang, 'od.voidTicket')}</SubmitButton>
           </form>
         </div>
       ) : null}

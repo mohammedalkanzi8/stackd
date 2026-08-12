@@ -434,7 +434,18 @@ main > :last-child { margin-block-end: 0; }
 
 /* ---------- forms ---------- */
 label { display: block; font-size: 13px; font-weight: 600; margin-block-end: var(--s-tight); }
-label .hint { font-weight: 400; color: var(--faint); }
+/* ⚠ The hint used to sit INLINE after the label text, so in a 130px field the
+   pair wrapped and every form row grew a ragged second line — "Redeem QR lasts"
+   over "seconds". As its own block it always occupies exactly two lines, the
+   same two, in both languages. */
+label .hint {
+  display: block;
+  font-weight: 400;
+  color: var(--faint);
+  font-size: 12px;
+  line-height: 1.35;
+  margin-block-start: 1px;
+}
 input[type='text'], input[type='email'], input[type='password'],
 input[type='number'], input[type='date'], select, textarea {
   width: 100%;
@@ -448,7 +459,7 @@ input[type='number'], input[type='date'], select, textarea {
 }
 textarea { min-height: 70px; resize: vertical; }
 .field { flex: 1 1 180px; min-width: 0; }
-.field-sm { flex: 0 0 130px; }
+.field-sm { flex: 1 1 150px; max-width: 220px; }
 .check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .check input { width: auto; }
 
@@ -523,17 +534,26 @@ table.data th {
   text-transform: uppercase;
   color: var(--faint);
   font-weight: 600;
-  padding: 0 10px 8px 0;
+  /* ⚠ WAS `padding: 0 10px 8px 0` — physical shorthand, so in RTL the 10px gap
+     landed on the leading edge and the trailing edge got 0. Adjacent columns
+     then touched, and a balance printed hard against a phone number. Shorthand
+     is how a physical value hides from a grep for `padding-left`. */
+  padding-block: 0 var(--s-cosy);
+  padding-inline: 0 var(--s-base);
   border-block-end: 1px solid var(--rule-strong);
   white-space: nowrap;
 }
 table.data td {
-  padding: var(--s-cosy) var(--s-base) var(--s-cosy) 0;
+  padding-block: var(--s-cosy);
+  padding-inline: 0 var(--s-base);
   border-block-end: 1px solid var(--rule);
   vertical-align: middle;
 }
 table.data tr:last-child td { border-block-end: 0; }
-table.data td.right, table.data th.right { text-align: end; padding-inline-end: 0; }
+table.data td.right, table.data th.right { text-align: end; }
+/* Only the LAST column hugs the edge. Zeroing this on every `.right` cell is
+   what let a right-aligned number sit flush against the column beside it. */
+table.data td.right:last-child, table.data th.right:last-child { padding-inline-end: 0; }
 
 /* ---------- chips + banners ---------- */
 .chip {
