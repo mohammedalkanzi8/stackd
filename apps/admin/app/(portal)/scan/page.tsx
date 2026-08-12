@@ -119,7 +119,8 @@ export default async function ScanPage({
             <input type="hidden" name="memberCode" value={member.member_code} />
             <div className="field field-sm">
               <label htmlFor="bill">
-                Bill total <span className="hint">SAR</span>
+                {t(lang, 'scan.billTotal')}{' '}
+                <span className="hint" dir="ltr">SAR</span>
               </label>
               <input
                 id="bill"

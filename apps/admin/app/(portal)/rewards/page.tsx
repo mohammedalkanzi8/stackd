@@ -266,7 +266,8 @@ export default async function RewardsPage({
               </div>
               <div className="field field-sm">
                 <label htmlFor="discount">
-                  Discount <span className="hint">SAR</span>
+                  {t(lang, 'rw.discount')}{' '}
+                  <span className="hint" dir="ltr">SAR</span>
                 </label>
                 <input
                   id="discount"

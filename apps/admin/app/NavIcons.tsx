@@ -121,9 +121,18 @@ export function IconStaff() {
   );
 }
 
+/**
+ * ⚠ THE ONLY DIRECTIONAL ICON IN THE SET, so it is the only one that must
+ * mirror. The arrow means "out through the door"; every other glyph here is a
+ * symbol (a QR square, a receipt, a person) and mirroring one of those would
+ * make it wrong, not localised.
+ *
+ * `.rtl-mirror` flips it under `:dir(rtl)` in globals.css rather than shipping a
+ * second path, so the two can never drift apart.
+ */
 export function IconSignOut() {
   return (
-    <svg {...base}>
+    <svg {...base} className="rtl-mirror">
       <path d="M15 17v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v2" />
       <path d="M19 12H9m10 0-3-3m3 3-3 3" />
     </svg>

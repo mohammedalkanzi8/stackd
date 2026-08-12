@@ -169,6 +169,33 @@
      the brand value is used directly. See STATUS.md, 3 Aug. */
 }
 
+/* ── SPACING ──────────────────────────────────────────────────────────────────
+   A 2px base, because this is a dense Operate surface — tables, chips, counters,
+   a nav of ten items — and a 4-only scale has no useful step between 8 and 12,
+   which is exactly where a table cell and a chip live. The steps are named by
+   role, not by size, so a value can be corrected once without renaming it
+   everywhere.
+
+   ⚠ These replaced 19 distinct hand-picked pixel values, six of which (5, 7, 9,
+   11, 22, 26) were odd numbers no scale explains. Odd values are how a layout
+   stops being alignable: two elements set to 5 and 6 look identical in
+   isolation and never line up beside each other.
+
+   Use a token. If none fits, the right fix is almost always the nearest step,
+   not a new value. */
+:root {
+  --s-hair: 2px;   /* optical nudges: icon baselines, hairline offsets */
+  --s-tight: 4px;  /* inside a control */
+  --s-snug: 6px;   /* icon to its label */
+  --s-cosy: 8px;   /* between siblings in a group */
+  --s-base: 10px;  /* table cell padding, chip padding */
+  --s-mid: 12px;   /* between grouped controls */
+  --s-wide: 16px;  /* between groups */
+  --s-loose: 20px; /* card padding, page gutter */
+  --s-sect: 24px;  /* between sections */
+  --s-page: 28px;  /* page-level breathing */
+}
+
 * { box-sizing: border-box; }
 
 body {
@@ -237,7 +264,7 @@ nav.main a {
 /* Glyphs sit beside labels, never instead of them. This is a tool people use
    mid-shift with a queue waiting; an icon alone is a guessing game. */
 nav.main a svg { width: 16px; height: 16px; flex: none; }
-.whoami button svg { width: 14px; height: 14px; vertical-align: -2px; margin-inline-end: 5px; }
+.whoami button svg { width: 14px; height: 14px; vertical-align: -2px; margin-inline-end: var(--s-tight); }
 
 @media (max-width: 900px) {
   /* Ten labels will not fit a narrow screen, so the words go and the glyphs
@@ -259,7 +286,31 @@ nav.main a svg { width: 16px; height: 16px; flex: none; }
   }
 }
 nav.main a:hover { background: var(--chip); color: var(--text); }
-nav.main a[aria-current='page'] { background: var(--chip); color: var(--text); }
+
+/* ⚠ These two used to be the SAME declaration, so hovering any link looked
+   identical to standing on the current page — and `aria-current` was never set
+   by the layout anyway, so the rule could not match at all. Both are fixed now,
+   and the current page has to read as different from a hover rather than merely
+   emphasised: weight and an accent rule, not just a tint.
+
+   The rule is drawn with a pseudo-element rather than a border so it costs no
+   layout and cannot shift the row by a pixel when a link becomes current. Inset
+   to the inline axis so it mirrors under RTL for free. */
+nav.main a[aria-current='page'] {
+  background: var(--chip);
+  color: var(--text);
+  font-weight: 600;
+  position: relative;
+}
+nav.main a[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  inset-inline: var(--s-base);
+  bottom: 2px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
 .whoami { font-size: 13px; color: var(--faint); display: flex; align-items: center; gap: 10px; }
 .whoami b { color: var(--text); font-weight: 600; }
 
@@ -268,7 +319,7 @@ main { max-width: 1080px; margin: 0 auto; padding: 28px 20px 80px; }
 /* ---------- headings ---------- */
 h1 { font-size: 24px; letter-spacing: -0.015em; margin: 0 0 4px; text-wrap: balance; }
 h2 { font-size: 17px; margin: 0 0 4px; letter-spacing: -0.01em; }
-.lede { color: var(--dim); margin: 0 0 22px; max-width: 64ch; font-size: 14.5px; }
+.lede { color: var(--dim); margin: 0 0 var(--s-sect); max-width: 64ch; font-size: 14.5px; }
 .eyebrow {
   font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--label); margin: 0 0 8px; font-weight: 600;
@@ -292,7 +343,7 @@ h2 { font-size: 17px; margin: 0 0 4px; letter-spacing: -0.01em; }
    block on a page drops its own. */
 main > .card,
 main > .grid {
-  margin-block-end: 22px;
+  margin-block-end: var(--s-sect);
 }
 main > :last-child { margin-block-end: 0; }
 
@@ -382,7 +433,7 @@ main > :last-child { margin-block-end: 0; }
 .bar-val { flex: 0 0 auto; font-size: 13px; }
 
 /* ---------- forms ---------- */
-label { display: block; font-size: 13px; font-weight: 600; margin-block-end: 5px; }
+label { display: block; font-size: 13px; font-weight: 600; margin-block-end: var(--s-tight); }
 label .hint { font-weight: 400; color: var(--faint); }
 input[type='text'], input[type='email'], input[type='password'],
 input[type='number'], input[type='date'], select, textarea {
@@ -477,7 +528,7 @@ table.data th {
   white-space: nowrap;
 }
 table.data td {
-  padding: 9px 10px 9px 0;
+  padding: var(--s-cosy) var(--s-base) var(--s-cosy) 0;
   border-block-end: 1px solid var(--rule);
   vertical-align: middle;
 }
@@ -501,7 +552,7 @@ table.data td.right, table.data th.right { text-align: end; padding-inline-end: 
 .chip.warn { background: var(--warn-bg); color: var(--warn); }
 
 .banner {
-  padding: 11px 14px;
+  padding: var(--s-mid) 14px;
   border-radius: 7px;
   font-size: 14px;
   border: 1px solid;
@@ -553,7 +604,7 @@ form:has(button[data-pending='true']) { cursor: progress; }
 button[data-pending='true'] { cursor: progress; }
 
 .spinner {
-  display: inline-block; width: 12px; height: 12px; margin-inline-end: 7px;
+  display: inline-block; width: 12px; height: 12px; margin-inline-end: var(--s-snug);
   border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%;
   vertical-align: -2px;
   animation: spin 0.65s linear infinite;
@@ -569,7 +620,16 @@ button[data-pending='true'] { cursor: progress; }
   padding: 24px;
 }
 .login-card { width: 100%; max-width: 380px; }
-.login-card .card { padding: 26px; }
+.login-card .card { padding: var(--s-sect); }
+
+/* The language switch on the sign-in screen. Centred and quiet: it is the only
+   control on the page that is not signing you in, so it must be findable
+   without competing with the button that is. */
+.login-prefs {
+  display: flex;
+  justify-content: center;
+  margin-block-start: var(--s-wide);
+}
 
 @media (prefers-reduced-motion: no-preference) {
   button, .btn, nav.main a { transition: background 0.12s ease, border-color 0.12s ease; }
@@ -644,21 +704,61 @@ html[lang='ar'] body {
   text-transform: none;
 }
 
-/* Arabic runs longer than English for the same words and sits on a taller
-   x-height, so the tight display tracking and the cramped nav are both wrong
-   for it. */
+/* ⚠ UPPERCASE + TRACKING WAS DOING ALL THE WORK IN THE SMALL LABELS, AND ARABIC
+   GETS NEITHER.
+
+   `.eyebrow`, `.stat .k` and `th` are 11-12px, uppercased and tracked to
+   0.08-0.14em. Strip both — which Arabic forces — and what is left is simply
+   small dim text with nothing marking it as a label. The distinction has to be
+   rebuilt out of the two axes the script does have: weight and colour.
+
+   This is the substantive difference between the two languages in this portal.
+   Everything else mirrors for free. */
 html[lang='ar'] .eyebrow,
 html[lang='ar'] .stat .k,
 html[lang='ar'] th {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 700;
 }
+
+/* Cairo's counters close up below about 13px in a way Latin's do not, so the
+   floor for small type is higher here than in English. Chips and hints sit
+   right on it. */
+html[lang='ar'] .hint,
+html[lang='ar'] .chip,
+html[lang='ar'] .muted.sm,
+html[lang='ar'] .who-role,
+html[lang='ar'] .pref-btn { font-size: 13px; }
+
+/* Display sizes carry negative tracking in English. On a cursive script that is
+   not a style choice, it is damage — see the backstop above. Named here too so
+   the intent is legible at the point somebody edits the heading scale. */
 html[lang='ar'] h1,
 html[lang='ar'] h2,
-html[lang='ar'] .stat .v {
-  letter-spacing: normal;
-}
+html[lang='ar'] .brand,
+html[lang='ar'] .stat .v { letter-spacing: normal; }
+
+/* Arabic sets taller: ascenders, descenders and no x-height plateau to sit on.
+   1.55 is comfortable for Latin here and visibly cramped for Cairo. */
 html[lang='ar'] body { line-height: 1.7; }
+
+/* The same reason, applied where vertical space is fixed rather than flowing.
+   Table rows and inputs are sized for Latin and clip Arabic descenders. */
+html[lang='ar'] table.data td,
+html[lang='ar'] table.data th { padding-block: var(--s-mid); }
+html[lang='ar'] input,
+html[lang='ar'] select { line-height: 1.6; }
+
+/* ⚠ The ONE directional glyph in the icon set. Symbols must not mirror —
+   flipping a QR square or a receipt makes it wrong, not localised — so this is
+   opt-in per icon rather than a blanket rule on `svg`.
+
+   `[dir='rtl']` and not `:dir(rtl)`, for the same reason `light-dark()` was
+   turned down at the top of this file: the pseudo-class needs Chrome 120, the
+   attribute selector has worked forever, and this ships to whatever hardware is
+   on the counter. The attribute is on <html> from the server on every request,
+   so it is always there to match. */
+[dir='rtl'] .rtl-mirror { transform: scaleX(-1); }
 
 /* ⚠ Codes, prices and counts stay Western digits and stay left-to-right even
    inside Arabic. A member code read aloud, a pickup number called out, and an
@@ -685,7 +785,7 @@ html[lang='ar'] table.data th.right {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px;
+  padding: var(--s-snug) var(--s-base);
   border: 1px solid var(--rule);
   border-radius: 999px;
   background: transparent;
@@ -721,4 +821,46 @@ html[lang='ar'] table.data th.right {
 }
 @media (max-width: 620px) {
   .who { display: none; }
+}
+
+/* ── TOUCH ────────────────────────────────────────────────────────────────────
+   ⚠ THE PRIMARY INPUT FOR THIS APP IS A FINGER ON A COUNTER TABLET, not a
+   mouse. Measured on the shipped chrome, the language and theme buttons were
+   about 25px tall and the nav links about 34px — both well under the 44px a
+   fingertip needs, on a screen used one-handed with a queue waiting.
+
+   Corrected only under `pointer: coarse`, so a mouse keeps the compact chrome
+   that lets ten nav items fit on one row. The visible mark does not change; the
+   box around it does. */
+@media (pointer: coarse) {
+  nav.main a,
+  .pref-btn,
+  .whoami button,
+  .btn,
+  button {
+    min-height: 44px;
+  }
+  nav.main a,
+  .pref-btn {
+    padding-inline: var(--s-mid);
+  }
+  /* Table rows are tapped to open an order or a member, so they need the same
+     floor. Padding rather than min-height: a row is a <tr> and cannot be a
+     flex container without breaking the table layout. */
+  table.data td { padding-block: var(--s-mid); }
+}
+
+/* ── REDUCED MOTION ───────────────────────────────────────────────────────────
+   The only motion in this portal is the colour transition on the preference
+   buttons. It is small, but honouring the preference is not conditional on the
+   effect being large. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

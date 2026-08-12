@@ -259,6 +259,8 @@ const AR: Dict = {
   'md.ledger': 'سجل الحركات',
   'md.deleteMember': 'حذف هذا العضو',
   'rep.period': 'الفترة',
+  'scan.billTotal': 'إجمالي الفاتورة',
+  'rw.discount': 'الخصم',
 };
 
 /**
@@ -491,6 +493,8 @@ const EN: Dict = {
   'md.ledger': 'Ledger',
   'md.deleteMember': 'Delete this member',
   'rep.period': 'Period',
+  'scan.billTotal': 'Bill total',
+  'rw.discount': 'Discount',
 };
 
 export type Key = keyof typeof EN;
