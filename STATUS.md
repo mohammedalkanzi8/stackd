@@ -1,6 +1,6 @@
 # STACKD — where we left off
 
-**Last session:** 12 August 2026
+**Last session:** 12 August 2026 · **GO-LIVE: 13 August 2026**
 **Live now:** https://stackd.com.sa — verified serving, `www` 301s to the apex
 **Email:** MXroute, live and working (SPF + DKIM + DMARC all present). Password
 reset codes send as `rewards@stackd.com.sa`; `SMTP_URL` is required in production
@@ -9,8 +9,129 @@ reset codes send as `rewards@stackd.com.sa`; `SMTP_URL` is required in productio
 **Phone:** 050 033 8808 · **Published contact:** info@stackd.com.sa (the public
 one — `mohamed.kanzi@` is an admin-portal login and is never shown to customers)
 **Hours:** 16:00 – 04:00 daily. Change them in `STACKD_HOURS` *and* a migration
-**Portals:** my.stackd.com.sa (customers) · admin.stackd.com.sa (staff) · Oracle Riyadh
+**Portals:** my.stackd.com.sa (customers) · admin.stackd.com.sa (staff, EN/AR) · Oracle Riyadh
+**Staff logins:** info@stackd.com.sa (Super Admin) · saddah.muawia@stackd.com.sa (Admin)
 **POS:** Kashier Pro by DKEYS — integration waiting on their support team
+
+---
+
+## 12 August 2026 — GO-LIVE PREP: wiped to a clean slate, admin goes bilingual
+
+**✅ ALL LIVE.** The shop opens tomorrow with staff already trained.
+
+### ⚠ PRODUCTION HAS BEEN EMPTIED. THIS IS NOT A BUG.
+
+`supabase/go-live-reset.sql`, run against production after a verified backup
+(`backups/stackd_pre_golive_wipe_2026-08-12_1436.sql.gz`). Everything that had
+been rung up was demonstration data and must not be mistaken for real trade on
+day one.
+
+**Deleted:** all customers and their `auth.users`, credentials, the entire
+loyalty ledger and balances, redemption tokens, device tokens, all orders and
+their items, payments, tax invoices, bill claims, and **both counters**.
+
+**Kept:** menu (17 items, 5 categories), rewards (5), loyalty settings
+(10% / 500 floor / 100 bonus), branch, hours, and the two staff logins.
+
+**The counters are the point, not an afterthought.** ZATCA wants invoice numbers
+sequential per branch with no gaps. Opening on invoice 8 because seven demo
+tickets existed would leave a permanent unexplained hole at the start of the
+books. The first real sale is invoice 1, pickup code 1.
+
+⚠ **Order of deletion is load-bearing and is written out explicitly** rather than
+left to cascade. `orders.customer_id`, `loyalty_transactions.order_id` and
+`tax_invoices.order_id` are all `ON DELETE NO ACTION`, so customers-first fails
+and orders-before-ledger fails. Being explicit also means a table added later
+surfaces as an error instead of quietly surviving the next reset.
+
+The script **refuses to run without `-v confirm=WIPE`**, because the obvious way
+to run a file is without reading it first.
+
+### The owner is now "Stackd Owner"
+
+`info@stackd.com.sa` is unchanged — it is the login and the published contact.
+Only the display name moved, from Mohamed Kanzi.
+
+### The admin portal is bilingual, and has a theme switch
+
+**Arabic.** Language is a cookie the server reads, so `lang` and `dir` are
+already correct in the HTML that leaves the server. ⚠ That is not a
+micro-optimisation: `dir="rtl"` applied by JavaScript after paint mirrors the
+entire page in front of whoever is reading it. The website cannot work this way
+— static export, no request at render time — and this app can.
+
+The stylesheet already used logical properties throughout (`margin-inline-end`,
+`text-align: start`), so the layout mirrors on its own. ⚠ **Never introduce
+`margin-left`, `padding-right`, `left:` or `text-align: right` into
+`apps/admin/app/globals.css`.** Each one is a place the Arabic layout silently
+breaks while the English one looks perfect.
+
+⚠ **Numbers stay Western throughout the portal**, unlike the print studio. Staff
+read codes, prices and invoice numbers aloud and compare them against a printed
+receipt and the POS; two numeral systems for one figure across those surfaces is
+a counter mistake waiting to happen. Codes and money also carry `dir=ltr` so
+bidi cannot reorder a code that mixes letters and digits.
+
+**Theme: three states, not two** — light, dark, and follow the device. A
+two-state toggle cannot express "I have not chosen", so adding one would silently
+override the counter tablet's own dusk switching forever.
+
+⚠ **Every colour is defined exactly once** as `--l-*` / `--d-*` and then mapped
+onto the live token names. The mapping is written twice because one copy has to
+sit inside a media query, so the two blocks are kept adjacent and identical line
+for line. A previous revision carried two full copies of the *palettes*, and its
+own comment recorded that they drift. `light-dark()` would collapse this to one
+declaration per token and is deliberately not used: Chrome 123 / Safari 17.5,
+and this ships to whatever hardware is on the counter.
+
+Both switches are **plain forms posting server actions**, so they work with no
+client JavaScript. The scanner is a client component for the opposite reason —
+touched hundreds of times a shift rather than twice a day.
+
+The language switch is also on the sign-in page, which is the one screen
+reachable before the portal chrome exists. Without it, a cashier handed an
+English login has no route to Arabic.
+
+Verified live by cookie, which is the whole mechanism:
+
+```
+(none)                      <html lang="en" dir="ltr">
+lang=ar                     <html lang="ar" dir="rtl">
+theme=dark                  <html lang="en" dir="ltr" data-theme="dark">
+lang=ar; theme=light        <html lang="ar" dir="rtl" data-theme="light">
+```
+
+No `data-theme` when unset, so `prefers-color-scheme` stays in charge. The CSS
+ships as two files — 10 `@font-face` blocks in one, 3 `data-theme` rules in the
+other — and `cairo-arabic-400-900.woff2` serves 200.
+
+### The scanner submits itself now
+
+A hardware scanner types a code and **may or may not** send Enter; the component
+assumed it always did, so the cashier reached for Go on every scan. It now
+recognises a scan by **speed** — six or more characters under 40 ms apart, then
+120 ms of quiet — and submits.
+
+⚠ **Speed, not length, and that is the whole design.** A member code is 8
+characters and a redemption or claim token is 10, so the first 8 characters of a
+token typed by hand *are* a valid member code. Length-based auto-submit fires
+mid-word and reports "not one of ours".
+
+### ⚠ Still to check on the counter, tomorrow
+
+1. **One real scan.** There is no browser here and no component-test harness, so
+   "verified" for the scanner means it compiles, builds and ships. If it does not
+   fire, the scanner is slower than 40 ms per character — `BURST_GAP_MS` at the
+   top of `Scanner.tsx` is the dial, and the failure is safe: Go still works.
+2. **Arabic on a real screen.** Every string was verified in the served HTML,
+   not in a rendered page. Line breaks, wrapping and the nav at RTL are unseen.
+3. **⚠ Translation is complete for the shift screens only** — chrome, roles,
+   shared actions, sign-in, scan and overview, guarded by a test. Orders,
+   members, points, rewards, menu, staff and reports **still render English**,
+   by design: `t()` falls back to English so an untranslated key shows a readable
+   word rather than `mem.title`. Finishing them is filling in `AR` in
+   `apps/admin/lib/i18n.ts`; no page changes are needed for the ones already
+   wired.
 
 ---
 
