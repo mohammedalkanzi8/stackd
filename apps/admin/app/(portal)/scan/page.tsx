@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { formatSar, queryOne } from '@stackd/server';
 
 import { requireStaff } from '@/lib/auth.ts';
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
 import { ScanClient } from './ScanClient.tsx';
 import { claimForMember, creditBill, identify, takePoints } from './actions.ts';
 
@@ -43,6 +45,7 @@ export default async function ScanPage({
   }>;
 }) {
   await requireStaff();
+  const lang = await getLang();
   const { ok, error, member: memberCode, redeem, claim } = await searchParams;
 
   const member = memberCode
@@ -79,7 +82,7 @@ export default async function ScanPage({
   return (
     <>
       <p className="eyebrow">Counter</p>
-      <h1>Scan a customer code</h1>
+      <h1>{t(lang, 'scan.title')}</h1>
       <p className="lede">
         Their member card to give points, or a redemption code to take points off
         a bill. A barcode scanner works here as a keyboard; the field is already
@@ -92,7 +95,11 @@ export default async function ScanPage({
       <div className="card">
         {/* A follow-up form takes the caret instead, so a hardware scanner or a
             typed total lands where the cashier is looking. */}
-        <ScanClient identify={identify} takeFocus={!memberCode && !redeem && !claim} />
+        <ScanClient
+          identify={identify}
+          takeFocus={!memberCode && !redeem && !claim}
+          lang={lang}
+        />
       </div>
 
       {member ? (

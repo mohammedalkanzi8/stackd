@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { dirFor, getLang, getTheme } from '@/lib/prefs.ts';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -19,7 +20,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Read per request, so the HTML that leaves the server is already in the right
+  // language, direction and theme. The website has to do this with a blocking
+  // <head> script because it is a static export with no request to read; this
+  // app has one, and using it means no flash and no reflow.
+  //
+  // `dir` in particular MUST be server-rendered. Applied by JavaScript after
+  // paint it would mirror the entire page in front of whoever is reading it.
+  const [lang, theme] = await Promise.all([getLang(), getTheme()]);
+
   return (
     // suppressHydrationWarning applies to THIS element's attributes only, one
     // level deep — children are still fully hydration-checked.
@@ -28,7 +38,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // (Modernizr-style `no-touch`, dark-mode forcers, password managers). The
     // server cannot know about them, so React reports a mismatch it can never
     // reconcile. Same fix as the website's root layout, which hit this first.
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang={lang}
+      dir={dirFor(lang)}
+      // Absent when the staff member has not chosen, which is what lets the
+      // `prefers-color-scheme` block in globals.css stay in charge. Writing
+      // data-theme="system" instead would match neither override block and read
+      // as a bug the first time somebody greps for it.
+      data-theme={theme === 'system' ? undefined : theme}
+      suppressHydrationWarning
+    >
       <body>{children}</body>
     </html>
   );

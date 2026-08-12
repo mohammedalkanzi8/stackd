@@ -1,6 +1,9 @@
 import { formatSar, query, queryOne } from '@stackd/server';
 import Link from 'next/link';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+
 
 export const metadata = { title: 'Overview · STACKD admin' };
 export const dynamic = 'force-dynamic';
@@ -37,6 +40,7 @@ const REASON_LABEL: Record<string, string> = {
 };
 
 export default async function OverviewPage() {
+  const lang = await getLang();
   const totals = (await queryOne<Totals>(`
     select
       (select count(*) from customers) as members,
@@ -60,43 +64,42 @@ export default async function OverviewPage() {
 
   return (
     <>
-      <p className="eyebrow">Overview</p>
-      <h1>The loyalty programme</h1>
-      <p className="lede">
-        Points outstanding are a liability: every one of them is a discount
-        somebody can still claim.
-      </p>
+      <p className="eyebrow">{t(lang, 'ov.title')}</p>
+      <h1>{t(lang, 'ov.heading')}</h1>
+      <p className="lede">{t(lang, 'ov.lede')}</p>
 
       <div className="grid">
         <div className="card stat">
-          <div className="k">Members</div>
+          <div className="k">{t(lang, 'ov.members')}</div>
           <div className="v num">{totals.members}</div>
           <div className="sub">
-            <Link href="/members">Look someone up</Link>
+            <Link href="/members">{t(lang, 'ov.lookUp')}</Link>
           </div>
         </div>
         <div className="card stat">
-          <div className="k">Points outstanding</div>
+          <div className="k">{t(lang, 'ov.pointsOut')}</div>
           <div className="v num">{totals.points_outstanding.toLocaleString('en')}</div>
-          <div className="sub">{totals.lifetime_earned.toLocaleString('en')} earned all time</div>
+          <div className="sub">
+            {totals.lifetime_earned.toLocaleString('en')} {t(lang, 'ov.earnedAllTime')}
+          </div>
         </div>
         <div className="card stat">
-          <div className="k">Active rewards</div>
+          <div className="k">{t(lang, 'ov.activeRewards')}</div>
           <div className="v num">{totals.active_rewards}</div>
           <div className="sub">
-            <Link href="/rewards">Edit the catalogue</Link>
+            <Link href="/rewards">{t(lang, 'ov.editCatalogue')}</Link>
           </div>
         </div>
         <div className="card stat">
-          <div className="k">Menu items live</div>
+          <div className="k">{t(lang, 'ov.itemsLive')}</div>
           <div className="v num">{totals.active_items}</div>
           <div className="sub">
             {totals.items_missing_calories > 0 ? (
               <span className="warn-text" style={{ color: 'var(--warn)' }}>
-                {totals.items_missing_calories} missing calories
+                {totals.items_missing_calories} {t(lang, 'ov.missingCalories')}
               </span>
             ) : (
-              'all have calories'
+              t(lang, 'ov.allCalories')
             )}
           </div>
         </div>

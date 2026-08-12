@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { t } from '@/lib/i18n.ts';
+import type { Lang } from '@/lib/prefs.ts';
+
 /**
  * The cashier's code reader.
  *
@@ -73,8 +76,10 @@ declare global {
 export function Scanner({
   action,
   takeFocus = true,
+  lang,
 }: {
   action: (formData: FormData) => Promise<void>;
+  lang: Lang;
   /**
    * Whether this field should grab the caret on mount.
    *
@@ -217,8 +222,8 @@ export function Scanner({
       } catch (err) {
         setCameraError(
           err instanceof Error && err.name === 'NotAllowedError'
-            ? 'Camera permission was refused. Type the code instead.'
-            : 'Could not open the camera. Type the code instead.',
+            ? t(lang, 'scan.cameraDenied')
+            : t(lang, 'scan.cameraFailed'),
         );
         setCameraOn(false);
       }
@@ -255,7 +260,7 @@ export function Scanner({
         }}
       >
         <label htmlFor="code">
-          Scan or type a code <span className="hint">member card, or a redemption QR</span>
+          {t(lang, 'scan.label')} <span className="hint">{t(lang, 'scan.hint')}</span>
         </label>
         <div className="scan-row">
           <input
@@ -274,11 +279,11 @@ export function Scanner({
             className="mono"
           />
           <button type="submit" className="primary">
-            Go
+            {t(lang, 'a.go')}
           </button>
           {canUseCamera ? (
             <button type="button" onClick={() => setCameraOn((v) => !v)}>
-              {cameraOn ? 'Stop camera' : 'Use camera'}
+              {cameraOn ? t(lang, 'scan.stopCamera') : t(lang, 'scan.useCamera')}
             </button>
           ) : null}
         </div>
@@ -290,16 +295,12 @@ export function Scanner({
         <div className="scan-video">
           {/* muted + playsInline or iOS refuses to play it inline at all. */}
           <video ref={videoRef} muted playsInline />
-          <p className="muted">Point the camera at the code.</p>
+          <p className="muted">{t(lang, 'scan.point')}</p>
         </div>
       ) : null}
 
       {!canUseCamera ? (
-        <p className="muted sm">
-          This browser has no built-in barcode reader, so the camera button is
-          hidden. A USB or Bluetooth scanner works here as a keyboard, and typing
-          the code always works.
-        </p>
+        <p className="muted sm">{t(lang, 'scan.noReader')}</p>
       ) : null}
     </div>
   );

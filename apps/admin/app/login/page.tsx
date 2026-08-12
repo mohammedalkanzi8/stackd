@@ -3,6 +3,9 @@ import { queryOne, verifyPassword } from '@stackd/server';
 import { redirect } from 'next/navigation';
 
 import { currentStaff, startSession } from '@/lib/session.ts';
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+import { LangSwitch } from '@/app/(portal)/Prefs.tsx';
 
 export const metadata = { title: 'Sign in · STACKD admin' };
 
@@ -45,41 +48,57 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   if (await currentStaff()) redirect('/');
-  const { error } = await searchParams;
+  const [{ error }, lang] = await Promise.all([searchParams, getLang()]);
 
   return (
     <div className="login-wrap">
       <div className="login-card">
-        <p className="eyebrow">STACKD admin</p>
-        <h1>Sign in</h1>
-        <p className="lede">Loyalty, rewards and the menu.</p>
+        {/* The brand mark is not translated. It is a wordmark. */}
+        <p className="eyebrow">STACKD</p>
+        <h1>{t(lang, 'login.title')}</h1>
+        <p className="lede">{t(lang, 'login.lede')}</p>
 
-        {error ? (
-          <div className="banner bad">
-            That email and password do not match an active staff account.
-          </div>
-        ) : null}
+        {error ? <div className="banner bad">{t(lang, 'login.failed')}</div> : null}
 
         <div className="card">
           <form action={signIn} className="stack">
             <div>
-              <label htmlFor="email">Email</label>
-              <input id="email" name="email" type="email" required autoComplete="username" autoFocus />
+              <label htmlFor="email">{t(lang, 'login.email')}</label>
+              {/* dir=ltr on the field itself: an email address is left-to-right
+                  even on an Arabic page, and without this the caret starts on
+                  the wrong side and the @ lands in the wrong place visually. */}
+              <input
+                id="email"
+                name="email"
+                type="email"
+                dir="ltr"
+                required
+                autoComplete="username"
+                autoFocus
+              />
             </div>
             <div>
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">{t(lang, 'login.password')}</label>
               <input
                 id="password"
                 name="password"
                 type="password"
+                dir="ltr"
                 required
                 autoComplete="current-password"
               />
             </div>
-            <SubmitButton className="primary" pendingLabel="Signing in…">
-              Sign in
+            <SubmitButton className="primary" pendingLabel={`${t(lang, 'login.pending')}…`}>
+              {t(lang, 'login.submit')}
             </SubmitButton>
           </form>
+        </div>
+
+        {/* Sign-in is the one screen reachable before the portal chrome exists,
+            so the language switch has to live here too — otherwise a cashier
+            handed an English login has no way to reach Arabic. */}
+        <div className="login-prefs">
+          <LangSwitch lang={lang} />
         </div>
 
         {process.env.NODE_ENV !== 'production' ? (
