@@ -319,7 +319,22 @@ main { max-width: 1080px; margin: 0 auto; padding: 28px 20px 80px; }
 /* ---------- headings ---------- */
 h1 { font-size: 24px; letter-spacing: -0.015em; margin: 0 0 4px; text-wrap: balance; }
 h2 { font-size: 17px; margin: 0 0 4px; letter-spacing: -0.01em; }
-.lede { color: var(--dim); margin: 0 0 var(--s-sect); max-width: 64ch; font-size: 14.5px; }
+/* ⚠ `ch` IS THE WIDTH OF THE DIGIT ZERO, which says nothing useful about an
+   Arabic line. 64ch is a sound Latin measure and produces a noticeably narrow
+   column in Cairo, which is what forced this paragraph to break mid-phrase.
+   Arabic gets its own measure below.
+
+   `text-wrap: pretty` asks the browser to avoid orphans and awkward last lines.
+   Unsupported browsers ignore it and wrap as before, so unlike `light-dark()`
+   this one is safe to reach for. */
+.lede {
+  color: var(--dim);
+  margin: 0 0 var(--s-sect);
+  max-width: 64ch;
+  font-size: 14.5px;
+  text-wrap: pretty;
+}
+html[lang='ar'] .lede { max-width: 74ch; }
 .eyebrow {
   font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--label); margin: 0 0 8px; font-weight: 600;
@@ -510,7 +525,13 @@ button.danger:hover, .btn.danger:hover {
 .card.danger h2 { color: var(--danger); }
 
 /* ---------- scanner ---------- */
-.scan-form { display: flex; flex-direction: column; gap: 6px; }
+/* The scanner is a stack: label, field, then the note about this browser having
+   no reader. `gap` rather than margins on the children, so the note cannot end
+   up flush against the box it describes — which it was, because it sits outside
+   the form and was relying on default <p> margins. */
+.scanner { display: flex; flex-direction: column; gap: var(--s-mid); }
+.scanner > p { margin: 0; }
+.scan-form { display: flex; flex-direction: column; gap: var(--s-snug); }
 .scan-row { display: flex; gap: 8px; }
 .scan-row input {
   flex: 1; font-size: 22px; font-weight: 700; text-align: center;
