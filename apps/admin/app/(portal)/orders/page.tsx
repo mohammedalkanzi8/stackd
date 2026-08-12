@@ -1,6 +1,9 @@
 import { formatSar, query } from '@stackd/server';
 import Link from 'next/link';
 
+import { getLang, type Lang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+
 
 export const metadata = { title: 'Orders · STACKD admin' };
 export const dynamic = 'force-dynamic';
@@ -33,22 +36,18 @@ const STATUS_CHIP: Record<string, string> = {
   refunded: 'hot',
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  pending_payment: 'Awaiting payment',
-  paid: 'Paid',
-  accepted: 'Accepted',
-  preparing: 'Preparing',
-  ready: 'Ready',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
-  refunded: 'Refunded',
-};
+/* Status wording moved into the dictionary so it reads in Arabic too. The keys
+   are the database's own enum values, prefixed `st.`. */
+function statusLabel(lang: Lang, status: string): string {
+  return t(lang, `st.${status}`);
+}
 
 export default async function OrdersPage({
   searchParams,
 }: {
   searchParams: Promise<{ day?: string; source?: string }>;
 }) {
+  const lang = await getLang();
   const { day = '', source = '' } = await searchParams;
 
   const orders = await query<OrderRow>(
@@ -80,39 +79,39 @@ export default async function OrdersPage({
 
   return (
     <>
-      <p className="eyebrow">Orders</p>
-      <h1>The day&rsquo;s trade</h1>
-      <p className="lede">
-        Trading days run to 03:00, so a 01:30 order belongs to the previous
-        evening. That is the day shown here, not the calendar date.
-      </p>
+      <p className="eyebrow">{t(lang, 'ord.title')}</p>
+      <h1>{t(lang, 'ord.heading')}</h1>
+      {/* ⚠ This said 03:00 until 12 Aug 2026 and had been wrong since the hours
+          moved to 16:00-04:00. riyadh_service_date offsets by the closing hour
+          plus one, so the boundary is 05:00. */}
+      <p className="lede">{t(lang, 'ord.lede')}</p>
 
       <form className="card row">
         <div className="field field-sm">
-          <label htmlFor="day">Trading day</label>
+          <label htmlFor="day">{t(lang, 'ord.tradingDay')}</label>
           <select id="day" name="day" defaultValue={day}>
-            <option value="">All days</option>
+            <option value="">{t(lang, 'ord.allDays')}</option>
             {days.map((d) => (
               <option key={d.service_date} value={d.service_date}>
-                {d.service_date} · {d.n} orders
+                {d.service_date} · {d.n} {t(lang, 'ord.orders')}
               </option>
             ))}
           </select>
         </div>
         <div className="field field-sm">
-          <label htmlFor="source">Came from</label>
+          <label htmlFor="source">{t(lang, 'ord.cameFrom')}</label>
           <select id="source" name="source" defaultValue={source}>
-            <option value="">Everything</option>
-            <option value="pos">The till</option>
-            <option value="app">The app</option>
+            <option value="">{t(lang, 'ord.everything')}</option>
+            <option value="pos">{t(lang, 'ord.till')}</option>
+            <option value="app">{t(lang, 'ord.app')}</option>
           </select>
         </div>
         <button type="submit" className="primary">
-          Show
+          {t(lang, 'ord.show')}
         </button>
         {day || source ? (
           <Link href="/orders" className="btn">
-            Clear
+            {t(lang, 'ord.clear')}
           </Link>
         ) : null}
       </form>
@@ -120,27 +119,27 @@ export default async function OrdersPage({
       <div className="card">
         <div className="spread">
           <h2>
-            {orders.length} {orders.length === 1 ? 'order' : 'orders'}
+            {orders.length} {t(lang, 'ord.orders')}
           </h2>
           <span className="muted sm">
-            {formatSar(shown)} taken
+            {formatSar(shown)} {t(lang, 'ord.taken')}
           </span>
         </div>
 
         {orders.length === 0 ? (
-          <p className="empty">Nothing here. Orders appear as soon as they are rung up.</p>
+          <p className="empty">{t(lang, 'ord.empty')}</p>
         ) : (
           <div className="table-wrap">
             <table className="data">
               <thead>
                 <tr>
-                  <th>Ticket</th>
-                  <th>When</th>
-                  <th>From</th>
-                  <th>Member</th>
-                  <th className="right">Total</th>
-                  <th className="right">Points</th>
-                  <th className="right">Status</th>
+                  <th>{t(lang, 'ord.ticket')}</th>
+                  <th>{t(lang, 'ord.when')}</th>
+                  <th>{t(lang, 'ord.from')}</th>
+                  <th>{t(lang, 'ord.member')}</th>
+                  <th className="right">{t(lang, 'w.total')}</th>
+                  <th className="right">{t(lang, 'nav.points')}</th>
+                  <th className="right">{t(lang, 'ord.status')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -165,7 +164,7 @@ export default async function OrdersPage({
                       })}
                     </td>
                     <td>
-                      <span className="chip">{o.source === 'pos' ? 'Till' : 'App'}</span>
+                      <span className="chip">{o.source === 'pos' ? t(lang, 'ord.till') : t(lang, 'ord.app')}</span>
                     </td>
                     <td>
                       {o.member ? (
@@ -178,7 +177,7 @@ export default async function OrdersPage({
                       ) : o.claim_token && !o.claimed_at ? (
                         <span className="chip warn">QR unclaimed</span>
                       ) : (
-                        <span className="muted">Walk-in</span>
+                        <span className="muted">{t(lang, 'ord.walkIn')}</span>
                       )}
                     </td>
                     {/* Struck through, not hidden. A voided ticket still
@@ -192,10 +191,10 @@ export default async function OrdersPage({
                     </td>
                     <td className="right">
                       {o.voided_at ? (
-                        <span className="chip hot">Voided</span>
+                        <span className="chip hot">{t(lang, 'ord.voided')}</span>
                       ) : (
                         <span className={`chip ${STATUS_CHIP[o.status] ?? ''}`}>
-                          {STATUS_LABEL[o.status] ?? o.status}
+                          {statusLabel(lang, o.status)}
                         </span>
                       )}
                     </td>

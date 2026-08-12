@@ -19,6 +19,9 @@ import Link from 'next/link';
 
 import { ADMIN, requireStaff } from '@/lib/auth.ts';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+
 export const metadata = { title: 'Reports · STACKD admin' };
 export const dynamic = 'force-dynamic';
 
@@ -187,6 +190,7 @@ export default async function ReportsPage({
 }: {
   searchParams: Promise<{ days?: string }>;
 }) {
+  const lang = await getLang();
   const staff = await requireStaff();
 
   // Revenue, liability and who the best customers are is management
@@ -195,8 +199,8 @@ export default async function ReportsPage({
   if (!ADMIN.includes(staff.role)) {
     return (
       <>
-        <p className="eyebrow">Reports</p>
-        <h1>The numbers</h1>
+        <p className="eyebrow">{t(lang, 'rep.title')}</p>
+        <h1>{t(lang, 'rep.heading')}</h1>
         <p className="lede">
           These are for managers and the owner. Everything you need for a shift is
           on <Link href="/scan">Scan</Link> and <Link href="/members">Members</Link>.
@@ -352,8 +356,8 @@ export default async function ReportsPage({
 
   return (
     <>
-      <p className="eyebrow">Reports</p>
-      <h1>The numbers</h1>
+      <p className="eyebrow">{t(lang, 'rep.title')}</p>
+      <h1>{t(lang, 'rep.heading')}</h1>
       <p className="lede">
         One point is one halala, so every riyal figure here is the points figure
         with the decimal point moved — not a conversion anyone chose.
@@ -361,7 +365,7 @@ export default async function ReportsPage({
 
       <form className="card row">
         <div className="field field-sm">
-          <label htmlFor="days">Period</label>
+          <label htmlFor="days">{t(lang, 'rep.period')}</label>
           <select id="days" name="days" defaultValue={String(days)}>
             {PERIODS.map((p) => (
               <option key={p.days} value={p.days}>
@@ -446,7 +450,7 @@ export default async function ReportsPage({
       {/* ---- the full ledger, so the headline can be checked ---- */}
       <div className="card">
         <div className="spread" style={{ marginBlockEnd: 6 }}>
-          <h2>Where every point went</h2>
+          <h2>{t(lang, 'rep.whereWent')}</h2>
           <span className="muted sm">
             {period.label.toLowerCase()}
           </span>
@@ -464,7 +468,7 @@ export default async function ReportsPage({
             <table className="data">
               <thead>
                 <tr>
-                  <th>Movement</th>
+                  <th>{t(lang, 'rep.movement')}</th>
                   <th className="right">Times</th>
                   <th className="right">Points</th>
                   <th className="right">In riyals</th>
@@ -511,7 +515,7 @@ export default async function ReportsPage({
 
       {/* ---- trade ---- */}
       <div className="spread">
-        <h2>Trade</h2>
+        <h2>{t(lang, 'rep.trade')}</h2>
         <span className="muted sm">
           {period.label.toLowerCase()}
         </span>
@@ -563,7 +567,7 @@ export default async function ReportsPage({
           and points spent get a chart each, over the same days. */}
       <div className="card">
         <div className="spread" style={{ marginBlockEnd: 4 }}>
-          <h2>Day by day</h2>
+          <h2>{t(lang, 'rep.dayByDay')}</h2>
           <span className="muted sm">
             last {trend.length} trading days
           </span>
@@ -626,7 +630,7 @@ export default async function ReportsPage({
             <table className="data">
               <thead>
                 <tr>
-                  <th>Trading day</th>
+                  <th>{t(lang, 'ord.tradingDay')}</th>
                   <th className="right">Tickets</th>
                   <th className="right">Taken</th>
                   <th className="right">Points spent</th>
@@ -652,7 +656,7 @@ export default async function ReportsPage({
       {/* ---- who and what ---- */}
       <div className="card">
         <div className="spread">
-          <h2>Best members</h2>
+          <h2>{t(lang, 'rep.bestMembers')}</h2>
           <span className="muted sm">
             by spend, {period.label.toLowerCase()}
           </span>
@@ -666,9 +670,9 @@ export default async function ReportsPage({
             <table className="data">
               <thead>
                 <tr>
-                  <th>Member</th>
+                  <th>{t(lang, 'ord.member')}</th>
                   <th className="right">Visits</th>
-                  <th>Spend</th>
+                  <th>{t(lang, 'rep.spend')}</th>
                   <th className="right">Points held</th>
                   <th className="right">Spent to date</th>
                 </tr>
@@ -706,7 +710,7 @@ export default async function ReportsPage({
 
       <div className="card">
         <div className="spread">
-          <h2>What sells</h2>
+          <h2>{t(lang, 'rep.whatSells')}</h2>
           <span className="muted sm">
             by revenue, {period.label.toLowerCase()}
           </span>
@@ -718,9 +722,9 @@ export default async function ReportsPage({
             <table className="data">
               <thead>
                 <tr>
-                  <th>Item</th>
+                  <th>{t(lang, 'pts.item')}</th>
                   <th className="right">Sold</th>
-                  <th>Revenue</th>
+                  <th>{t(lang, 'rep.revenue')}</th>
                 </tr>
               </thead>
               <tbody>

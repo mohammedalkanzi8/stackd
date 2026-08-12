@@ -4,6 +4,9 @@ import { revalidatePath } from 'next/cache';
 
 import { ADMIN, requireRole, requireStaff } from '@/lib/auth.ts';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+
 export const metadata = { title: 'Rewards · STACKD admin' };
 export const dynamic = 'force-dynamic';
 
@@ -112,6 +115,7 @@ export default async function RewardsPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string; edit?: string }>;
 }) {
+  const lang = await getLang();
   const staff = await requireStaff();
   const { ok, error, edit } = await searchParams;
   const canEdit = ADMIN.includes(staff.role);
@@ -134,8 +138,8 @@ export default async function RewardsPage({
 
   return (
     <>
-      <p className="eyebrow">Loyalty</p>
-      <h1>Reward catalogue</h1>
+      <p className="eyebrow">{t(lang, 'rw.eyebrow')}</p>
+      <h1>{t(lang, 'rw.heading')}</h1>
       <p className="lede">
         What points buy. The five seeded rewards are tuned to roughly a 7% return
         at one point per riyal. Changing a points cost changes that maths.
@@ -149,12 +153,12 @@ export default async function RewardsPage({
           <table className="data">
             <thead>
               <tr>
-                <th>Reward</th>
-                <th>Arabic</th>
-                <th className="right">Costs</th>
-                <th>Gives</th>
-                <th className="right">Redeemed</th>
-                <th className="right">Status</th>
+                <th>{t(lang, 'rw.reward')}</th>
+                <th>{t(lang, 'rw.arabic')}</th>
+                <th className="right">{t(lang, 'rw.costs')}</th>
+                <th>{t(lang, 'rw.gives')}</th>
+                <th className="right">{t(lang, 'rw.redeemed')}</th>
+                <th className="right">{t(lang, 'ord.status')}</th>
                 {canEdit ? <th className="right"></th> : null}
               </tr>
             </thead>
@@ -203,7 +207,7 @@ export default async function RewardsPage({
 
       {canEdit ? (
         <div className="card">
-          <h2>{editing ? `Edit “${editing.name_en}”` : 'Add a reward'}</h2>
+          <h2>{editing ? `${t(lang, 'rw.editTitle')} “${editing.name_en}”` : t(lang, 'rw.addTitle')}</h2>
           <p className="lede">
             A reward gives either a free item or a flat discount, never both.
           </p>
@@ -213,7 +217,7 @@ export default async function RewardsPage({
 
             <div className="row">
               <div className="field">
-                <label htmlFor="nameEn">Name (English)</label>
+                <label htmlFor="nameEn">{t(lang, 'rw.nameEn')}</label>
                 <input
                   id="nameEn"
                   name="nameEn"
@@ -223,7 +227,7 @@ export default async function RewardsPage({
                 />
               </div>
               <div className="field">
-                <label htmlFor="nameAr">Name (Arabic)</label>
+                <label htmlFor="nameAr">{t(lang, 'rw.nameAr')}</label>
                 <input
                   id="nameAr"
                   name="nameAr"
@@ -235,7 +239,7 @@ export default async function RewardsPage({
                 />
               </div>
               <div className="field field-sm">
-                <label htmlFor="pointsCost">Points</label>
+                <label htmlFor="pointsCost">{t(lang, 'rw.pointsCost')}</label>
                 <input
                   id="pointsCost"
                   name="pointsCost"
@@ -250,14 +254,14 @@ export default async function RewardsPage({
 
             <div className="row">
               <div className="field field-sm">
-                <label htmlFor="benefit">Gives</label>
+                <label htmlFor="benefit">{t(lang, 'rw.gives')}</label>
                 <select
                   id="benefit"
                   name="benefit"
                   defaultValue={editing?.free_item_id ? 'item' : 'discount'}
                 >
-                  <option value="discount">A discount</option>
-                  <option value="item">A free item</option>
+                  <option value="discount">{t(lang, 'rw.aDiscount')}</option>
+                  <option value="item">{t(lang, 'rw.aFreeItem')}</option>
                 </select>
               </div>
               <div className="field field-sm">

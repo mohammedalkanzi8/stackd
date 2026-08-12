@@ -6,6 +6,9 @@ import { revalidatePath } from 'next/cache';
 
 import { ADMIN, SUPER_ADMIN, requireRole, requireStaff } from '@/lib/auth.ts';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+
 export const dynamic = 'force-dynamic';
 
 interface Order {
@@ -124,6 +127,7 @@ export default async function OrderPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
+  const lang = await getLang();
   const staff = await requireStaff();
   const { id } = await params;
   const { ok, error } = await searchParams;
@@ -339,14 +343,14 @@ export default async function OrderPage({
 
       {order.notes ? (
         <div className="card">
-          <h2>Note on the order</h2>
+          <h2>{t(lang, 'od.note')}</h2>
           <p style={{ margin: 0 }}>{order.notes}</p>
         </div>
       ) : null}
 
       {isVoided ? (
         <div className="card danger">
-          <h2>Voided</h2>
+          <h2>{t(lang, 'od.voided')}</h2>
           <p className="lede" style={{ marginBlockEnd: 0 }}>
             {order.void_reason} — voided by {order.voided_by_name ?? 'a super admin'} on{' '}
             {new Date(order.voided_at!).toLocaleString('en-GB', {
@@ -363,7 +367,7 @@ export default async function OrderPage({
         </div>
       ) : canVoid ? (
         <div className="card danger">
-          <h2>Void this ticket</h2>
+          <h2>{t(lang, 'od.voidThis')}</h2>
           <p className="lede">
             Takes {formatSar(order.grand_total)} out of the takings. The ticket
             stays in the books with its number — deleting it would break the

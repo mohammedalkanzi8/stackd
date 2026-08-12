@@ -4,6 +4,9 @@ import { revalidatePath } from 'next/cache';
 
 import { SUPER_ADMIN, requireRole, requireStaff } from '@/lib/auth.ts';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+
 export const metadata = { title: 'Points · STACKD admin' };
 export const dynamic = 'force-dynamic';
 
@@ -116,6 +119,7 @@ export default async function PointsPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
+  const lang = await getLang();
   const staff = await requireStaff();
   const { ok, error } = await searchParams;
   const canEdit = SUPER_ADMIN.includes(staff.role);
@@ -137,8 +141,8 @@ export default async function PointsPage({
 
   return (
     <>
-      <p className="eyebrow">Loyalty</p>
-      <h1>How points are earned</h1>
+      <p className="eyebrow">{t(lang, 'pts.eyebrow')}</p>
+      <h1>{t(lang, 'pts.heading')}</h1>
       <p className="lede">
         By default every riyal spent earns points at the rate below, on the pre-VAT
         net. Any dish can override that with a flat number, the lever for pushing
@@ -149,7 +153,7 @@ export default async function PointsPage({
       {error ? <div className="banner bad">{error}</div> : null}
 
       <div className="card">
-        <h2>The programme</h2>
+        <h2>{t(lang, 'pts.programme')}</h2>
         <p className="lede">
           These apply to every order from the moment you save. Points already
           earned are untouched. The ledger is a record of what was, not a formula.
@@ -181,7 +185,7 @@ export default async function PointsPage({
                 />
               </div>
               <div className="field field-sm">
-                <label htmlFor="signupBonus">Sign-up bonus</label>
+                <label htmlFor="signupBonus">{t(lang, 'pts.signupBonus')}</label>
                 <input
                   id="signupBonus"
                   name="signupBonus"
@@ -274,7 +278,7 @@ export default async function PointsPage({
       </div>
 
       <div className="spread">
-        <h2>Points per dish</h2>
+        <h2>{t(lang, 'pts.perDish')}</h2>
         <span className="muted sm">
           {overridden} of {items.length} overridden
         </span>
@@ -287,10 +291,10 @@ export default async function PointsPage({
             <table className="data">
               <thead>
                 <tr>
-                  <th>Item</th>
-                  <th className="right">Price</th>
-                  <th className="right">Earns by value</th>
-                  <th className="right">Fixed award</th>
+                  <th>{t(lang, 'pts.item')}</th>
+                  <th className="right">{t(lang, 'pts.price')}</th>
+                  <th className="right">{t(lang, 'pts.earnsByValue')}</th>
+                  <th className="right">{t(lang, 'pts.fixedAward')}</th>
                   {canEdit ? <th className="right"></th> : null}
                 </tr>
               </thead>
@@ -315,7 +319,7 @@ export default async function PointsPage({
                               type="number"
                               min="0"
                               step="1"
-                              placeholder="by value"
+                              placeholder={t(lang, 'pts.byValue')}
                               defaultValue={i.points_award ?? ''}
                               style={{ width: 96, textAlign: 'end' }}
                               aria-label={`Fixed points for ${i.name_en}`}

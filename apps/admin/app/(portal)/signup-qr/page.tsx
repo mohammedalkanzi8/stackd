@@ -8,6 +8,9 @@ import { Poster } from '@/lib/poster/Poster.tsx';
 import { previewScale, sheetCss } from '@/lib/poster/sheet-css.ts';
 import '@/app/fonts.generated.css';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+
 export const metadata = { title: 'Print studio · STACKD admin' };
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +19,11 @@ export default async function SignupQrPage({
 }: {
   searchParams: Promise<{ f?: string; lang?: string }>;
 }) {
+  // ⚠ `uiLang` is the STAFF INTERFACE language and is a different thing from
+  // `lang` below, which is the language of the POSTER being printed. A cashier
+  // working in Arabic still prints English-led sheets when that is what the wall
+  // needs, so these two must never be collapsed into one variable.
+  const uiLang = await getLang();
   await requireStaff();
   const { f: raw, lang } = await searchParams;
   const format = FORMATS[isFormatId(raw) ? raw : 'a3'];
@@ -34,7 +42,7 @@ export default async function SignupQrPage({
   return (
     <>
       <p className="eyebrow">STACKD Rewards</p>
-      <h1>Print studio</h1>
+      <h1>{t(uiLang, 'sq.title')}</h1>
       <p className="lede">
         The signup artwork, at four sizes. Everything on it is live: the code
         points at the real registration page and the {earnPercent}% is read from

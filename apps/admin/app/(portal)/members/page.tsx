@@ -1,4 +1,7 @@
 import Link from 'next/link';
+
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
 import { redirect } from 'next/navigation';
 
 import { query, queryOne, transaction } from '@stackd/server';
@@ -109,6 +112,7 @@ export default async function MembersPage({
 }: {
   searchParams: Promise<{ q?: string; ok?: string; error?: string }>;
 }) {
+  const lang = await getLang();
   const { q = '', ok, error } = await searchParams;
   const term = q.trim();
 
@@ -138,12 +142,9 @@ export default async function MembersPage({
 
   return (
     <>
-      <p className="eyebrow">Members</p>
-      <h1>Look someone up</h1>
-      <p className="lede">
-        Scan or type a member code, or search by name or phone number. The code is
-        what is on the customer&rsquo;s QR.
-      </p>
+      <p className="eyebrow">{t(lang, 'mem.title')}</p>
+      <h1>{t(lang, 'mem.heading')}</h1>
+      <p className="lede">{t(lang, 'mem.lede')}</p>
 
       {ok ? <div className="banner ok">{ok}</div> : null}
       {error ? <div className="banner bad">{error}</div> : null}
@@ -151,16 +152,17 @@ export default async function MembersPage({
       <form className="card row">
         <div className="field">
           <label htmlFor="q">
-            Member code, name or phone <span className="hint">blank lists everyone</span>
+            {t(lang, 'mem.searchLabel')}{' '}
+            <span className="hint">{t(lang, 'mem.searchHint')}</span>
           </label>
           <input id="q" name="q" type="text" defaultValue={term} autoFocus placeholder="DEV22222" />
         </div>
         <button type="submit" className="primary">
-          Search
+          {t(lang, 'a.search')}
         </button>
         {term ? (
           <Link href="/members" className="btn">
-            Clear
+            {t(lang, 'mem.clear')}
           </Link>
         ) : null}
       </form>
@@ -170,11 +172,10 @@ export default async function MembersPage({
           <p className="empty">
             {term ? (
               <>
-                Nothing matches <b>{term}</b>. Member codes are eight characters and
-                never contain 0, O, 1, I or L.
+                {t(lang, 'mem.noMatchA')} <b>{term}</b>. {t(lang, 'mem.noMatchB')}
               </>
             ) : (
-              'No members yet.'
+              t(lang, 'mem.none')
             )}
           </p>
         ) : (
@@ -182,18 +183,18 @@ export default async function MembersPage({
             <table className="data">
               <thead>
                 <tr>
-                  <th>Member</th>
-                  <th>Code</th>
-                  <th>Phone</th>
-                  <th className="right">Balance</th>
-                  <th className="right">Lifetime</th>
+                  <th>{t(lang, 'ord.member')}</th>
+                  <th>{t(lang, 'mem.code')}</th>
+                  <th>{t(lang, 'w.phone')}</th>
+                  <th className="right">{t(lang, 'w.balance')}</th>
+                  <th className="right">{t(lang, 'mem.lifetimeCol')}</th>
                 </tr>
               </thead>
               <tbody>
                 {members.map((m) => (
                   <tr key={m.id}>
                     <td>
-                      <Link href={`/members/${m.id}`}>{m.full_name ?? 'Unnamed'}</Link>{' '}
+                      <Link href={`/members/${m.id}`}>{m.full_name ?? t(lang, 'mem.unnamed')}</Link>{' '}
                       <span className="chip">{m.locale.toUpperCase()}</span>
                     </td>
                     <td className="mono">{m.member_code}</td>
@@ -211,37 +212,35 @@ export default async function MembersPage({
       </div>
 
       <div className="card">
-        <h2>Sign someone up</h2>
-        <p className="lede">
-          For a customer joining at the counter. They get a member code straight
-          away. Read it out, or let them scan the QR on their next receipt.
-        </p>
+        <h2>{t(lang, 'mem.addTitle')}</h2>
+        <p className="lede">{t(lang, 'mem.addLede')}</p>
         <form action={addMember} className="row">
           <div className="field">
-            <label htmlFor="fullName">Name</label>
+            <label htmlFor="fullName">{t(lang, 'w.name')}</label>
             <input id="fullName" name="fullName" type="text" required />
           </div>
           <div className="field">
             <label htmlFor="phone">
-              Mobile <span className="hint">050 033 8808</span>
+              {t(lang, 'mem.mobile')} <span className="hint" dir="ltr">050 033 8808</span>
             </label>
             <input id="phone" name="phone" type="text" inputMode="tel" required />
           </div>
           <div className="field">
             <label htmlFor="email">
-              Email <span className="hint">optional, lets them use the app</span>
+              {t(lang, 'w.email')}{' '}
+              <span className="hint">{t(lang, 'mem.emailHint')}</span>
             </label>
-            <input id="email" name="email" type="email" placeholder="name@example.com" />
+            <input id="email" name="email" type="email" dir="ltr" placeholder="name@example.com" />
           </div>
           <div className="field field-sm">
-            <label htmlFor="locale">Language</label>
+            <label htmlFor="locale">{t(lang, 'mem.language')}</label>
             <select id="locale" name="locale" defaultValue="ar">
               <option value="ar">العربية</option>
               <option value="en">English</option>
             </select>
           </div>
           <button type="submit" className="primary">
-            Add member
+            {t(lang, 'mem.addButton')}
           </button>
         </form>
       </div>

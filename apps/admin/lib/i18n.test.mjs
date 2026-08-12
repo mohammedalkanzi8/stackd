@@ -34,12 +34,13 @@ test('every Arabic key exists in English', () => {
   assert.deepEqual(orphans, [], `Arabic keys with no English original: ${orphans.join(', ')}`);
 });
 
-test('the staff-facing screens are fully translated', () => {
-  // Scoped to what a cashier reads during a shift. Owner-only reporting screens
-  // are allowed to lag; the till is not.
-  const shift = ['nav.', 'role.', 'a.', 'w.', 'login.', 'scan.', 'ov.'];
-  const missing = [...en].filter((k) => shift.some((p) => k.startsWith(p)) && !ar.has(k));
-  assert.deepEqual(missing, [], `untranslated on a shift screen: ${missing.join(', ')}`);
+test('every screen is fully translated', () => {
+  // Started life scoped to the shift screens while the rest lagged. It covers
+  // the whole portal now, which is the point: the English fallback means a
+  // missing string is invisible to whoever added it, so the only thing that
+  // keeps Arabic complete is this failing.
+  const missing = [...en].filter((k) => !ar.has(k));
+  assert.deepEqual(missing, [], `untranslated: ${missing.join(', ')}`);
 });
 
 test('no Arabic string is left as English', () => {

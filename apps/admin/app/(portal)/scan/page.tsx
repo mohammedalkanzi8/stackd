@@ -199,7 +199,7 @@ export default async function ScanPage({
               <form action={claimForMember} className="row">
                 <input type="hidden" name="token" value={claimRow.token} />
                 <div className="field field-sm">
-                  <label htmlFor="memberCode">Member code</label>
+                  <label htmlFor="memberCode">{t(lang, 'mem.memberCode')}</label>
                   <input
                     id="memberCode"
                     name="memberCode"

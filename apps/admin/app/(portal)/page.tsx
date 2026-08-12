@@ -107,7 +107,7 @@ export default async function OverviewPage() {
 
       <div className="card">
         <div className="spread">
-          <h2>Latest point movements</h2>
+          <h2>{t(lang, 'ov.latestMovements')}</h2>
           <span className="muted sm">
             newest first
           </span>
@@ -123,9 +123,9 @@ export default async function OverviewPage() {
             <table className="data">
               <thead>
                 <tr>
-                  <th>When</th>
-                  <th>Member</th>
-                  <th>Reason</th>
+                  <th>{t(lang, 'w.when')}</th>
+                  <th>{t(lang, 'ord.member')}</th>
+                  <th>{t(lang, 'w.reason')}</th>
                   <th className="right">Points</th>
                 </tr>
               </thead>

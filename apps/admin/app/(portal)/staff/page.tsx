@@ -5,6 +5,9 @@ import { revalidatePath } from 'next/cache';
 
 import { ROLE_LABEL, requireRole, requireStaff, type Role } from '@/lib/auth.ts';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+
 export const metadata = { title: 'Staff · STACKD admin' };
 export const dynamic = 'force-dynamic';
 
@@ -150,6 +153,7 @@ export default async function StaffPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string; reset?: string }>;
 }) {
+  const lang = await getLang();
   const me = await requireStaff();
   const { ok, error, reset } = await searchParams;
   const isOwner = me.role === 'owner';
@@ -170,8 +174,8 @@ export default async function StaffPage({
 
   return (
     <>
-      <p className="eyebrow">People</p>
-      <h1>Staff and permissions</h1>
+      <p className="eyebrow">{t(lang, 'stf.eyebrow')}</p>
+      <h1>{t(lang, 'stf.heading')}</h1>
       <p className="lede">
         Cashiers and the kitchen can look members up. Managers can also change
         points, rewards and prices. Only an owner can manage this page.
@@ -185,11 +189,11 @@ export default async function StaffPage({
           <table className="data">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th className="right">Adjustments</th>
-                <th className="right">Status</th>
+                <th>{t(lang, 'w.name')}</th>
+                <th>{t(lang, 'w.email')}</th>
+                <th>{t(lang, 'stf.role')}</th>
+                <th className="right">{t(lang, 'stf.adjustments')}</th>
+                <th className="right">{t(lang, 'ord.status')}</th>
                 {isOwner ? <th className="right"></th> : null}
               </tr>
             </thead>
@@ -269,7 +273,9 @@ export default async function StaffPage({
 
       {isOwner && resetting ? (
         <div className="card">
-          <h2>New password for {resetting.full_name}</h2>
+          <h2>
+            {t(lang, 'stf.newPasswordFor')} {resetting.full_name}
+          </h2>
           <form action={resetPassword} className="row" style={{ marginBlockStart: 12 }}>
             <input type="hidden" name="id" value={resetting.id} />
             <div className="field">
@@ -290,22 +296,22 @@ export default async function StaffPage({
 
       {isOwner ? (
         <div className="card">
-          <h2>Add someone</h2>
+          <h2>{t(lang, 'stf.addSomeone')}</h2>
           <p className="lede">
             They can sign in immediately with the password you set here.
           </p>
           <form action={addStaff} className="stack">
             <div className="row">
               <div className="field">
-                <label htmlFor="fullName">Name</label>
+                <label htmlFor="fullName">{t(lang, 'w.name')}</label>
                 <input id="fullName" name="fullName" type="text" required />
               </div>
               <div className="field">
-                <label htmlFor="email">Email</label>
+                <label htmlFor="email">{t(lang, 'w.email')}</label>
                 <input id="email" name="email" type="email" required />
               </div>
               <div className="field field-sm">
-                <label htmlFor="role">Role</label>
+                <label htmlFor="role">{t(lang, 'stf.role')}</label>
                 <select id="role" name="role" defaultValue="cashier">
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
@@ -315,7 +321,7 @@ export default async function StaffPage({
                 </select>
               </div>
               <div className="field field-sm">
-                <label htmlFor="newPassword">Password</label>
+                <label htmlFor="newPassword">{t(lang, 'stf.password')}</label>
                 <input
                   id="newPassword"
                   name="password"

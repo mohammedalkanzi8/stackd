@@ -8,6 +8,9 @@ import { revalidatePath } from 'next/cache';
 
 import { ADMIN, requireRole, requireStaff } from '@/lib/auth.ts';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+
 export const metadata = { title: 'Menu · STACKD admin' };
 export const dynamic = 'force-dynamic';
 
@@ -189,6 +192,7 @@ export default async function MenuPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string; edit?: string }>;
 }) {
+  const lang = await getLang();
   const staff = await requireStaff();
   const { ok, error, edit } = await searchParams;
   const canEdit = ADMIN.includes(staff.role);
@@ -210,8 +214,8 @@ export default async function MenuPage({
 
   return (
     <>
-      <p className="eyebrow">Menu</p>
-      <h1>Prices and availability</h1>
+      <p className="eyebrow">{t(lang, 'mnu.title')}</p>
+      <h1>{t(lang, 'mnu.heading')}</h1>
       <p className="lede">
         The database is the source of truth for the website. Names stay in{' '}
         <code>seed.sql</code>. The Arabic came off STACKD&rsquo;s own menu board
@@ -319,7 +323,7 @@ export default async function MenuPage({
 
           <hr style={{ border: 0, borderBlockStart: '1px solid var(--rule)', margin: '20px 0' }} />
 
-          <h2 style={{ fontSize: 15 }}>Photo</h2>
+          <h2 style={{ fontSize: 15 }}>{t(lang, 'mnu.photo')}</h2>
           {!editing.show_photos ? (
             <p className="muted sm">
               {editing.category} are text cards on the website. A 3 SAR sauce does
@@ -378,7 +382,9 @@ export default async function MenuPage({
                   />
                 </div>
                 <div className="row">
-                  <SubmitButton className="primary" pendingLabel="Uploading…">Upload</SubmitButton>
+                  <SubmitButton className="primary" pendingLabel={`${t(lang, 'mnu.uploading')}…`}>
+                    {t(lang, 'mnu.upload')}
+                  </SubmitButton>
                   {editing.image_url ? (
                     <button type="submit" formAction={removePhoto} className="quiet">
                       Remove photo
@@ -411,11 +417,11 @@ export default async function MenuPage({
             <table className="data">
               <thead>
                 <tr>
-                  <th>Item</th>
-                  <th>Arabic</th>
-                  <th className="right">Price</th>
+                  <th>{t(lang, 'pts.item')}</th>
+                  <th>{t(lang, 'mnu.arabic')}</th>
+                  <th className="right">{t(lang, 'pts.price')}</th>
                   <th className="right">kcal</th>
-                  <th className="right">Status</th>
+                  <th className="right">{t(lang, 'ord.status')}</th>
                   {canEdit ? <th className="right"></th> : null}
                 </tr>
               </thead>
@@ -426,7 +432,7 @@ export default async function MenuPage({
                     <tr key={i.id}>
                       <td>
                         <b>{i.name_en}</b>{' '}
-                        {i.spicy ? <span className="chip hot">Spicy</span> : null}
+                        {i.spicy ? <span className="chip hot">{t(lang, 'mnu.spicy')}</span> : null}
                       </td>
                       <td dir="rtl" lang="ar">
                         {i.name_ar}
@@ -443,11 +449,11 @@ export default async function MenuPage({
                       </td>
                       <td className="right">
                         {!i.is_active ? (
-                          <span className="chip off">Off menu</span>
+                          <span className="chip off">{t(lang, 'mnu.offMenu')}</span>
                         ) : !i.available ? (
-                          <span className="chip warn">Sold out</span>
+                          <span className="chip warn">{t(lang, 'mnu.soldOut')}</span>
                         ) : (
-                          <span className="chip on">Live</span>
+                          <span className="chip on">{t(lang, 'mnu.live')}</span>
                         )}
                       </td>
                       {canEdit ? (

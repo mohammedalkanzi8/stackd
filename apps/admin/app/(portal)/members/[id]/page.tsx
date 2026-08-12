@@ -6,6 +6,9 @@ import { revalidatePath } from 'next/cache';
 
 import { ADMIN, SUPER_ADMIN, requireRole, requireStaff } from '@/lib/auth.ts';
 
+import { getLang } from '@/lib/prefs.ts';
+import { t } from '@/lib/i18n.ts';
+
 export const dynamic = 'force-dynamic';
 
 interface Member {
@@ -217,6 +220,7 @@ export default async function MemberPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
+  const lang = await getLang();
   const staff = await requireStaff();
   const { id } = await params;
   const { ok, error } = await searchParams;
@@ -313,7 +317,7 @@ export default async function MemberPage({
       </div>
 
       <div className="card">
-        <h2>Contact email</h2>
+        <h2>{t(lang, 'md.contactEmail')}</h2>
         <p className="lede">
           {member.email
             ? 'Used to sign in to the customer portal, and to send a code if they forget their password.'
@@ -341,7 +345,7 @@ export default async function MemberPage({
 
       {canAdjust ? (
         <div className="card">
-          <h2>Adjust points</h2>
+          <h2>{t(lang, 'md.adjustPoints')}</h2>
           <p className="lede">
             Goodwill, or fixing a mistake. Recorded against your name in the ledger
             and never removable. Use a negative number to take points away.
@@ -349,7 +353,7 @@ export default async function MemberPage({
           <form action={adjustPoints} className="row">
             <input type="hidden" name="customerId" value={member.id} />
             <div className="field field-sm">
-              <label htmlFor="delta">Points</label>
+              <label htmlFor="delta">{t(lang, 'nav.points')}</label>
               <input id="delta" name="delta" type="number" step="1" placeholder="50" required />
             </div>
             <div className="field">
@@ -371,7 +375,7 @@ export default async function MemberPage({
 
       <div className="card">
         <div className="spread">
-          <h2>Ledger</h2>
+          <h2>{t(lang, 'md.ledger')}</h2>
           <span className="muted sm">
             {entries.length} {entries.length === 1 ? 'entry' : 'entries'} · append-only
           </span>
@@ -384,9 +388,9 @@ export default async function MemberPage({
             <table className="data">
               <thead>
                 <tr>
-                  <th>When</th>
-                  <th>Reason</th>
-                  <th>Detail</th>
+                  <th>{t(lang, 'w.when')}</th>
+                  <th>{t(lang, 'w.reason')}</th>
+                  <th>{t(lang, 'w.detail')}</th>
                   <th className="right">Points</th>
                 </tr>
               </thead>
@@ -428,7 +432,7 @@ export default async function MemberPage({
 
       {canDelete ? (
         <div className="card danger">
-          <h2>Delete this member</h2>
+          <h2>{t(lang, 'md.deleteMember')}</h2>
           {orderCount > 0 ? (
             <p className="lede">
               {member.full_name ?? 'This member'} has{' '}
@@ -450,7 +454,7 @@ export default async function MemberPage({
               <form action={deleteMember} className="row">
                 <input type="hidden" name="customerId" value={member.id} />
                 <div className="field field-sm">
-                  <label htmlFor="confirmCode">Member code</label>
+                  <label htmlFor="confirmCode">{t(lang, 'mem.memberCode')}</label>
                   <input
                     id="confirmCode"
                     name="confirmCode"
