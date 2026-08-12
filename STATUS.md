@@ -125,13 +125,22 @@ mid-word and reports "not one of ours".
    top of `Scanner.tsx` is the dial, and the failure is safe: Go still works.
 2. **Arabic on a real screen.** Every string was verified in the served HTML,
    not in a rendered page. Line breaks, wrapping and the nav at RTL are unseen.
-3. **⚠ Translation is complete for the shift screens only** — chrome, roles,
-   shared actions, sign-in, scan and overview, guarded by a test. Orders,
-   members, points, rewards, menu, staff and reports **still render English**,
-   by design: `t()` falls back to English so an untranslated key shows a readable
-   word rather than `mem.title`. Finishing them is filling in `AR` in
-   `apps/admin/lib/i18n.ts`; no page changes are needed for the ones already
-   wired.
+3. **Translation is now complete across every screen** — 410 keys, and the
+   coverage test fails if an English key has no Arabic. `t()` still falls back to
+   English so a future key shows a readable word rather than `mem.title`, which
+   is precisely why that test is the only thing holding the line: a missing
+   string is invisible to whoever added it.
+
+### ⚠ Two things the translation pass turned up
+
+**The orders page told staff trading days run to 03:00.** Wrong since the hours
+moved to 16:00-04:00 on 8 Aug — `riyadh_service_date` offsets by the closing hour
+plus one, so the boundary is 05:00. Fixed.
+
+**`signup-qr` already owned a `lang` variable meaning something else entirely:**
+the language of the POSTER being printed, not of the interface. A cashier working
+in Arabic still prints English-led sheets when that is what the wall needs, so
+the interface language is `uiLang` there. Never collapse the two.
 
 ---
 
