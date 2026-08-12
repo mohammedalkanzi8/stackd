@@ -3,7 +3,7 @@ import { formatSar, queryOne } from '@stackd/server';
 
 import { requireStaff } from '@/lib/auth.ts';
 import { getLang } from '@/lib/prefs.ts';
-import { t, fmtDate } from '@/lib/i18n.ts';
+import { t, tf, fmtDate } from '@/lib/i18n.ts';
 import { ScanClient } from './ScanClient.tsx';
 import { claimForMember, creditBill, identify, takePoints } from './actions.ts';
 
@@ -23,6 +23,9 @@ interface RedeemView {
   redeemed_at: Date | null;
   full_name: string | null;
   member_code: string;
+  /** Set when the code is a catalogue reward rather than points off a bill. */
+  reward_name: string | null;
+  reward_name_ar: string | null;
 }
 
 interface ClaimView {
@@ -61,8 +64,11 @@ export default async function ScanPage({
   const redemption = redeem
     ? await queryOne<RedeemView>(
         `select t.token, t.points, t.expires_at, t.redeemed_at,
-                c.full_name, c.member_code
-           from redemption_tokens t join customers c on c.id = t.customer_id
+                c.full_name, c.member_code,
+                r.name_en as reward_name, r.name_ar as reward_name_ar
+           from redemption_tokens t
+           join customers c on c.id = t.customer_id
+           left join rewards r on r.id = t.reward_id
           where t.token = $1`,
         [redeem],
       )
@@ -142,25 +148,41 @@ export default async function ScanPage({
 
       {redemption ? (
         <div className="card">
-          <p className="eyebrow">{t(lang, 'scan.takeOff')}</p>
+          {/* ⚠ A reward code and a points code are the same token type and mean
+              completely different things at the counter. Showing "take 3.00 SAR
+              off" when the customer is owed a free sauce is the mistake this
+              branch exists to prevent. */}
+          <p className="eyebrow">
+            {redemption.reward_name ? t(lang, 'scan.claimTitle') : t(lang, 'scan.takeOff')}
+          </p>
           <h2>
-            {redemption.points} points ={' '}
-            <span style={{ color: 'var(--accent)' }}>{formatSar(redemption.points)}</span> off
+            {redemption.reward_name ? (
+              <span style={{ color: 'var(--accent)' }}>
+                {lang === 'ar' && redemption.reward_name_ar
+                  ? redemption.reward_name_ar
+                  : redemption.reward_name}
+              </span>
+            ) : (
+              <>
+                {redemption.points} {t(lang, 'w.points')} ={' '}
+                <span style={{ color: 'var(--accent)' }}>{formatSar(redemption.points)}</span>
+              </>
+            )}
           </h2>
           <p className="lede">
-            {redemption.full_name ?? 'Member'}{' '}
+            {redemption.full_name ?? t(lang, 'w.member')}{' '}
             <span className="mono">{redemption.member_code}</span>
+            {redemption.reward_name ? ` · ${redemption.points} ${t(lang, 'w.points')}` : ''}
           </p>
 
           {redemption.redeemed_at ? (
             <div className="banner bad">
-              Already used at{' '}
-              {fmtDate(lang, redemption.redeemed_at, {
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: 'Asia/Riyadh',
+              {tf(lang, 'scan.alreadyUsedAt', {
+                t: fmtDate(lang, redemption.redeemed_at, {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
               })}
-              . Each code works once.
             </div>
           ) : expired ? (
             <div className="banner bad">
@@ -170,7 +192,14 @@ export default async function ScanPage({
             <form action={takePoints} className="row">
               <input type="hidden" name="token" value={redemption.token} />
               <button type="submit" className="primary">
-                Confirm, take {formatSar(redemption.points)} off
+                {redemption.reward_name
+                  ? tf(lang, 'scan.confirmReward', {
+                      what:
+                        lang === 'ar' && redemption.reward_name_ar
+                          ? redemption.reward_name_ar
+                          : redemption.reward_name,
+                    })
+                  : tf(lang, 'scan.confirmTake', { sar: formatSar(redemption.points) })}
               </button>
               <Link href="/scan" className="btn">
                 {t(lang, 'a.cancel')}

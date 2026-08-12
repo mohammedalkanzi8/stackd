@@ -1060,6 +1060,10 @@ create table redemption_tokens (
   token       text primary key,
   customer_id uuid not null references customers(id) on delete cascade,
   points      int  not null check (points > 0),
+  -- Set when the code stands for a catalogue reward rather than points off a
+  -- bill. `points` still carries the cost, so the ledger maths is identical;
+  -- this records WHAT was claimed so the cashier knows what to hand over.
+  reward_id   uuid references rewards(id),
   expires_at  timestamptz not null,
   redeemed_at timestamptz,
   -- Which staff member scanned it. Points are money; a dispute needs a name.
@@ -1139,10 +1143,77 @@ end $$;
  * second one waits and then finds it spent. Returns the amount so the till can
  * be told what to take off.
  */
-create or replace function redeem_points_token(p_token text, p_staff_id uuid)
-returns table (points int, customer_id uuid, customer_name text, member_code text)
+-- Claiming a catalogue reward.
+--
+-- ⚠ THE min_redeem_points FLOOR DOES NOT APPLY, and its absence here is the
+-- enforcement. That floor exists so a cashier is not asked to knock 3 halalas
+-- off a bill. A reward is priced individually — Free Sauce at 300 against a 500
+-- floor — and applying it would leave rewards listed and unclaimable, which
+-- reads as a broken app rather than a rule.
+--
+-- ⚠ This issues a CODE and does not touch the ledger. Before migration 0008 a
+-- claim spent the points immediately and produced nothing to show, so an
+-- abandoned claim cost the customer everything. Deducting on scan makes a
+-- reward behave exactly like spending points at the counter.
+create or replace function issue_reward_redemption(p_customer_id uuid, p_reward_id uuid)
+returns text
 language plpgsql security definer set search_path = public, pg_temp as $$
-declare t redemption_tokens%rowtype;
+declare
+  r    rewards%rowtype;
+  bal  int;
+  secs int;
+  tok  text;
+begin
+  select * into r from rewards where id = p_reward_id and is_active;
+  if not found then
+    raise exception 'reward % not found or inactive', p_reward_id;
+  end if;
+  if (r.starts_at is not null and now() < r.starts_at)
+     or (r.ends_at is not null and now() > r.ends_at) then
+    raise exception 'reward % is not currently available', r.name_en;
+  end if;
+
+  select balance into bal from loyalty_balances
+   where customer_id = p_customer_id for update;
+
+  if coalesce(bal, 0) < r.points_cost then
+    raise exception 'insufficient points: have %, need %', coalesce(bal, 0), r.points_cost;
+  end if;
+
+  delete from redemption_tokens
+   where customer_id = p_customer_id and redeemed_at is null;
+
+  select redeem_window_secs into secs from loyalty_settings;
+
+  -- Same retry loop as issue_redemption(): the token alphabet is short enough
+  -- that a collision is possible, and a unique_violation on the primary key is
+  -- the cheapest way to detect one.
+  loop
+    tok := generate_claim_token();
+    begin
+      insert into redemption_tokens (token, customer_id, points, reward_id, expires_at)
+      values (tok, p_customer_id, r.points_cost, p_reward_id,
+              now() + make_interval(secs => coalesce(secs, 180)));
+      return tok;
+    exception when unique_violation then
+      -- Token collision only. Try again.
+    end;
+  end loop;
+end $$;
+
+create or replace function redeem_points_token(p_token text, p_staff_id uuid)
+returns table (
+  points        int,
+  customer_id   uuid,
+  customer_name text,
+  member_code   text,
+  reward_name   text,
+  reward_name_ar text
+)
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  t redemption_tokens%rowtype;
+  r rewards%rowtype;
 begin
   select * into t from redemption_tokens
    where token = upper(trim(p_token)) for update;
@@ -1163,12 +1234,22 @@ begin
 
   -- The ledger write is what actually spends them, and the balance check
   -- constraint is the backstop if the balance moved since the code was issued.
-  insert into loyalty_transactions (customer_id, delta, reason, actor_id, note)
-  values (t.customer_id, -t.points, 'redeem_counter', p_staff_id,
-          format('Redeemed %s points at the counter', t.points));
+  if t.reward_id is not null then
+    select * into r from rewards where id = t.reward_id;
+    -- Reason `redeem_reward`, not `redeem_counter`: the reports page separates
+    -- what the catalogue costs from what customers knock off bills, and folding
+    -- the two together would make both figures meaningless.
+    insert into loyalty_transactions (customer_id, delta, reason, reward_id, actor_id, note)
+    values (t.customer_id, -t.points, 'redeem_reward', t.reward_id, p_staff_id,
+            format('Claimed %s at the counter', r.name_en));
+  else
+    insert into loyalty_transactions (customer_id, delta, reason, actor_id, note)
+    values (t.customer_id, -t.points, 'redeem_counter', p_staff_id,
+            format('Redeemed %s points at the counter', t.points));
+  end if;
 
   return query
-    select t.points, t.customer_id, c.full_name, c.member_code
+    select t.points, t.customer_id, c.full_name, c.member_code, r.name_en, r.name_ar
     from customers c where c.id = t.customer_id;
 end $$;
 
@@ -1521,6 +1602,7 @@ revoke all on function redeem_reward(uuid, uuid)          from public;
 revoke all on function next_invoice_number(uuid, timestamptz) from public;
 revoke all on function next_pickup_code(uuid, date)       from public;
 revoke all on function issue_redemption(uuid, int)         from public;
+revoke all on function issue_reward_redemption(uuid, uuid)  from public;
 revoke all on function redeem_points_token(text, uuid)     from public;
 revoke all on function issue_order_claim(uuid)            from public;
 revoke all on function claim_order_points(text, uuid)     from public;

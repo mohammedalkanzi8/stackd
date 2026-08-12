@@ -436,6 +436,82 @@ dbTest('a manager credit is goodwill, not earnings', async () => {
   }
 });
 
+// Regression, reported from production 13 Aug 2026: claiming Free Sauce took
+// 300 points and produced no code. See migration 0008.
+dbTest('claiming a reward issues a code and does NOT spend the points yet', async () => {
+  await beginNested();
+  try {
+    const order = await makeOrder({ gross: 6000 });
+    await db.query('select mint_loyalty_points($1)', [order.id]);
+
+    const reward = (
+      await db.query(`select id, points_cost from rewards where name_en = 'Free Sauce'`)
+    ).rows[0];
+    const before = (
+      await db.query('select balance from loyalty_balances where customer_id = $1', [CUSTOMER_1])
+    ).rows[0].balance;
+
+    const { rows: tok } = await db.query('select issue_reward_redemption($1, $2) as t', [
+      CUSTOMER_1,
+      reward.id,
+    ]);
+    assert.match(tok[0].t, /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{10}$/, 'a scannable code');
+
+    const after = (
+      await db.query('select balance from loyalty_balances where customer_id = $1', [CUSTOMER_1])
+    ).rows[0].balance;
+    assert.equal(after, before, 'issuing a code must not spend the points');
+
+    // The cashier scanning it is what spends them.
+    const staff = (await db.query(`select id from staff where role = 'owner' limit 1`)).rows[0].id;
+    const { rows: out } = await db.query('select * from redeem_points_token($1, $2)', [
+      tok[0].t,
+      staff,
+    ]);
+    assert.equal(out[0].reward_name, 'Free Sauce', 'the cashier is told what to hand over');
+
+    const spent = (
+      await db.query('select balance from loyalty_balances where customer_id = $1', [CUSTOMER_1])
+    ).rows[0].balance;
+    assert.equal(spent, before - reward.points_cost);
+
+    const { rows: led } = await db.query(
+      `select reason, reward_id from loyalty_transactions
+        where customer_id = $1 order by id desc limit 1`,
+      [CUSTOMER_1],
+    );
+    assert.equal(led[0].reason, 'redeem_reward', 'a claim is not a counter redemption');
+    assert.equal(led[0].reward_id, reward.id);
+  } finally {
+    await rollbackNested();
+  }
+});
+
+dbTest('the redemption floor does not apply to the rewards catalogue', async () => {
+  await beginNested();
+  try {
+    // ⚠ Free Sauce is 300 and the floor is 500. If the floor ever reaches the
+    // catalogue, both cheap rewards become listed and unclaimable, which reads
+    // as a broken app rather than a rule.
+    await db.query('update loyalty_settings set min_redeem_points = 500');
+    const order = await makeOrder({ gross: 6000 });
+    await db.query('select mint_loyalty_points($1)', [order.id]);
+
+    const reward = (
+      await db.query(`select id, points_cost from rewards where name_en = 'Free Sauce'`)
+    ).rows[0];
+    assert.ok(reward.points_cost < 500, 'this test is pointless if the reward is above the floor');
+
+    const { rows } = await db.query('select issue_reward_redemption($1, $2) as t', [
+      CUSTOMER_1,
+      reward.id,
+    ]);
+    assert.ok(rows[0].t, 'a 300-point reward stays claimable under a 500-point floor');
+  } finally {
+    await rollbackNested();
+  }
+});
+
 dbTest('an order can only ever mint once', async () => {
   await beginNested();
   try {

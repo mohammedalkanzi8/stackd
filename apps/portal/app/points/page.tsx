@@ -48,10 +48,17 @@ async function redeem(formData: FormData): Promise<void> {
 
   const rewardId = String(formData.get('rewardId') ?? '');
   try {
-    // redeem_reward() checks the balance and writes the ledger row in one go.
-    // Doing the check here instead would be a race: two taps on a slow phone
-    // could both pass a client-side check and spend the same points twice.
-    await queryOne('select redeem_reward($1, $2)', [member.id, rewardId]);
+    // ⚠ ISSUES A CODE. It does NOT spend the points — the ledger row is written
+    // when the cashier scans, exactly as it is for points off a bill.
+    //
+    // This used to call redeem_reward(), which wrote the ledger row immediately
+    // and produced no code at all. The customer lost the points and had nothing
+    // to present, while the banner below told them to show a code that did not
+    // exist. See migration 0008.
+    //
+    // The balance check stays in the database: two taps on a slow phone could
+    // both pass a check made here and claim twice.
+    await queryOne('select issue_reward_redemption($1, $2)', [member.id, rewardId]);
   } catch (err) {
     if (err && typeof err === 'object' && 'digest' in err) throw err;
     const raw = err instanceof Error ? err.message.replace(/^[^:]*:\s*/, '') : '';
@@ -65,7 +72,9 @@ async function redeem(formData: FormData): Promise<void> {
   }
 
   revalidatePath('/points');
-  redirect('/points?claimed=1');
+  // To the code, not back to the list: the whole point of claiming is the thing
+  // the cashier has to scan.
+  redirect('/points?claimed=1#redeem');
 }
 
 /**
@@ -245,7 +254,8 @@ export default async function PointsPage({
         ) : null}
         {claimed ? (
           <div className="banner ok">
-            Claimed. Show your code at the counter and it is yours.
+            Claimed. Your code is below — show it at the counter and it is yours.
+            The points come off when they scan it.
           </div>
         ) : null}
         {error ? <div className="banner bad">{error}</div> : null}

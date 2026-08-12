@@ -122,19 +122,24 @@ export async function takePoints(formData: FormData): Promise<void> {
   const token = String(formData.get('token') ?? '').trim().toUpperCase();
 
   try {
-    const out = await queryOne<{ points: number; customer_name: string | null }>(
-      'select * from redeem_points_token($1, $2)',
-      [token, staff.id],
-    );
-    const riyals = ((out?.points ?? 0) / 100).toFixed(2);
+    const out = await queryOne<{
+      points: number;
+      customer_name: string | null;
+      reward_name: string | null;
+    }>('select * from redeem_points_token($1, $2)', [token, staff.id]);
+
+    const who = out?.customer_name ?? 'the member';
     revalidatePath(BACK);
-    redirect(
-      `${BACK}?ok=${encodeURIComponent(
-        `Take ${riyals} SAR off the bill. ${out?.points ?? 0} points deducted from ${
-          out?.customer_name ?? 'the member'
-        }.`,
-      )}`,
-    );
+    // ⚠ A reward code and a points code are the same token type and produce
+    // completely different instructions. Telling a cashier to knock riyals off a
+    // bill when the customer is owed a free sauce is the one mistake this
+    // message exists to prevent.
+    const message = out?.reward_name
+      ? `Hand over: ${out.reward_name}. ${out.points} points deducted from ${who}.`
+      : `Take ${((out?.points ?? 0) / 100).toFixed(2)} SAR off the bill. ${
+          out?.points ?? 0
+        } points deducted from ${who}.`;
+    redirect(`${BACK}?ok=${encodeURIComponent(message)}`);
   } catch (err) {
     if (err && typeof err === 'object' && 'digest' in err) throw err;
     fail(err instanceof Error ? err.message.replace(/^[^:]*:\s*/, '') : 'Could not redeem that code.');
