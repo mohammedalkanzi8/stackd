@@ -15,6 +15,82 @@ one — `mohamed.kanzi@` is an admin-portal login and is never shown to customer
 
 ---
 
+## 12 August 2026 — the Arabic portal, reviewed against real screenshots
+
+**✅ LIVE.** The owner sent screenshots of the running portal, which is the check
+this environment cannot perform. They found four classes of problem that source
+review had missed entirely.
+
+### ⚠ Translation was about a third done, not done
+
+The earlier pass covered headings, table headers and form labels — and left
+**every paragraph, hint, small button and ledger reason in English**, roughly 158
+strings. On an Arabic screen that reads as a broken page, not a partial one.
+
+All translated now. **350 keys, Arabic covers 350.** A sweep for capitalised JSX
+text finds nothing left outside brand names and the dev-only fixtures note.
+
+⚠ **Ledger reasons were a module-level English map duplicated in two files**,
+which is why "Sign-up bonus" survived on an Arabic screen after everything
+around it was translated. They are dictionary keys now, keyed by the database's
+own enum values.
+
+⚠ **Sentences that wrap numbers were assembled in JSX from fragments** joined by
+`{' '}`. That cannot be translated — Arabic orders the parts differently and a
+fragment list has no order to change. They are single strings with named holes
+now, filled by `tf()`.
+
+### ⚠ THE COLUMN COLLISION WAS PHYSICAL SHORTHAND HIDING FROM THE GREP
+
+A points balance printed hard against a phone number, `100+966530245187`.
+
+`table.data td` was `padding: 8px 10px 8px 0` — 10px right, **0 left**. In RTL
+that puts the gap on the leading edge and nothing on the trailing one, so
+adjacent cells touch.
+
+**This file's own warning comment tells the next person to grep for
+`padding-left`. Shorthand does not match that grep.** Both `td` and `th` are
+logical now, and `padding-inline-end: 0` is scoped to the last column instead of
+every right-aligned one.
+
+### The two-line labels
+
+The hint sat **inline** after the label text, so in a 130px field the pair
+wrapped and every form row grew a ragged second line — "Redeem QR lasts" over
+"seconds". The hint is its own block now, so a label occupies the same two lines
+in both languages, and `.field-sm` can grow instead of being pinned to 130px,
+which no Arabic label fits.
+
+### Direction on the inputs
+
+Codes, phones, emails and money carry `dir="ltr"`. Without it the caret starts
+mid-string on an Arabic page and a member code renders in an order that does not
+match the card being scanned. The per-item award input went 96px → 118px; the
+Arabic placeholder was being clipped mid-word.
+
+### ⚠ The collision predicted in the previous commit happened during this one
+
+A bulk replacement grabbed `lang` in `signup-qr`, where that variable is the
+language of the **poster being printed**, not the interface. Typecheck caught it;
+corrected to `uiLang` at all 8 sites. The warning was right and was still not
+enough to prevent it — which is the argument for the two never sharing a name.
+
+### Also
+
+The reports page still told managers **trading days run to 03:00**, the same
+stale copy found on the orders page. Wrong since the hours moved on 8 August;
+the boundary is 05:00.
+
+### ⚠ What this session proves about verification here
+
+Every one of these shipped through a clean typecheck, a clean build, a clean
+detector run and 122 passing tests. **None of that can see a layout.** Rendered
+screenshots found in one minute what four rounds of source review did not.
+Anything visual in this project needs eyes on a real screen before it is called
+done.
+
+---
+
 ## 12 August 2026 — what Arabic exposed, and a spacing scale
 
 **✅ LIVE.** A design pass over the admin portal. Four defects, two visible only
