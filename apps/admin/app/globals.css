@@ -785,12 +785,26 @@ html[lang='ar'] select { line-height: 1.6; }
    so it is always there to match. */
 [dir='rtl'] .rtl-mirror { transform: scaleX(-1); }
 
-/* ⚠ Codes, prices and counts stay Western digits and stay left-to-right even
-   inside Arabic. A member code read aloud, a pickup number called out, and an
-   invoice total compared against a printed receipt all have to match the
-   receipt and the POS exactly. `dir=ltr` on these stops the bidi algorithm
-   reordering a code that mixes letters and digits. */
-.mono, code, .num, .money, table.data td.right, table.data th.right {
+/* ⚠ `direction: ltr` BELONGS ON INLINE RUNS ONLY, NEVER ON A BLOCK.
+   On a block it also flips how `text-align: start/end` resolves, so every
+   numeric cell and stat value LEFT-aligned on an Arabic page — and it forced an
+   Arabic date string into a left-to-right run, which threw its comma to the
+   wrong side. Both were visible on the overview and neither is what the rule was
+   for.
+
+   `unicode-bidi: isolate` is the part that actually matters: it stops a number
+   or a code being reordered against the text beside it, without touching
+   alignment. Digits are already left-to-right to the bidi algorithm, so a plain
+   number needs nothing else.
+
+   `direction` stays only on `.mono` and `code`, which are inline spans wrapping
+   member codes and tokens — sequences of letters AND digits, where the neutral
+   characters between them genuinely need a direction to resolve against. */
+.num, .money, table.data td.right, table.data th.right {
+  font-variant-numeric: tabular-nums;
+  unicode-bidi: isolate;
+}
+.mono, code {
   direction: ltr;
   unicode-bidi: isolate;
 }

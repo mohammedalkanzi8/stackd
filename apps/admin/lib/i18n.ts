@@ -1093,7 +1093,26 @@ export function fmtDate(
   opts: Intl.DateTimeFormatOptions,
 ): string {
   const locale = lang === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-GB';
-  return new Date(value).toLocaleString(locale, opts);
+  // ⚠ 24-hour, always. Arabic locales default to a 12-hour clock with a ص/م
+  // marker; English here is already 24-hour, so leaving it would put two
+  // different clocks on the same screen depending on the language, and neither
+  // would match a receipt printed in 24-hour. `hourCycle` also avoids a
+  // one-character marker that bidi has to place, which is one less thing to go
+  // wrong beside a timestamp.
+  return new Date(value).toLocaleString(locale, {
+    ...opts,
+    hourCycle: 'h23',
+    // ⚠ PINNED TO RIYADH, NOT THE SERVER'S CLOCK. The container runs in UTC with
+    // no TZ set, so every timestamp on every screen was three hours behind the
+    // shop. That is not cosmetic here: trade runs 16:00-04:00, so a ticket rung
+    // up at 01:00 displayed as 22:00 and read as the previous evening — against
+    // a `service_date` the database computes correctly in Asia/Riyadh.
+    //
+    // Pinned rather than fixed by setting TZ on the container, because that
+    // makes correctness depend on deployment configuration nobody re-checks.
+    // One branch, one timezone, stated where the formatting happens.
+    timeZone: 'Asia/Riyadh',
+  });
 }
 
 /** Every key with no Arabic yet. Used by the test that guards coverage. */

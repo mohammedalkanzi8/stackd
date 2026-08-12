@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { ADMIN, SUPER_ADMIN, requireRole, requireStaff } from '@/lib/auth.ts';
 
 import { getLang } from '@/lib/prefs.ts';
-import { t } from '@/lib/i18n.ts';
+import { t, fmtDate } from '@/lib/i18n.ts';
 
 export const dynamic = 'force-dynamic';
 
@@ -178,7 +178,7 @@ export default async function OrderPage({
       </h1>
       <p className="lede">
         {order.source === 'pos' ? t(await getLang(), 'ord.fromTill') : t(await getLang(), 'ord.fromApp')} ·{' '}
-        {new Date(order.created_at).toLocaleString('en-GB', {
+        {fmtDate(lang, order.created_at, {
           day: 'numeric',
           month: 'long',
           hour: '2-digit',
@@ -275,7 +275,7 @@ export default async function OrderPage({
                   </div>
                   <div className="sub">
                     <b>{claim.points}</b> points on{' '}
-                    {new Date(claim.claimed_at).toLocaleDateString('en-GB', {
+                    {fmtDate(lang, claim.claimed_at, {
                       day: 'numeric',
                       month: 'short',
                       timeZone: 'Asia/Riyadh',
@@ -298,7 +298,7 @@ export default async function OrderPage({
                 </p>
                 <p className="muted" style={{ fontSize: 13, margin: 0 }}>
                   Expires{' '}
-                  {new Date(claim.expires_at).toLocaleDateString('en-GB', {
+                  {fmtDate(lang, claim.expires_at, {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
@@ -342,7 +342,7 @@ export default async function OrderPage({
           <h2>{t(lang, 'od.voided')}</h2>
           <p className="lede" style={{ marginBlockEnd: 0 }}>
             {order.void_reason} — voided by {order.voided_by_name ?? 'a super admin'} on{' '}
-            {new Date(order.voided_at!).toLocaleString('en-GB', {
+            {fmtDate(lang, order.voided_at!, {
               day: 'numeric',
               month: 'long',
               year: 'numeric',

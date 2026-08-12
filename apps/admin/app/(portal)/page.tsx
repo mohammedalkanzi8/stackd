@@ -154,9 +154,7 @@ export default async function OverviewPage() {
       </div>
 
       <p className="muted" style={{ fontSize: 13, marginBlockStart: 24 }}>
-        Points are earned on the pre-VAT net, so a {formatSar(6000)} ticket earns
-        52, not 60. Nothing in this portal mints points directly. Orders do, and
-        the ledger is append-only.
+        {tf(lang, 'ov.foot', { sar: formatSar(6000), pts: 52, gross: 60 })}
       </p>
     </>
   );
