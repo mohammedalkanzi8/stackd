@@ -99,6 +99,13 @@ export default async function VerifyPage({
         <p className="muted">
           {t(lang, 'fg.noMail')} <Link href="/forgot">send another code</Link>.
         </p>
+
+        {/* Reachable before the portal chrome exists, and Arabic is the
+            default — without this a customer handed an Arabic screen has no
+            route to English. */}
+        <div className="login-prefs">
+          <LangSwitch lang={lang} />
+        </div>
       </div>
     </div>
   );

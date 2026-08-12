@@ -404,3 +404,7 @@ html[lang='ar'] .muted { font-size: 13px; }
 /* The counter is a phone in one hand. A fingertip needs 44px whatever the
    visible mark measures. */
 @media (pointer: coarse) { .langsw button { min-height: 44px; } }
+
+/* The language switch on the screens reachable before sign-in. Centred and
+   quiet: it is the only control there that is not the form's own action. */
+.login-prefs { display: flex; justify-content: center; margin-block-start: 18px; }

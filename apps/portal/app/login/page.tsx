@@ -110,6 +110,13 @@ export default async function LoginPage({
         <p className="muted">
           {t(lang, 'login.notMember')} <Link href="/registration">{t(lang, 'login.join')}</Link>
         </p>
+
+        {/* Reachable before the portal chrome exists, and Arabic is the
+            default — without this a customer handed an Arabic screen has no
+            route to English. */}
+        <div className="login-prefs">
+          <LangSwitch lang={lang} />
+        </div>
       </div>
     </div>
   );
