@@ -27,3 +27,26 @@ deploy/.env
 # Claude Code: settings.json is shared project config and IS tracked.
 # settings.local.json is per-developer (permission grants, local paths) and is not.
 .claude/settings.local.json
+
+# Dev-only session signing keys, written by packages/server/src/session.ts so a
+# restart does not log everyone out. Never used in production, where the
+# STACKD_*_SECRET env vars are mandatory.
+.stackd-dev-secret
+
+# Agent skills downloaded from GitHub — 7 MB of somebody else's markdown, and
+# none of it is this project's code. `skills-lock.json` IS tracked, on the same
+# reasoning as .claude/settings.json above: it is the manifest that reinstalls
+# them, it is a few kilobytes, and without it the toolset is not reproducible.
+.agents/
+.codex/
+.claude/skills/
+
+# WSL writes one of these beside every file copied out of Windows. They are
+# 25-byte alternate-data-stream stubs and carry no content.
+*:Zone.Identifier
+
+# The printed menu PDF the owner dropped into new_shots/ on 12 Aug: 13 MB, and
+# a reference document rather than an input to scripts/shoot-to-web.mjs. The
+# photographs beside it ARE tracked — docs/menu-photography.md promises that
+# pipeline is re-runnable, which is only true if its sources are in the repo.
+new_shots/*.pdf
