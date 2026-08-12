@@ -77,10 +77,10 @@ export const MENU: MenuCategory[] = [
         descAr: 'خبز برجر - صدر دجاج - سلطة كول سلو - مايونيز',
         price: 2700,
         calories: 550,
-        // Cropped out of the July 2026 launch post. The burger occupies only
-        // ~333px of that image, so it is upscaled and softer than the photos
-        // from the camera shoot — replace if a full-resolution original turns
-        // up.
+        // August 2026 shoot, supplied by the owner and the same frame the
+        // printed menu uses. Replaces the upscaled crop from the July launch
+        // post. Native 4:3 at 1280x960, so the card gets the whole frame with no
+        // crop.
         image: '/menu/classic-stackd.webp',
       },
       {
@@ -91,7 +91,8 @@ export const MENU: MenuCategory[] = [
         descAr: 'خبز برجر - صدر دجاج - مايونيز - صلصة الميبل',
         price: 2900,
         calories: 685,
-        // Same provenance and caveat as classic-stackd.
+        // Same provenance as classic-stackd — August 2026, matches the printed
+        // menu.
         image: '/menu/maple-stackd.webp',
       },
       {
@@ -102,7 +103,8 @@ export const MENU: MenuCategory[] = [
         descAr: 'خبز برجر - صدر دجاج - لحم بريسكيت - مايونيز - صلصة الميبل',
         price: 4800,
         calories: 1200,
-        // Same provenance and caveat as classic-stackd.
+        // Same provenance as classic-stackd — August 2026, matches the printed
+        // menu.
         image: '/menu/big-stackd.webp',
       },
       {
@@ -113,7 +115,10 @@ export const MENU: MenuCategory[] = [
         descAr: 'خبز تورتيلا - صلصة ستاكد - خس - دجاج طازج مقرمش - جبنة - بطاطس',
         price: 1900,
         calories: 890,
-        // July 2026 camera shoot. Full resolution.
+        // July 2026 camera shoot, now from the full-resolution original
+        // (DSC07611, 1991x2877) rather than the earlier export. Portrait, so the
+        // 4:3 card keeps the cut face top-left and the fries bottom-right — see
+        // the crop in scripts/shoot-to-web.mjs.
         image: '/menu/tortilla-strips.webp',
       },
       {
@@ -143,9 +148,11 @@ export const MENU: MenuCategory[] = [
         descAr: 'مكرونة بالجبنة - شرائح دجاج - صلصة ستاكد - صلصة شيدر - سلطة كول سلو - مخلل - بطاطا مقلية مبهرة',
         price: 2500,
         calories: 1100,
-        // From the Scoopy-Doo launch post rather than the camera shoot, at the
-        // owner's request — the poster plates it far better than the kraft bowl
-        // it is served in. Same upscale caveat as the burgers.
+        // August 2026 shoot: the kraft bowl as actually served, with the
+        // coleslaw and pickle pots beside it. This REPLACES the launch-post
+        // poster the owner preferred on 3 Aug 2026 — that preference was against
+        // an older, worse bowl photo, and this frame is the one the printed menu
+        // now uses. Revert to the poster here if the owner disagrees.
         image: '/menu/scoopy-doo.webp',
       },
       {
@@ -157,14 +164,17 @@ export const MENU: MenuCategory[] = [
         price: 2700,
         calories: 1200,
         spicy: true,
-        // NOT A PHOTOGRAPH OF THIS DISH. Fire-Attack has never been shot, so
-        // this is the Scoopy-Doo plate, warm-graded to read spicier, with
-        // jalapeno slices composited in — done at the owner's explicit
-        // instruction on 3 Aug 2026, twice asked for. The heat grade is fair:
-        // this dish really is Nashville-seasoned, so the mild original
-        // under-sold it. The jalapenos are not: they are drawn, and the recipe
-        // does not list them. Replace the moment a real Fire-Attack photo
-        // exists.
+        // The Scoopy-Doo bowl again, because the owner confirmed on 12 Aug 2026
+        // that the two Giants are one dish with a different sauce. THE SAME
+        // UNCROPPED FRAME as Scoopy-Doo, on the owner's instruction — the
+        // difference between the two cards is carried entirely by the sauce,
+        // which is what separates the two dishes. The heat is a grade MASKED TO
+        // THE BOWL: the sauce and chicken go red, the bowl, table, coleslaw and
+        // pickles stay exactly as shot. Two earlier attempts were rejected —
+        // grading the whole frame read as a warm filter over a mild dish, and a
+        // tighter crop changed the framing when only the sauce should change.
+        // The drawn-in jalapenos from the 3 Aug composite are GONE; they were
+        // never in the recipe. Nothing is added to the food.
         image: '/menu/fire-attack.webp',
       },
     ],
@@ -181,13 +191,44 @@ export const MENU: MenuCategory[] = [
         nameAr: 'بطاطس مقلية',
         price: 900,
         calories: 420,
-        // July 2026 camera shoot. Plain, not the seasoned fries that come with
-        // the Giants — confirmed by the owner, so the crop deliberately avoids
-        // the spiced ones.
+        // August 2026 packshot in the branded scoop, chosen by the owner on 12
+        // Aug over the July camera shot. RE-PLATED: lifted off its pale blue
+        // studio sweep and stood on a table built from the Scoopy-Doo frame, so
+        // the Sides row matches the rest of the menu. ⚠ These read as seasoned,
+        // where the July frame was deliberately plain because the owner
+        // confirmed the side is plain. The owner picked this one knowing that;
+        // the description and 420 kcal still describe plain fries.
         image: '/menu/fries.webp',
       },
-      { slug: 'coleslaw', nameEn: 'Coleslaw', nameAr: 'سلطة كول سلو', price: 400, calories: 384 },
-      { slug: 'cheesy-cheese', nameEn: 'Cheesy-Cheese', nameAr: 'تشيزي - تشيز', price: 600, calories: 245 },
+      {
+        slug: 'coleslaw',
+        nameEn: 'Coleslaw',
+        nameAr: 'سلطة كول سلو',
+        price: 400,
+        calories: 384,
+        // August 2026 packshot. RE-PLATED onto the menu's own table — the
+        // concrete it was shot on could not be graded to match, because the
+        // concrete and the tub are the same neutral grey at the same brightness
+        // and nothing separates them by colour. The tub is a circle, so its own
+        // shape is the mask. First photograph this item has ever had.
+        image: '/menu/coleslaw.webp',
+      },
+      {
+        slug: 'cheesy-cheese',
+        nameEn: 'Cheesy-Cheese',
+        nameAr: 'تشيزي - تشيز',
+        price: 600,
+        calories: 245,
+        // Cheese fries, supplied by the owner on 12 Aug 2026, replacing the
+        // composite that stood a cheese pot beside the fries scoop. ⚠⚠ NOT
+        // STACKD'S OWN PHOTOGRAPHY. No branded packaging, a metal tray and a
+        // marble surface — none of it matches the shoot or how the side is
+        // served. If it came from a stock or recipe site, CHECK THE LICENCE
+        // BEFORE THIS GOES LIVE. It also keeps its bright ground while Fries and
+        // Coleslaw were moved onto the dark table, so it is now the odd card in
+        // the Sides row.
+        image: '/menu/cheesy-cheese.webp',
+      },
     ],
   },
   {
@@ -221,20 +262,24 @@ export const BRANCH = {
   nameAr: 'ستاكد - الخبر الشمالية',
   addressEn: 'Al Khobar Al Shamalia, Al Khobar 31311',
   addressAr: 'الخبر الشمالية، الخبر ٣١٣١١',
-  plusCode: '76X9+7P5',
   postalCode: '31311',
   cityEn: 'Al Khobar',
   cityAr: 'الخبر',
   /** E.164 for tel: links. */
   phone: '+966500338808',
   phoneDisplay: '050 033 8808',
-  /** Must exist as a real mailbox or alias on MXroute, or mail to it bounces. */
+  /**
+   * Must exist as a real mailbox or alias on MXroute, or mail to it bounces.
+   *
+   * This is the PUBLIC address — footer, home page, visit page, and the
+   * schema.org block Google reads. It stays `info@`. It was briefly changed to
+   * mohamed.kanzi@ on 12 Aug 2026 and put back the same day: that address is for
+   * signing in to the admin portal, not for customers to write to.
+   */
   email: 'info@stackd.com.sa',
   mapsUrl: 'https://maps.app.goo.gl/Kfi1PbLSJwn4LKcf9',
   instagram: 'stackdchicken',
   tiktok: 'Stackd',
-  /** Reported average spend per person, from the Google listing. */
-  priceRange: 'SAR 40–60',
   services: { dineIn: true, takeaway: true, delivery: true },
 } as const;
 

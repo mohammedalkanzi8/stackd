@@ -76,7 +76,7 @@ values
    'خبز برجر - صدر دجاج - سلطة كول سلو - مايونيز',
    2700, 550,
    '/menu/classic-stackd.webp',
-   'Cropped out of the July 2026 launch post. The burger occupies only ~333px of that image, so it is upscaled and softer than the photos from the camera shoot — replace if a full-resolution original turns up.',
+   'August 2026 shoot, supplied by the owner and the same frame the printed menu uses. Replaces the upscaled crop from the July launch post. Native 4:3 at 1280x960, so the card gets the whole frame with no crop.',
    1),
    -- CONFLICT: in-store board shows 850 cal, digital menu shows 550. Still open.
 
@@ -86,7 +86,7 @@ values
    'خبز برجر - صدر دجاج - مايونيز - صلصة الميبل',
    2900, 685,
    '/menu/maple-stackd.webp',
-   'Same provenance and caveat as classic-stackd.',
+   'Same provenance as classic-stackd — August 2026, matches the printed menu.',
    2),
 
   ('10000000-0000-0000-0000-000000000001',
@@ -95,7 +95,7 @@ values
    'خبز برجر - صدر دجاج - لحم بريسكيت - مايونيز - صلصة الميبل',
    4800, 1200,
    '/menu/big-stackd.webp',
-   'Same provenance and caveat as classic-stackd.',
+   'Same provenance as classic-stackd — August 2026, matches the printed menu.',
    3),
 
   -- Not present on the in-store board. Digital menu only.
@@ -105,7 +105,7 @@ values
    'خبز تورتيلا - صلصة ستاكد - خس - دجاج طازج مقرمش - جبنة - بطاطس',
    1900, 890,
    '/menu/tortilla-strips.webp',
-   'July 2026 camera shoot. Full resolution.',
+   'July 2026 camera shoot, now from the full-resolution original (DSC07611, 1991x2877) rather than the earlier export. Portrait, so the 4:3 card keeps the cut face top-left and the fries bottom-right — see the crop in scripts/shoot-to-web.mjs.',
    4),
    -- RESOLVED 3 Aug 2026: the Arabic name is STACKD's own, from the launch
    -- poster. It is not a translation of the English, which is why it reads
@@ -137,7 +137,7 @@ values
    'مكرونة بالجبنة - شرائح دجاج - صلصة ستاكد - صلصة شيدر - سلطة كول سلو - مخلل - بطاطا مقلية مبهرة',
    2500, 1100, false,
    '/menu/scoopy-doo.webp',
-   'From the Scoopy-Doo launch post rather than the camera shoot, at the owner''s request — the poster plates it far better than the kraft bowl it is served in. Same upscale caveat as the burgers.',
+   'August 2026 shoot: the kraft bowl as actually served, with the coleslaw and pickle pots beside it. This REPLACES the launch-post poster the owner preferred on 3 Aug 2026 — that preference was against an older, worse bowl photo, and this frame is the one the printed menu now uses. Revert to the poster here if the owner disagrees.',
    1),
    -- CONFLICT: in-store board shows 1500 cal, digital menu shows 1100. Still open.
 
@@ -147,7 +147,7 @@ values
    'مكرونة بالجبنة - شرائح دجاج حارة - صلصة ستاكد - ناشفيل - صلصة شيدر - سلطة كول سلو - مخلل - بطاطا مقلية مبهرة',
    2700, 1200, true,
    '/menu/fire-attack.webp',
-   'NOT A PHOTOGRAPH OF THIS DISH. Fire-Attack has never been shot, so this is the Scoopy-Doo plate, warm-graded to read spicier, with jalapeno slices composited in — done at the owner''s explicit instruction on 3 Aug 2026, twice asked for. The heat grade is fair: this dish really is Nashville-seasoned, so the mild original under-sold it. The jalapenos are not: they are drawn, and the recipe does not list them. Replace the moment a real Fire-Attack photo exists.',
+   'The Scoopy-Doo bowl again, because the owner confirmed on 12 Aug 2026 that the two Giants are one dish with a different sauce. THE SAME UNCROPPED FRAME as Scoopy-Doo, on the owner''s instruction — the difference between the two cards is carried entirely by the sauce, which is what separates the two dishes. The heat is a grade MASKED TO THE BOWL: the sauce and chicken go red, the bowl, table, coleslaw and pickles stay exactly as shot. Two earlier attempts were rejected — grading the whole frame read as a warm filter over a mild dish, and a tighter crop changed the framing when only the sauce should change. The drawn-in jalapenos from the 3 Aug composite are GONE; they were never in the recipe. Nothing is added to the food.',
    2);
    -- CONFLICT: in-store board shows 1600 cal, digital menu shows 1200. Still open.
 
@@ -160,13 +160,17 @@ insert into menu_items
 values
   ('10000000-0000-0000-0000-000000000003', 'fries', 'Fries', 'بطاطس مقلية', 900, 420,
    '/menu/fries.webp',
-   'July 2026 camera shoot. Plain, not the seasoned fries that come with the Giants — confirmed by the owner, so the crop deliberately avoids the spiced ones.',
+   'August 2026 packshot in the branded scoop, chosen by the owner on 12 Aug over the July camera shot. RE-PLATED: lifted off its pale blue studio sweep and stood on a table built from the Scoopy-Doo frame, so the Sides row matches the rest of the menu. ⚠ These read as seasoned, where the July frame was deliberately plain because the owner confirmed the side is plain. The owner picked this one knowing that; the description and 420 kcal still describe plain fries.',
    1),
   ('10000000-0000-0000-0000-000000000003', 'coleslaw', 'Coleslaw', 'سلطة كول سلو', 400, 384,
-   null, null, 2),
+   '/menu/coleslaw.webp',
+   'August 2026 packshot. RE-PLATED onto the menu''s own table — the concrete it was shot on could not be graded to match, because the concrete and the tub are the same neutral grey at the same brightness and nothing separates them by colour. The tub is a circle, so its own shape is the mask. First photograph this item has ever had.',
+   2),
   ('10000000-0000-0000-0000-000000000003', 'cheesy-cheese', 'Cheesy-Cheese', 'تشيزي - تشيز', 600, 245,
-   null, null, 3);
-   -- Coleslaw and Cheesy-Cheese are the two dishes with no photograph at all.
+   '/menu/cheesy-cheese.webp',
+   'Cheese fries, supplied by the owner on 12 Aug 2026, replacing the composite that stood a cheese pot beside the fries scoop. ⚠⚠ NOT STACKD''S OWN PHOTOGRAPHY. No branded packaging, a metal tray and a marble surface — none of it matches the shoot or how the side is served. If it came from a stock or recipe site, CHECK THE LICENCE BEFORE THIS GOES LIVE. It also keeps its bright ground while Fries and Coleslaw were moved onto the dark table, so it is now the odd card in the Sides row.',
+   3);
+   -- Both of these were placeholder cards until 12 Aug 2026.
 
 -- ---------------------------------------------------------------------------
 -- Sauces — all 3 SAR
