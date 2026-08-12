@@ -321,8 +321,26 @@ export default async function PointsPage({
           </div>
         </div>
 
-        <div className="card" id="code">
-          <h2 style={{ textAlign: 'center' }}>Show this at the counter</h2>
+        {/*
+          ⚠ TWO SCANNABLE CODES ON ONE SCREEN, MEANING OPPOSITE THINGS. The
+          member code identifies the customer so a bill ADDS points; the
+          redemption code SPENDS them. A cashier with a queue reads a phone, not
+          a label, so while a redemption is live this card collapses and the
+          screen carries exactly one code.
+
+          It collapses rather than disappearing because giving points for a bill
+          needs the member code (see creditBill on the admin scan page). A
+          customer redeeming AND earning on the same purchase would otherwise
+          have to cancel the code, get scanned, and claim again.
+
+          `<details>` rather than a toggle component: it is native, accessible,
+          and works with no JavaScript at all, which is the right dependency for
+          something a customer opens on shop wifi at a counter.
+        */}
+        <details className="card member-card" id="code" open={!activeCode}>
+          <summary>
+            {activeCode ? 'Show my member code' : 'Show this at the counter'}
+          </summary>
           <div className="member-qr" dangerouslySetInnerHTML={{ __html: qr }} />
           <p className="member-code mono">{member.memberCode}</p>
           <p className="muted" style={{ textAlign: 'center', fontSize: 13 }}>
@@ -353,7 +371,7 @@ export default async function PointsPage({
           ) : null}
 
           <InstallButton />
-        </div>
+        </details>
 
         {activeCode ? null : redeemCard}
 

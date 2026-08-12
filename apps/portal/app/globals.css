@@ -129,6 +129,43 @@ main > .card { margin-block-start: 18px; }
 .balance .sub { font-size: 13px; opacity: 0.85; margin-block-start: 10px; }
 
 /* ---------- member QR ---------- */
+/* ---------- the member card, collapsible ----------
+   `<details>` while a redemption code is live, so the screen carries one
+   scannable code at a time. See the note in points/page.tsx for why it
+   collapses rather than disappearing.
+
+   `main > .card` supplies the top margin and `details` is a card, so nothing
+   here needs to repeat that. */
+main > details.card { margin-block-start: 18px; }
+
+.member-card > summary {
+  /* Reads as the card's heading in both states: it IS the heading when the card
+     is open, and the control when it is closed. */
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  list-style: none;
+  margin: 0 0 4px;
+}
+/* Safari draws its own triangle through ::-webkit-details-marker, which
+   list-style alone does not remove. */
+.member-card > summary::-webkit-details-marker { display: none; }
+.member-card > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 6px; }
+
+/* Closed, the summary is a control and should look like one. Open, it is a
+   heading and should not. */
+.member-card:not([open]) > summary {
+  font-size: 15px;
+  color: var(--dim);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 10px 16px;
+  margin: 0;
+}
+.member-card:not([open]) > summary:hover { color: var(--text); border-color: var(--rule-strong); }
+.member-card:not([open]) { padding: 12px; }
+
 .member-qr { background: #fff; padding: 12px; border-radius: 10px; width: 190px; margin: 0 auto; }
 .member-qr svg { display: block; width: 100%; height: auto; }
 .member-code { font-size: 24px; letter-spacing: 0.22em; text-align: center; margin: 14px 0 0; font-weight: 700; }
