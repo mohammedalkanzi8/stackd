@@ -14,6 +14,85 @@ one — `mohamed.kanzi@` is an admin-portal login and is never shown to customer
 
 ---
 
+## 12 August 2026 — a welcome bonus was reading as points somebody earned
+
+**✅ FIXED AND LIVE.** Migration `0007_lifetime_earned_purchases_only.sql`,
+applied to production. Database only — no rebuild, no downtime, and **no
+customer's spendable balance changed**.
+
+Reported from production: a member who had just joined and bought nothing showed
+100 lifetime points. That 100 is the welcome bonus.
+
+`apply_loyalty_transaction()` added `greatest(new.delta, 0)` to `lifetime_earned`
+for **every** positive ledger row, so the welcome bonus, a birthday bonus and a
+manager's goodwill credit all counted. The portal renders that figure as "earned
+since you joined" and the admin as "earned all time", and neither sentence was
+true for anyone who had ever been given anything.
+
+### The rule now: buying only
+
+`lifetime_earned` is the net of `earn_purchase` **and `order_refund`**, nothing
+else. Those two are one idea rather than two — `order_refund` exists to claw back
+what an order earned, so leaving it out would let somebody refund every purchase
+they ever made and keep a lifetime figure saying they had earned it.
+
+Excluded on purpose: `signup_bonus`, `birthday_bonus`, `manual_adjust`. All three
+are gifts, and a gift is not something you earned. `redeem_reward`,
+`redeem_counter` and `expiry` were never counted and still are not — spending
+points does not un-earn them.
+
+⚠ **`balance` is untouched.** The bonus is still money in the customer's pocket.
+Only the description of it changed.
+
+### The rebuild is exact, not an estimate
+
+The ledger is the source of truth and can always reconstruct this column, so the
+migration recomputes every row from it rather than adjusting what is there.
+That also makes it **idempotent by construction** — it writes an absolute value,
+so running it ten times gives the same answer as running it once.
+
+It leaves `updated_at` alone deliberately: that column records when a customer's
+points last moved, nothing is moving, and bumping it would make every member look
+active to the expiry sweep.
+
+**Production: `UPDATE 3`** — the three members who had welcome bonuses — and the
+closing check reported **0 rows still disagreeing with the ledger**. Ledger and
+balances both 9,150 and reconciling afterwards.
+
+Verified before shipping by reproducing the bug on dev: a member on 700 with a
+100 bonus and a 600 purchase, corrected to lifetime 600 with the balance left at
+700. Three new tests cover a welcome bonus, a refund clawback and a manager
+credit. **118 pass.**
+
+### ⚠ The other three reports were already fixed — by the deploy hours earlier
+
+Reported alongside it, all confirmed working in the running containers:
+
+| Reported | Reality |
+|---|---|
+| Redeem box appears below the 500 floor | Fixed by that day's deploy. `min_redeem_points` did not exist until `0005`, so this was genuinely broken until hours before it was reported |
+| Admin should configure the minimum | Live. Admin → Points → "Minimum redeem points" |
+| Admin should set the joining bonus | Live. Same page. Currently 100 |
+| Cannot change reward point costs | Live. Admin → Rewards → edit → "Points cost" |
+
+**The lesson is about who can see them.** The Points page is `SUPER_ADMIN` —
+`owner` only. Rewards is `ADMIN` — `manager` or `owner`. A manager looking for
+the signup bonus does not find a disabled field, they find no field, which reads
+exactly like a missing feature rather than a permission.
+
+### ⚠ `mohamed.kanzi@stackd.com.sa` IS NOT A STAFF ACCOUNT ON PRODUCTION
+
+Production has exactly two: `info@stackd.com.sa` (**owner** / Super Admin,
+Mohamed Kanzi) and `saddah.muawia@stackd.com.sa` (**manager**, Saddah Muawia).
+
+So the owner signs in as `info@` today. `mohamed.kanzi@` exists in
+`dev-data.sql` as a fixture and has never been created on the live box — which
+also means a sign-in attempt with it simply fails. Create it through Staff → Add
+and set the password with `npm run admin:passwd`, or keep using `info@`. It is
+one or the other, and right now it is `info@`.
+
+---
+
 ## 12 August 2026 — deployed: everything
 
 **✅ ALL LIVE.** The VM went `47c651c` → `f8bd7b5`, migrations `0004`, `0005` and
@@ -292,7 +371,7 @@ the thing it warned about, which is the failure mode this file has to avoid.
 | Address | What it is for | Where it appears |
 |---|---|---|
 | `info@stackd.com.sa` | **The public address.** The restaurant's, the owner's. | Home page, visit page, footer, the schema.org block Google reads — all from `BRANCH.email`, one constant |
-| `mohamed.kanzi@stackd.com.sa` | **An admin-portal login.** Never shown to a customer. | A `staff` row. `dev-data.sql` locally; on production created through Staff → Add |
+| `mohamed.kanzi@stackd.com.sa` | **Intended as an admin-portal login.** Never shown to a customer. ⚠ **Not created on production** — the owner signs in as `info@` there. | A `staff` row in `dev-data.sql` only |
 
 Both mailboxes exist on MXroute. Nothing about the website deploy depends on the
 second one — staff sign in with email and password and the admin portal sends no
