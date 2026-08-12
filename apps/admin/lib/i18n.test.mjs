@@ -73,3 +73,24 @@ test('Arabic carries no Western-to-Arabic numeral drift', () => {
   );
   assert.deepEqual(withIndic, [], `Arabic-Indic numerals in: ${withIndic.join(', ')}`);
 });
+
+test('Arabic noun phrases stay bound with non-breaking spaces', () => {
+  // ⚠ These broke across lines on the live scan page and made the paragraph
+  // read as damaged rather than merely wrapped. Widening the measure only moves
+  // a break; a non-breaking space is the only thing that pins it.
+  //
+  // A plain space between any of these pairs means somebody retyped the string
+  // and lost the binding, which is invisible until an Arabic screen is narrow
+  // enough to wrap there.
+  const BOUND = [
+    ['قارئ', 'الباركود'],
+    ['لوحة', 'المفاتيح'],
+    ['بطاقة', 'العضو'],
+    ['رمز', 'الاستبدال'],
+    ['صفحة', 'النقاط'],
+  ];
+  const start = SRC.indexOf('const AR: Dict = {');
+  const body = SRC.slice(start, SRC.indexOf('\n};', start));
+  const broken = BOUND.filter(([a, b]) => body.includes(`${a} ${b}`)).map((p) => p.join(' '));
+  assert.deepEqual(broken, [], `these lost their non-breaking space: ${broken.join(', ')}`);
+});

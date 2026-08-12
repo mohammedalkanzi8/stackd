@@ -324,15 +324,19 @@ h2 { font-size: 17px; margin: 0 0 4px; letter-spacing: -0.01em; }
    column in Cairo, which is what forced this paragraph to break mid-phrase.
    Arabic gets its own measure below.
 
-   `text-wrap: pretty` asks the browser to avoid orphans and awkward last lines.
-   Unsupported browsers ignore it and wrap as before, so unlike `light-dark()`
-   this one is safe to reach for. */
+   `text-wrap: balance` rather than `pretty`: a lede is one to three lines, which
+   is precisely the case balance is built for — it evens the lines instead of
+   filling the first and leaving a stub. `pretty` only trims orphans and left the
+   scan page with a long first line and a short second.
+
+   Phrases that must not split at all are bound with non-breaking spaces in the
+   dictionary, not here. Width moves a break; only a bound space pins it. */
 .lede {
   color: var(--dim);
   margin: 0 0 var(--s-sect);
   max-width: 64ch;
   font-size: 14.5px;
-  text-wrap: pretty;
+  text-wrap: balance;
 }
 html[lang='ar'] .lede { max-width: 74ch; }
 .eyebrow {
