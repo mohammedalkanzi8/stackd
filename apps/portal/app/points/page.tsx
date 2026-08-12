@@ -31,18 +31,12 @@ interface Entry {
   note: string | null;
   created_at: Date;
   reward: string | null;
+  reward_ar: string | null;
 }
 
-const REASON: Record<string, string> = {
-  earn_purchase: 'Points from a visit',
-  redeem_reward: 'Reward claimed',
-  redeem_counter: 'Spent off a bill',
-  signup_bonus: 'Welcome bonus',
-  birthday_bonus: 'Birthday treat',
-  manual_adjust: 'Adjusted by the team',
-  expiry: 'Expired',
-  order_refund: 'Refunded order',
-};
+/* Ledger reasons come from the dictionary under `rsn.`, keyed by the database
+   enum. This was a module-level English map, which is why every line of a
+   customer's history stayed English on an Arabic screen. */
 
 async function redeem(formData: FormData): Promise<void> {
   'use server';
@@ -166,7 +160,8 @@ export default async function PointsPage({
   `);
 
   const entries = await query<Entry>(
-    `select t.id, t.delta, t.reason, t.note, t.created_at, r.name_en as reward
+    `select t.id, t.delta, t.reason, t.note, t.created_at,
+            r.name_en as reward, r.name_ar as reward_ar
        from loyalty_transactions t
        left join rewards r on r.id = t.reward_id
       where t.customer_id = $1
@@ -187,8 +182,10 @@ export default async function PointsPage({
     points: number;
     expires_at: Date;
     reward_name: string | null;
+    reward_name_ar: string | null;
   }>(
-    `select t.token, t.points, t.expires_at, r.name_en as reward_name
+    `select t.token, t.points, t.expires_at,
+            r.name_en as reward_name, r.name_ar as reward_name_ar
        from redemption_tokens t
        left join rewards r on r.id = t.reward_id
       where t.customer_id = $1 and t.redeemed_at is null and t.expires_at > now()`,
@@ -200,7 +197,9 @@ export default async function PointsPage({
         points: live.points,
         qrSvg: await qrSvg(live.token),
         expiresAt: new Date(live.expires_at).toISOString(),
-        rewardName: live.reward_name,
+        // Resolved here rather than passing both names into the client panel:
+        // the language is a server concern and the panel only needs the answer.
+        rewardName: lang === 'ar' && live.reward_name_ar ? live.reward_name_ar : live.reward_name,
       }
     : null;
 
@@ -390,14 +389,25 @@ export default async function PointsPage({
               return (
                 <div className={`reward${affordable ? '' : ' locked'}`} key={r.id}>
                   <div className="body">
-                    <div className="name">{r.name_en}</div>
+                    <div className="name">
+                      {lang === 'ar' && r.name_ar ? r.name_ar : r.name_en}
+                    </div>
                     <div className="cost">
-                      {r.points_cost} points
+                      {/* One string with holes, not a fragment chain: Arabic
+                          orders the parts differently and a chain has no order
+                          to change. It also left "points" and "off" untranslated
+                          and let bidi reorder the line. */}
                       {r.free_item
-                        ? ` · ${r.free_item} free`
+                        ? tf(lang, 'pt.costFree', {
+                            n: r.points_cost,
+                            what: r.free_item,
+                          })
                         : r.discount_amount
-                          ? ` · ${formatSar(r.discount_amount)} off`
-                          : ''}
+                          ? tf(lang, 'pt.costOff', {
+                              n: r.points_cost,
+                              sar: formatSar(r.discount_amount),
+                            })
+                          : tf(lang, 'pt.costPoints', { n: r.points_cost })}
                     </div>
                   </div>
                   {affordable ? (
@@ -429,17 +439,21 @@ export default async function PointsPage({
               <div className="entry" key={e.id}>
                 <div>
                   <div>
-                    {REASON[e.reason] ?? e.reason}
-                    {e.reward ? ` · ${e.reward}` : ''}
+                    {t(lang, `rsn.${e.reason}`)}
+                    {e.reward ? ` · ${lang === 'ar' && e.reward_ar ? e.reward_ar : e.reward}` : ''}
                   </div>
                   <div className="when">
-                    {new Date(e.created_at).toLocaleDateString('en-GB', {
+                    {/* ⚠ The `note` is deliberately NOT shown. It is an audit
+                        field written by and for staff, in English, and it
+                        carries strings like "Refund: reward claim gave no code
+                        (fix 0008) #19" — an internal reference that means
+                        nothing to a customer and cannot be translated. The
+                        reason and the reward name already say what happened. */}
+                    {fmtDate(lang, e.created_at, {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric',
-                      timeZone: 'Asia/Riyadh',
                     })}
-                    {e.note ? ` · ${e.note}` : ''}
                   </div>
                 </div>
                 <div className={e.delta > 0 ? 'pos num' : 'neg num'}>

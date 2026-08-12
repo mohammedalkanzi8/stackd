@@ -100,7 +100,7 @@ export default async function PasswordPage({
             )}
             <div>
               <label htmlFor="password">
-                {t(lang, 'pw.new')} <span className="hint">at least 8 characters</span>
+                {t(lang, 'pw.new')} <span className="hint">{t(lang, 'w.min8')}</span>
               </label>
               <input
                 id="password"

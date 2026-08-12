@@ -97,7 +97,7 @@ export default async function VerifyPage({
         </div>
 
         <p className="muted">
-          {t(lang, 'fg.noMail')} <Link href="/forgot">send another code</Link>.
+          {t(lang, 'fg.noMail')} <Link href="/forgot">{t(lang, 'fg.sendAnother')}</Link>.
         </p>
 
         {/* Reachable before the portal chrome exists, and Arabic is the

@@ -7,7 +7,7 @@ import { currentMember } from '@/lib/session.ts';
 import { issueResetCode, normaliseEmail, RESET } from '@/lib/reset.ts';
 
 import { getLang } from '@/lib/prefs.ts';
-import { t } from '@/lib/i18n.ts';
+import { t, tf } from '@/lib/i18n.ts';
 import { LangSwitch } from '@/app/LangSwitch.tsx';
 
 export const metadata = { title: 'Forgotten password · STACKD Rewards' };
@@ -90,9 +90,7 @@ export default async function ForgotPage({
             form deliberately cannot tell them whether the address is registered,
             so silence is the only signal a typo ever produces. */}
         <p className="muted">
-          The code lasts {RESET.TTL_MINUTES} minutes. If no mail arrives, that
-          address is not on an account — try another, or{' '}
-          <Link href="/registration">join</Link>.
+          {tf(lang, 'fg.codeLasts', { n: RESET.TTL_MINUTES })}
         </p>
         <p className="muted">
           {t(lang, 'fg.remembered')} <Link href="/login">{t(lang, 'a.signIn')}</Link>

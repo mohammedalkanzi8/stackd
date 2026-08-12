@@ -181,8 +181,8 @@ export default async function ClaimPage({
             {member ? null : (
               <p className="muted">
                 <Link href={`/login?from=claim`}>{t(lang, 'a.signIn')}</Link> instead, or{' '}
-                <Link href="/registration">join now</Link>. This receipt stays valid
-                until {when(found.expires_at)}.
+                <Link href="/registration">{t(lang, 'cl.joinNow')}</Link>.{' '}
+                {t(lang, 'cl.stillValid')}
               </p>
             )}
           </>

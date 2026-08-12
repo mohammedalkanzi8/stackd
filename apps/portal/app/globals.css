@@ -262,7 +262,20 @@ main > details.card { margin-block-start: 18px; }
 
 /* ---------- forms ---------- */
 label { display: block; font-size: 13px; font-weight: 600; margin-block-end: 6px; }
-label .hint { font-weight: 400; color: var(--faint); }
+/* ⚠ The gap is `margin-inline-start`, not a space in the JSX. A space between
+   two JSX expressions is not rendered, so `{label}<span class=hint>` produced
+   "كلمة المرورat least 8 characters" with the two runs jammed together — and in
+   RTL bidi then reordered them, which made a missing space look like a
+   translation bug. Owning the gap in CSS means it cannot be lost by an edit to
+   the markup. */
+label .hint {
+  font-weight: 400;
+  color: var(--faint);
+  margin-inline-start: 8px;
+  /* Its own bidi run, so a Latin hint beside an Arabic label cannot be
+     reordered into the label. */
+  unicode-bidi: isolate;
+}
 input[type='text'], input[type='email'], input[type='tel'], input[type='password'], select {
   width: 100%; padding: 12px 13px; border: 1px solid var(--rule-strong); border-radius: 9px;
   background: var(--ink); color: var(--text); font: inherit; font-size: 16px;

@@ -6,7 +6,7 @@ import { SubmitButton } from '../SubmitButton.tsx';
 import { currentMember, normalisePhone, startSession } from '@/lib/session.ts';
 
 import { getLang } from '@/lib/prefs.ts';
-import { t } from '@/lib/i18n.ts';
+import { t, tf } from '@/lib/i18n.ts';
 import { LangSwitch } from '@/app/LangSwitch.tsx';
 
 export const metadata = { title: 'Join STACKD Rewards' };
@@ -36,7 +36,7 @@ async function register(formData: FormData): Promise<void> {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fail(t(await getLang(), 'reg.errEmail'));
 
   const phone = normalisePhone(rawPhone);
-  if (!phone) fail(`"${rawPhone}" is not a Saudi mobile number. Try 050 033 8808.`);
+  if (!phone) fail(tf(await getLang(), 'reg.badPhone', { n: rawPhone }));
   if (password.length < 8) fail(t(await getLang(), 'reg.errPw'));
 
   // Checked up front so the common case gets a sentence about the field it
@@ -134,8 +134,8 @@ export default async function RegistrationPage({
         <h1>{t(lang, 'reg.lede')}</h1>
         <p className="lede">
           {bonus > 0
-            ? `${bonus} points the moment you sign up, then ${Number(settings?.earn_percent ?? 10)}% of every bill back as points.`
-            : `Get ${Number(settings?.earn_percent ?? 10)}% of every bill back as points, then spend them off a later one.`}
+            ? tf(lang, 'reg.leadBonus', { n: bonus, pct: Number(settings?.earn_percent ?? 10) })
+            : tf(lang, 'reg.leadNoBonus', { pct: Number(settings?.earn_percent ?? 10) })}
         </p>
 
         {error ? <div className="banner bad">{error}</div> : null}
@@ -165,7 +165,7 @@ export default async function RegistrationPage({
               />
             </div>
             <div>
-              <label htmlFor="phone">{t(lang, 'reg.mobile')}<span className="hint">050 033 8808</span>
+              <label htmlFor="phone">{t(lang, 'reg.mobile')}
               </label>
               <input
                 id="phone"
@@ -178,7 +178,7 @@ export default async function RegistrationPage({
               />
             </div>
             <div>
-              <label htmlFor="password">{t(lang, 'w.password')}<span className="hint">at least 8 characters</span>
+              <label htmlFor="password">{t(lang, 'w.password')} <span className="hint">{t(lang, 'w.min8')}</span>
               </label>
               <input
                 id="password"
