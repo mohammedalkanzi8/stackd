@@ -319,26 +319,26 @@ main { max-width: 1080px; margin: 0 auto; padding: 28px 20px 80px; }
 /* ---------- headings ---------- */
 h1 { font-size: 24px; letter-spacing: -0.015em; margin: 0 0 4px; text-wrap: balance; }
 h2 { font-size: 17px; margin: 0 0 4px; letter-spacing: -0.01em; }
-/* ⚠ `ch` IS THE WIDTH OF THE DIGIT ZERO, which says nothing useful about an
-   Arabic line. 64ch is a sound Latin measure and produces a noticeably narrow
-   column in Cairo, which is what forced this paragraph to break mid-phrase.
-   Arabic gets its own measure below.
+/* ⚠ NO `max-width` HERE, DELIBERATELY, AND THIS IS THE SECOND TIME IT HAS BEEN
+   REMOVED. A 64-74ch measure is the right rule for long-form reading and the
+   wrong one for this app: these are one-sentence instructions above a form, the
+   page container is already capped at 1080px, and a measure only splits a
+   sentence that would otherwise sit on one line. Two lines where one would do
+   is what it actually produced on the scan page.
 
-   `text-wrap: balance` rather than `pretty`: a lede is one to three lines, which
-   is precisely the case balance is built for — it evens the lines instead of
-   filling the first and leaving a stub. `pretty` only trims orphans and left the
-   scan page with a long first line and a short second.
+   `ch` is also the width of the digit zero, which under-describes an Arabic
+   line, so the Arabic column came out narrower still.
 
-   Phrases that must not split at all are bound with non-breaking spaces in the
-   dictionary, not here. Width moves a break; only a bound space pins it. */
+   `text-wrap: pretty` picks better break points on a narrow screen and does
+   nothing at all when the sentence fits on one line, which is the common case
+   here. Phrases that must never split are bound with non-breaking spaces in the
+   dictionary, not with width. Width moves a break; only a bound space pins it. */
 .lede {
   color: var(--dim);
   margin: 0 0 var(--s-sect);
-  max-width: 64ch;
   font-size: 14.5px;
-  text-wrap: balance;
+  text-wrap: pretty;
 }
-html[lang='ar'] .lede { max-width: 74ch; }
 .eyebrow {
   font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--label); margin: 0 0 8px; font-weight: 600;
@@ -929,38 +929,25 @@ html[lang='ar'] table.data th.right {
   }
 }
 
-/* ── PROSE MEASURE ────────────────────────────────────────────────────────────
-   ⚠ ONLY `.lede` AND `h1` HAD A MEASURE. Every other paragraph in the portal —
-   the explanatory notes under a form, the sync banner on the menu page, the
-   footnote under the overview — ran the full 1080px container. At 13px that is
-   roughly 130 characters a line, about double a comfortable measure, and it is
-   why paragraphs on pages other than the scan page still read as badly wrapped
-   even after their phrases were bound.
+/* ── PROSE ───────────────────────────────────────────────────────────────────
+   ⚠ A `max-width` WAS ADDED HERE AND IS DELIBERATELY GONE AGAIN. The reasoning
+   was sound in general — 130 characters a line is past a comfortable measure —
+   and wrong for this portal in particular. Every one of these strings is a
+   one-or-two-sentence note, the container is already capped at 1080px, and the
+   measure's only visible effect was to break sentences onto a second line that
+   fitted comfortably on one.
 
-   Block-level selectors on purpose. `.muted` is also used on inline spans, where
-   a max-width would do nothing and a text-wrap would be meaningless.
+   Keep `text-wrap: pretty`: it costs nothing, changes nothing when the text
+   fits, and picks better break points on a narrow screen where these genuinely
+   do wrap. If a measure is ever wanted back, it belongs on long-form reading,
+   which this portal does not have.
 
-   `pretty` rather than `balance` here: these run longer than three lines, which
-   is where balance stops helping and pretty's orphan control starts to. */
+   Phrases that must never split are bound with non-breaking spaces in the
+   dictionary. Width moves a break; only a bound space pins it. */
 p.muted,
 .banner,
 .notes li,
 .hero-sub,
 .empty {
-  max-width: 68ch;
   text-wrap: pretty;
 }
-html[lang='ar'] p.muted,
-html[lang='ar'] .banner,
-html[lang='ar'] .notes li,
-html[lang='ar'] .hero-sub,
-html[lang='ar'] .empty {
-  /* Same reasoning as `.lede`: `ch` is the width of the digit zero and
-     under-describes an Arabic line, so the Arabic measure is set wider to land
-     on a comparable number of words. */
-  max-width: 78ch;
-}
-
-/* Centred text has no measure to speak of, so it keeps the full width but still
-   gets sensible break points. */
-.empty { margin-inline: auto; }

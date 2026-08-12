@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { ADMIN, SUPER_ADMIN, requireRole, requireStaff } from '@/lib/auth.ts';
 
 import { getLang } from '@/lib/prefs.ts';
-import { t, fmtDate } from '@/lib/i18n.ts';
+import { t, tf, fmtDate } from '@/lib/i18n.ts';
 
 export const dynamic = 'force-dynamic';
 
@@ -190,10 +190,10 @@ async function deleteMember(formData: FormData): Promise<void> {
   );
   if ((orders?.n ?? 0) > 0) {
     stop(
-      `${member!.full_name ?? 'This member'} has ${orders!.n} order${
-        orders!.n === 1 ? '' : 's'
-      } against their name and cannot be deleted — that is sales history. ` +
-        t(await getLang(), 'err.zeroFromLedger'),
+      `${tf(await getLang(), 'md.hasOrders', {
+        name: member!.full_name ?? '',
+        n: orders!.n,
+      })} ${t(await getLang(), 'err.zeroFromLedger')}`,
     );
   }
 
@@ -424,11 +424,8 @@ export default async function MemberPage({
             <p className="lede">
               {member.full_name ?? 'This member'} has{' '}
               <strong>
-                {orderCount} order{orderCount === 1 ? '' : 's'}
-              </strong>{' '}
-              against their name, so they cannot be deleted — that is sales
-              history, and it stays. Points can be zeroed from the ledger above
-              instead.
+                {tf(lang, 'md.cannotDelete', { n: orderCount })}
+              </strong>
             </p>
           ) : (
             <>

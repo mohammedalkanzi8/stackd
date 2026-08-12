@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { ADMIN, SUPER_ADMIN, requireRole, requireStaff } from '@/lib/auth.ts';
 
 import { getLang } from '@/lib/prefs.ts';
-import { t, fmtDate } from '@/lib/i18n.ts';
+import { t, tf, fmtDate } from '@/lib/i18n.ts';
 
 export const dynamic = 'force-dynamic';
 
@@ -341,7 +341,11 @@ export default async function OrderPage({
         <div className="card danger">
           <h2>{t(lang, 'od.voided')}</h2>
           <p className="lede" style={{ marginBlockEnd: 0 }}>
-            {order.void_reason} — voided by {order.voided_by_name ?? 'a super admin'} on{' '}
+            {order.void_reason}{' · '}
+            {tf(lang, 'od.voidedBy', {
+              who: order.voided_by_name ?? t(lang, 'od.aSuperAdmin'),
+              when: '',
+            })}{' '}
             {fmtDate(lang, order.voided_at!, {
               day: 'numeric',
               month: 'long',
@@ -358,9 +362,7 @@ export default async function OrderPage({
         <div className="card danger">
           <h2>{t(lang, 'od.voidThis')}</h2>
           <p className="lede">
-            Takes {formatSar(order.grand_total)} out of the takings. The ticket
-            stays in the books with its number — deleting it would break the
-            gapless invoice sequence the tax rules require.
+            {tf(lang, 'od.voidWarning', { sar: formatSar(order.grand_total) })}
             {order.points_earned > 0 ? (
               <>
                 {' '}

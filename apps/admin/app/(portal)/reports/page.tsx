@@ -454,8 +454,9 @@ export default async function ReportsPage({
             {t(lang, period.key)}
           </span>
         </div>
-        <p className="lede">{t(lang, 'rep.ledgerNote')}<b>{t(lang, 'rep.expiredNotCost')}</b> — they are a
-          liability that lapsed, which is the opposite.
+        <p className="lede">
+          {t(lang, 'rep.ledgerNote')} <b>{t(lang, 'rep.expiredNotCost')}</b>{' '}
+          {t(lang, 'rep.lapsedNote')}
         </p>
 
         {breakdown.length === 0 ? (
