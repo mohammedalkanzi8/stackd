@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { getLang } from '@/lib/prefs.ts';
-import { t } from '@/lib/i18n.ts';
+import { t, tf } from '@/lib/i18n.ts';
 import { redirect } from 'next/navigation';
 
 import { query, queryOne, transaction } from '@stackd/server';
@@ -48,7 +48,7 @@ async function addMember(formData: FormData): Promise<void> {
   if (/^9665\d{8}$/.test(digits)) phone = `+${digits}`;
   else if (/^05\d{8}$/.test(digits)) phone = `+966${digits.slice(1)}`;
   else if (/^5\d{8}$/.test(digits)) phone = `+966${digits}`;
-  else fail(`"${rawPhone}" is not a Saudi mobile number. Try 050 033 8808.`);
+  else fail(tf(await getLang(), 'err.badPhone', { n: rawPhone }));
 
   if (!['ar', 'en'].includes(locale)) fail(t(await getLang(), 'err.lang'));
 
@@ -221,7 +221,7 @@ export default async function MembersPage({
           </div>
           <div className="field">
             <label htmlFor="phone">
-              {t(lang, 'mem.mobile')} <span className="hint" dir="ltr">050 033 8808</span>
+              {t(lang, 'mem.mobile')}
             </label>
             <input id="phone" name="phone" type="text" inputMode="tel" required />
           </div>

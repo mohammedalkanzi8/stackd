@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { ROLE_LABEL, requireRole, requireStaff, type Role } from '@/lib/auth.ts';
 
 import { getLang } from '@/lib/prefs.ts';
-import { t } from '@/lib/i18n.ts';
+import { t, tf } from '@/lib/i18n.ts';
 
 export const metadata = { title: 'Staff · STACKD admin' };
 export const dynamic = 'force-dynamic';
@@ -81,7 +81,8 @@ async function addStaff(formData: FormData): Promise<void> {
     );
   });
 
-  done(`${name} can now sign in as ${ROLE_LABEL[role].toLowerCase()}.`);
+  const lg = await getLang();
+  done(tf(lg, 'stf.canSignIn', { name, role: t(lg, `role.${role}`) }));
 }
 
 async function changeRole(formData: FormData): Promise<void> {
@@ -98,7 +99,8 @@ async function changeRole(formData: FormData): Promise<void> {
     [id, role],
   );
   if (rows.length === 0) fail(t(await getLang(), 'err.noPerson'));
-  done(`${rows[0].full_name} is now ${ROLE_LABEL[role].toLowerCase()}.`);
+  const lg2 = await getLang();
+  done(tf(lg2, 'stf.roleChanged', { name: rows[0].full_name ?? '', role: t(lg2, `role.${role}`) }));
 }
 
 /**
@@ -216,14 +218,14 @@ export default async function StaffPage({
                         <select name="role" defaultValue={p.role} style={{ width: 130 }}>
                           {ROLES.map((r) => (
                             <option key={r} value={r}>
-                              {ROLE_LABEL[r]}
+                              {t(lang, `role.${r}`)}
                             </option>
                           ))}
                         </select>
                         <button type="submit">{t(lang, 'stf.set')}</button>
                       </form>
                     ) : (
-                      ROLE_LABEL[p.role]
+                      t(lang, `role.${p.role}`)
                     )}
                   </td>
                   <td className="right num muted">{p.adjustments}</td>
@@ -297,7 +299,7 @@ export default async function StaffPage({
                 <select id="role" name="role" defaultValue="cashier">
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
-                      {ROLE_LABEL[r]}
+                      {t(lang, `role.${r}`)}
                     </option>
                   ))}
                 </select>
@@ -316,9 +318,8 @@ export default async function StaffPage({
               <SubmitButton className="primary" pendingLabel={`${t(lang, 'a.adding')}…`}>{t(lang, 'stf.add')}</SubmitButton>
             </div>
           </form>
-          <p className="muted" style={{ fontSize: 13, marginBlockStart: 14, marginBlockEnd: 0 }}>{t(lang, 'stf.writesTo')}<code>auth.users</code>, which is ours only while the
-            database is self-hosted. If staff ever move to Supabase&rsquo;s own auth,
-            adding people happens there instead and this form goes away.
+          <p className="muted" style={{ fontSize: 13, marginBlockStart: 14, marginBlockEnd: 0 }}>
+            {t(lang, 'stf.storedNote')}
           </p>
         </div>
       ) : (

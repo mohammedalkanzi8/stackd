@@ -453,15 +453,18 @@ main > :last-child { margin-block-end: 0; }
 
 /* ---------- forms ---------- */
 label { display: block; font-size: 13px; font-weight: 600; margin-block-end: var(--s-tight); }
-/* ⚠ The hint used to sit INLINE after the label text, so in a 130px field the
-   pair wrapped and every form row grew a ragged second line — "Redeem QR lasts"
-   over "seconds". As its own block it always occupies exactly two lines, the
-   same two, in both languages. */
+/* Inline, so a label and its hint read as one line where there is room for one.
+   ⚠ The exception is `.field-sm`: those are the narrow numeric settings on the
+   Points page, where an inline hint wrapped and gave every row a ragged second
+   line. There the hint takes its own line on purpose, and the same two lines
+   every time. */
 label .hint {
-  display: block;
   font-weight: 400;
   color: var(--faint);
   font-size: 12px;
+}
+.field-sm label .hint {
+  display: block;
   line-height: 1.35;
   margin-block-start: 1px;
 }
@@ -833,6 +836,25 @@ html[lang='ar'] select { line-height: 1.6; }
   direction: ltr;
   unicode-bidi: isolate;
 }
+
+/* ⚠ SAME TRAP AS `.num`, CAUGHT ONE ROUND LATER. `.mono` is on TABLE CELLS —
+   the member code, the phone number, the staff email — and `direction: ltr` on a
+   cell also flips how `text-align: start` resolves. The value drifted to the
+   left edge of its column while its Arabic header stayed on the right, which is
+   the column misalignment on Members and Staff.
+   The direction still has to be ltr so a code's characters order correctly, so
+   the alignment is pinned back explicitly. Physical `right`, deliberately: it is
+   inside an explicit `[dir='rtl']` guard, where "right" is unambiguous and
+   `start` is the thing that would be wrong. */
+[dir='rtl'] table.data td.mono,
+[dir='rtl'] table.data th.mono { text-align: right; }
+
+/* ---- B. The print sheet is a physical artefact, not part of the UI flow ----
+   `transform-origin: top left` scales the sheet off-screen on an RTL page,
+   which is why the poster preview rendered blank. The sheet carries its own
+   bilingual direction internally, so the frame is pinned to ltr rather than
+   inheriting the portal's. */
+.sheet-frame { direction: ltr; }
 html[lang='ar'] table.data td.right,
 html[lang='ar'] table.data th.right {
   text-align: end;

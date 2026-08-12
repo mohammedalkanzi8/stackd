@@ -9,7 +9,7 @@ import { previewScale, sheetCss } from '@/lib/poster/sheet-css.ts';
 import '@/app/fonts.generated.css';
 
 import { getLang } from '@/lib/prefs.ts';
-import { t } from '@/lib/i18n.ts';
+import { t, tf } from '@/lib/i18n.ts';
 
 export const metadata = { title: 'Print studio · STACKD admin' };
 export const dynamic = 'force-dynamic';
@@ -66,11 +66,11 @@ export default async function SignupQrPage({
               href={`/signup-qr?f=${id}&lang=${lead}`}
               className={`fmt${active ? ' fmt-on' : ''}`}
             >
-              <b>{item.label}</b>
+              <b>{t(uiLang, `fmt.${item.id}`)}</b>
               <span className="mono">
                 {item.w} &times; {item.h} mm
               </span>
-              <span>{item.use}</span>
+              <span>{t(uiLang, `fmt.${item.id}.u`)}</span>
             </Link>
           );
         })}
@@ -106,7 +106,10 @@ export default async function SignupQrPage({
           rel="noopener"
           className="btn primary"
         >
-          Open the {format.label}, {lead === 'ar' ? 'Arabic' : 'English'} first
+          {tf(uiLang, 'sq.openFmt', {
+            fmt: t(uiLang, `fmt.${format.id}`),
+            lead: lead === 'ar' ? t(uiLang, 'sq.arabic') : t(uiLang, 'sq.english'),
+          })}
         </a>
         <span className="muted sm">{t(uiLang, 'sq.opensClean')}</span>
       </div>
@@ -130,19 +133,10 @@ export default async function SignupQrPage({
         <p className="eyebrow">{t(uiLang, 'sq.toPrintShop')}</p>
         <ul className="notes">
           <li>{t(uiLang, 'sq.savePdf')}</li>
-          <li>{t(uiLang, 'sq.askFor')}<b>3&nbsp;mm bleed</b>. The background is a flat dark fill to
-            the edge, so extending it is trivial for them.
-          </li>
-          <li>
-            The code scans from {format.scanRange}. Hang it so it is reachable at
-            that distance rather than as high as it will go.
-          </li>
+          <li>{t(uiLang, 'sq.bleed')}</li>
+          <li>{tf(uiLang, 'sq.scanFrom', { r: format.scanRange })}</li>
           {format.id === 'rollup' ? (
-            <li>
-              The bottom {format.footRoom}&nbsp;mm is left empty on purpose. That
-              stretch rolls into the stand&rsquo;s cassette on most banners, and
-              anything printed there is paid for and never seen.
-            </li>
+            <li>{tf(uiLang, 'sq.footRoom', { n: format.footRoom })}</li>
           ) : null}
           {format.id === 'a5' ? (
             <li>{t(uiLang, 'sq.tableTent')}</li>
