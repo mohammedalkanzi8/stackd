@@ -42,8 +42,13 @@ export default async function HomePage({
   // Big-Stackd sits in the MIDDLE, not first — it is the hero item and the
   // centre column is where the eye lands in a three-up grid. The gradient
   // treatment follows the slug rather than the index for the same reason.
+  //
+  // Three burgers, on the owner's instruction (12 Aug 2026). Scoopy-Doo held the
+  // third slot for a while; before that it was Scoopy-Doo and Fire-Attack, which
+  // are one dish with two sauces and now share a source photograph, so that pair
+  // read as the same bowl printed twice.
   const HERO_SLUG = 'big-stackd';
-  const featured = ['scoopy-doo', HERO_SLUG, 'fire-attack']
+  const featured = ['classic-stackd', HERO_SLUG, 'maple-stackd']
     .map((slug) => MENU.flatMap((c) => c.items).find((i) => i.slug === slug)!)
     .filter(Boolean);
 
@@ -70,8 +75,12 @@ export default async function HomePage({
               )}
             </h1>
 
+            {/* The slogan is NOT repeated here. The band directly below this
+                hero prints the identical string at up to 78px, so a second
+                copy at 22px was the same words twice within one screen — and
+                the small one simply lost. The band owns the slogan on every
+                page; the hero owns the headline. */}
             <p className="hero-sub">{isAr ? BRAND.taglineAr : BRAND.taglineEn}</p>
-            <p className="hero-slogan">{isAr ? BRAND.sloganAr : BRAND.sloganEn}</p>
 
             <div className="hero-actions">
               <Link href={`/${locale}/menu/`} className="btn btn-primary">
@@ -105,7 +114,7 @@ export default async function HomePage({
             </p>
           </div>
 
-          <div className="grid reveal" style={{ marginBlockStart: 26 }}>
+          <div className="grid reveal">
             {featured.map((item) => (
               <article
                 className={`card${item.slug === HERO_SLUG ? ' card-feature' : ''}`}
@@ -134,7 +143,7 @@ export default async function HomePage({
             ))}
           </div>
 
-          <div className="link-row link-row-center" style={{ marginBlockStart: 30 }}>
+          <div className="link-row link-row-center">
             <Link href={`/${locale}/menu/`} className="btn btn-primary btn-cta">
               {t(locale, 'hero.viewMenu')}
               <ArrowIcon />
@@ -147,9 +156,7 @@ export default async function HomePage({
       <section className="section">
         <div className="wrap">
           <div className="night reveal">
-            <p className="eyebrow" style={{ color: 'var(--gold-soft)' }}>
-              {isAr ? 'كل أيام الأسبوع' : 'Seven days a week'}
-            </p>
+            <p className="eyebrow">{isAr ? 'كل أيام الأسبوع' : 'Seven days a week'}</p>
             <div className="clock">
               <span className="clock-t">{OPENS}</span>
               <span className="clock-sep">{isAr ? 'حتى' : 'until'}</span>
@@ -157,16 +164,15 @@ export default async function HomePage({
             </div>
             <p className="lede">
               {isAr
-                ? 'مفتوحين لين الرابعة فجراً. متى ما جاك الجوع، إحنا موجودين.'
+                ? 'فاتحين لين الرابعة فجراً. متى ما جاك الجوع، إحنا موجودين.'
                 : 'Open until four in the morning. Whenever the craving lands, we are still open.'}
             </p>
-            <div className="link-row" style={{ marginBlockStart: 24 }}>
+            <div className="link-row">
               <a
                 href={BRANCH.mapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-ghost btn-sm"
-                style={{ borderColor: 'rgba(254,254,254,0.4)', color: 'var(--paper)' }}
               >
                 {t(locale, 'visit.directions')}
               </a>
@@ -188,14 +194,9 @@ export default async function HomePage({
               <Link href={`/${locale}/rewards/`} className="btn btn-primary btn-sm">
                 {t(locale, 'loyalty.more')}
               </Link>
-              {/* Live now, so it is a link rather than a label. --label, not
-                  --gold: this pill sits on the page background, and raw gold on
-                  cream is 1.96:1. */}
-              <a
-                href={`${PORTAL_URL}/login`}
-                className="status status-link"
-                style={{ borderColor: 'var(--label)', color: 'var(--label)' }}
-              >
+              {/* Live now, so it is a link rather than a label. Its colours
+                  live in `.status-link`. */}
+              <a href={`${PORTAL_URL}/login`} className="status status-link">
                 {t(locale, 'loyalty.comingSoon')}
               </a>
             </div>
@@ -269,7 +270,7 @@ export default async function HomePage({
             </div>
           </div>
 
-          <div className="link-row link-row-center" style={{ marginBlockStart: 30 }}>
+          <div className="link-row link-row-center">
             <Link href={`/${locale}/visit/`} className="btn btn-primary btn-cta">
               {t(locale, 'nav.visit')}
               <ArrowIcon />

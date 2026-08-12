@@ -4,12 +4,24 @@
    not have, so it commits to one world deliberately. */
 
 :root {
+  /* This portal is dark and only dark, so the browser is told as much. Without
+     it the UA paints its own chrome light: on the login and registration forms
+     Chrome's autofill lays a pale block over inputs that are otherwise
+     `var(--ink)`, and the scrollbar arrives white. Nothing else here declares a
+     light theme, so this is a statement of fact rather than a preference. */
+  color-scheme: dark;
+
   --ink: #141512;
   --raise: #1f211d;
   --card: #24261f;
   --text: #f4f1ea;
   --dim: #a9a296;
-  --faint: #7e776b;
+  /* Was #7e776b, which measured 3.66:1 on --raise, 3.45:1 on --card and 4.14:1
+     on --ink — under 4.5:1 on every surface in the app, while carrying nothing
+     but small text: 12.5px ledger timestamps, 13px field hints, the install
+     help and the empty states. Now 5.13 / 4.83 / 5.79. Still clearly a step
+     below --dim, which is the job it does. */
+  --faint: #979083;
   --rule: #33362e;
   --rule-strong: #474b41;
   --red: #e2664f;
@@ -77,8 +89,11 @@ button.quiet svg { width: 15px; height: 15px; vertical-align: -3px; margin-inlin
 
 @media (max-width: 560px) {
   /* A phone in one hand at a counter: keep the glyphs, drop the words. The
-     label stays in the DOM so it is still announced. */
-  nav.main a span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+     label stays in the DOM so it is still announced, and each link carries a
+     `title` so the name is one press-and-hold away for everyone else — three
+     bare glyphs and no way to identify one is not a thing to hand somebody who
+     has never seen this page. */
+  nav.main a span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   nav.main a { padding: 8px; }
   .brand { font-size: 16px; }
 }
@@ -94,6 +109,11 @@ h2 { font-size: 17px; margin: 0 0 10px; letter-spacing: -0.01em; }
 
 /* ---------- surfaces ---------- */
 .card { background: var(--raise); border: 1px solid var(--rule); border-radius: 12px; padding: 22px; }
+/* The gap between the blocks the points page is built from — it was an inline
+   `marginBlockStart: 18` on each of the four cards. Scoped to `main` so the
+   single card on the login, registration and claim screens, which centres
+   itself inside `.narrow`, is untouched. */
+main > .card { margin-block-start: 18px; }
 .stack { display: flex; flex-direction: column; gap: 16px; }
 .row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
 .spread { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
@@ -159,7 +179,13 @@ h2 { font-size: 17px; margin: 0 0 10px; letter-spacing: -0.01em; }
 .reward .body { flex: 1; min-width: 0; }
 .reward .name { font-weight: 700; }
 .reward .cost { font-size: 13px; color: var(--dim); }
-.reward.locked { opacity: 0.55; }
+/* A locked reward reads quieter WITHOUT `opacity: 0.55` on the row, which is
+   what this was. Fading the whole thing took the cost line to 2.92:1 and the
+   "N more" chip to 2.83:1 — so the one number a locked row exists to
+   communicate, how far off you are, was the least legible thing in it. The name
+   steps back to --dim instead, and everything carrying the requirement stays at
+   full strength. */
+.reward.locked .name { color: var(--dim); font-weight: 600; }
 
 /* ---------- redeem ---------- */
 .redeem-form { display: flex; flex-direction: column; gap: 10px; }
@@ -181,7 +207,6 @@ h2 { font-size: 17px; margin: 0 0 10px; letter-spacing: -0.01em; }
 .redeem-expired { text-align: center; }
 .redeem-expired p { color: var(--dim); font-size: 14.5px; margin-block-start: 0; }
 
-button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ---------- ledger ---------- */
 .entry { display: flex; justify-content: space-between; gap: 14px; padding: 11px 0; border-block-end: 1px solid var(--rule); font-size: 14.5px; }
@@ -211,7 +236,12 @@ button.primary, .btn.primary {
 button.primary:hover { filter: brightness(1.08); }
 button.wide { width: 100%; }
 button.quiet { background: transparent; border-color: transparent; color: var(--dim); font-weight: 500; }
-button:disabled, button[aria-disabled='true'] { opacity: 0.6; }
+/* One disabled rule, not two. There was a second `button:disabled` further up
+   setting opacity 0.45 — same specificity, so this one silently won and the
+   0.45 never applied. `not-allowed` came from that dead rule and is kept here.
+   A pending button is deliberately NOT `not-allowed`: it is working, not
+   refusing, and the pending rule below says so. */
+button:disabled, button[aria-disabled='true'] { opacity: 0.6; cursor: not-allowed; }
 
 /* ---------- banners ---------- */
 .banner { padding: 13px 15px; border-radius: 9px; font-size: 14.5px; border: 1px solid; margin-block-end: 18px; }
@@ -223,6 +253,25 @@ button:disabled, button[aria-disabled='true'] { opacity: 0.6; }
 
 .narrow { min-height: 100dvh; display: grid; place-items: center; padding: 28px 20px; }
 .narrow-inner { width: 100%; max-width: 420px; }
+/* The footnotes under the card on the entry screens — login, registration,
+   claim, forgotten password. It was the same inline pair of values written out
+   on each. `~` rather than `+` because /forgot and /login carry two of them
+   stacked, and the second was left aligned against a centred first. */
+.narrow-inner .card ~ .muted { margin-block: 8px 0; text-align: center; }
+.narrow-inner .card + .muted { margin-block-start: 18px; }
+
+/* The one-time code. Same treatment as the redeem amount: big, centred and
+   monospaced, because it is six characters copied from an email under whatever
+   light the counter has. */
+.code-input {
+  font-size: 26px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.32em;
+  /* The tracking is applied to the right of each glyph, including the last, so
+     the string sits visibly off-centre without pulling it back. */
+  text-indent: 0.32em;
+}
 
 /* ---------- pending state ----------
    The form is busy: the cursor says so anywhere on the page, and the button

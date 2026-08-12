@@ -6,7 +6,7 @@ import { SubmitButton } from '../SubmitButton.tsx';
 import { IconPoints, IconQr, IconRewards, IconSignOut } from '../NavIcons.tsx';
 import { InstallButton } from '../InstallButton.tsx';
 import { RedeemPanel, type ActiveCode } from './RedeemPanel.tsx';
-import { currentMember, endSession } from '@/lib/session.ts';
+import { currentMember, endSession, requireMember } from '@/lib/session.ts';
 
 export const metadata = { title: 'Your points · STACKD Rewards' };
 export const dynamic = 'force-dynamic';
@@ -95,7 +95,12 @@ async function issueCode(formData: FormData): Promise<void> {
       `/points?error=${encodeURIComponent(
         raw.startsWith('insufficient points')
           ? `You only have ${member.balance} points.`
-          : raw || 'Could not create a code.',
+          : // issue_redemption() raises this when the amount is under the floor.
+            // Rephrased for a customer: the database says "minimum redemption is
+            // 500 points", which is accurate and reads like an error code.
+            raw.startsWith('minimum redemption is')
+            ? `You need at least ${raw.replace(/\D/g, '')} points to spend any.`
+            : raw || 'Could not create a code.',
       )}`,
     );
   }
@@ -126,12 +131,13 @@ async function signOut(): Promise<void> {
 export default async function PointsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; claimed?: string; welcome?: string }>;
+  searchParams: Promise<{ error?: string; claimed?: string; welcome?: string; password?: string }>;
 }) {
-  const member = await currentMember();
-  if (!member) redirect('/login');
+  // requireMember, not currentMember: it also bounces anyone who arrived by a
+  // one-time code and has not chosen a password yet.
+  const member = await requireMember();
 
-  const { error, claimed, welcome } = await searchParams;
+  const { error, claimed, welcome, password } = await searchParams;
 
   const rewards = await query<Reward>(`
     select r.id, r.name_en, r.name_ar, r.points_cost, r.discount_amount,
@@ -184,6 +190,14 @@ export default async function PointsPage({
   });
   const next = rewards.find((r) => r.points_cost > member.balance);
 
+  // The floor on spending points off a bill. Read here rather than hardcoded in
+  // the panel so changing it in the admin portal changes what the customer is
+  // told, in the same breath as changing what the database will allow.
+  const minRedeem =
+    (await queryOne<{ min_redeem_points: number }>(
+      'select min_redeem_points from loyalty_settings',
+    ))?.min_redeem_points ?? 0;
+
   return (
     <>
       <header className="topbar">
@@ -193,16 +207,18 @@ export default async function PointsPage({
           </span>
           {/* Anchors rather than routes: the portal is one page today, so these
               jump within it. They become real links when ordering arrives. */}
+          {/* `title` on each: below 560px the words are hidden and only the
+              glyph shows, so the tooltip is the only thing left naming it. */}
           <nav className="main">
-            <a href="#balance">
+            <a href="#balance" title="Points">
               <IconPoints />
               <span>Points</span>
             </a>
-            <a href="#code">
+            <a href="#code" title="My code">
               <IconQr />
               <span>My code</span>
             </a>
-            <a href="#rewards">
+            <a href="#rewards" title="Rewards">
               <IconRewards />
               <span>Rewards</span>
             </a>
@@ -222,6 +238,11 @@ export default async function PointsPage({
             Welcome to STACKD Rewards. Show the code below whenever you order.
           </div>
         ) : null}
+        {password ? (
+          <div className="banner ok">
+            Password saved. Use it next time you sign in.
+          </div>
+        ) : null}
         {claimed ? (
           <div className="banner ok">
             Claimed. Show your code at the counter and it is yours.
@@ -238,7 +259,7 @@ export default async function PointsPage({
           </div>
         </div>
 
-        <div className="card" id="code" style={{ marginBlockStart: 18 }}>
+        <div className="card" id="code">
           <h2 style={{ textAlign: 'center' }}>Show this at the counter</h2>
           <div className="member-qr" dangerouslySetInnerHTML={{ __html: qr }} />
           <p className="member-code mono">{member.memberCode}</p>
@@ -272,13 +293,14 @@ export default async function PointsPage({
           <InstallButton />
         </div>
 
-        <div className="card" id="redeem" style={{ marginBlockStart: 18 }}>
+        <div className="card" id="redeem">
           <h2>Spend points off your bill</h2>
           <p className="muted" style={{ fontSize: 13.5, marginBlockStart: 0 }}>
             Choose an amount, show the code to the cashier, and it comes straight
             off what you owe. 100 points is 1.00 SAR.
           </p>
           <RedeemPanel
+            minRedeem={minRedeem}
             balance={member.balance}
             active={activeCode}
             issue={issueCode}
@@ -286,7 +308,7 @@ export default async function PointsPage({
           />
         </div>
 
-        <div className="card" id="rewards" style={{ marginBlockStart: 18 }}>
+        <div className="card" id="rewards">
           <h2>Or swap them for an item</h2>
           {rewards.length === 0 ? (
             <p className="empty">No rewards available right now.</p>
@@ -322,7 +344,7 @@ export default async function PointsPage({
           )}
         </div>
 
-        <div className="card" style={{ marginBlockStart: 18 }}>
+        <div className="card">
           <h2>Your history</h2>
           {entries.length === 0 ? (
             <p className="empty">

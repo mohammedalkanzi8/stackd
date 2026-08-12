@@ -35,12 +35,39 @@ export async function requireRole(...roles: Role[]): Promise<StaffSession> {
   return staff;
 }
 
-/** Who may change the menu, the rewards, and anyone's points. */
-export const MANAGERIAL: Role[] = ['manager', 'owner'];
+// --- The two privileged tiers ----------------------------------------------
+//
+// The database enum is still `cashier | kitchen | manager | owner`, because
+// renaming a Postgres enum means a migration against production and touching
+// every policy and query that names a role. The owner asked for the portal to
+// speak in terms of Admin and Super Admin, so that renaming happens here, in the
+// labels — `manager` IS Admin and `owner` IS Super Admin, everywhere.
+//
+// If you are reading this because you are adding a role: change ROLE_LABEL and
+// these two lists, not the strings in the queries.
+
+/**
+ * Admin. Runs the shop day to day: the menu and its photos, the rewards
+ * catalogue, and removing a member.
+ */
+export const ADMIN: Role[] = ['manager', 'owner'];
+
+/**
+ * Super Admin. Everything that rewrites history or hands out money, kept to one
+ * tier on the owner's instruction (12 Aug 2026):
+ *
+ *   - deleting a staff account
+ *   - voiding an order
+ *   - adjusting or clawing back points
+ *
+ * `owner` alone. Note this is a LIST OF ONE, not a mistake — it reads at every
+ * call site as "super admin only" and it takes a deliberate edit here to widen.
+ */
+export const SUPER_ADMIN: Role[] = ['owner'];
 
 export const ROLE_LABEL: Record<Role, string> = {
   cashier: 'Cashier',
   kitchen: 'Kitchen',
-  manager: 'Manager',
-  owner: 'Owner',
+  manager: 'Admin',
+  owner: 'Super Admin',
 };

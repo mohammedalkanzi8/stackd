@@ -2,7 +2,7 @@ import { formatSar, parseRiyals, query, toRiyalInput } from '@stackd/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
-import { MANAGERIAL, requireRole, requireStaff } from '@/lib/auth.ts';
+import { ADMIN, requireRole, requireStaff } from '@/lib/auth.ts';
 
 export const metadata = { title: 'Rewards · STACKD admin' };
 export const dynamic = 'force-dynamic';
@@ -38,7 +38,7 @@ function done(message: string): never {
  */
 async function saveReward(formData: FormData): Promise<void> {
   'use server';
-  await requireRole(...MANAGERIAL);
+  await requireRole(...ADMIN);
 
   const id = String(formData.get('id') ?? '');
   const nameEn = String(formData.get('nameEn') ?? '').trim();
@@ -95,7 +95,7 @@ async function saveReward(formData: FormData): Promise<void> {
  */
 async function toggleReward(formData: FormData): Promise<void> {
   'use server';
-  await requireRole(...MANAGERIAL);
+  await requireRole(...ADMIN);
 
   const id = String(formData.get('id') ?? '');
   const rows = await query<{ name_en: string; is_active: boolean }>(
@@ -114,7 +114,7 @@ export default async function RewardsPage({
 }) {
   const staff = await requireStaff();
   const { ok, error, edit } = await searchParams;
-  const canEdit = MANAGERIAL.includes(staff.role);
+  const canEdit = ADMIN.includes(staff.role);
 
   const rewards = await query<Reward>(`
     select r.id, r.name_en, r.name_ar, r.points_cost, r.discount_amount,
@@ -144,7 +144,7 @@ export default async function RewardsPage({
       {ok ? <div className="banner ok">{ok}</div> : null}
       {error ? <div className="banner bad">{error}</div> : null}
 
-      <div className="card" style={{ marginBlockEnd: 22 }}>
+      <div className="card">
         <div className="table-wrap">
           <table className="data">
             <thead>
@@ -204,7 +204,7 @@ export default async function RewardsPage({
       {canEdit ? (
         <div className="card">
           <h2>{editing ? `Edit “${editing.name_en}”` : 'Add a reward'}</h2>
-          <p className="lede" style={{ marginBlockEnd: 16 }}>
+          <p className="lede">
             A reward gives either a free item or a flat discount, never both.
           </p>
 

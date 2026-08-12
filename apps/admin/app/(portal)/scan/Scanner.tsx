@@ -169,7 +169,7 @@ export function Scanner({
       ) : null}
 
       {!canUseCamera ? (
-        <p className="muted" style={{ fontSize: 13 }}>
+        <p className="muted sm">
           This browser has no built-in barcode reader, so the camera button is
           hidden. A USB or Bluetooth scanner works here as a keyboard, and typing
           the code always works.

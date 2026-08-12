@@ -4,8 +4,11 @@
  * Inline SVG rather than an icon font: a handful of glyphs do not justify a
  * network request, and `currentColor` means they follow the nav's own colour.
  *
- * They sit beside labels, never replacing them. Most visits here are a phone
- * scanned at a counter by someone who has never seen the page before.
+ * They sit beside labels wherever there is room for both. Below 560px there is
+ * not, and the label is visually hidden — so each glyph has to hold up alone,
+ * and every link carries a `title` naming its destination. Most visits here are
+ * a phone scanned at a counter by someone who has never seen the page before,
+ * which is exactly the person a row of unlabelled icons fails.
  */
 
 // Typed as SVGProps so the literals keep their narrow types when spread. An

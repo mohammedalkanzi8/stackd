@@ -105,7 +105,7 @@ export default async function SignupQrPage({
         >
           Open the {format.label}, {lead === 'ar' ? 'Arabic' : 'English'} first
         </a>
-        <span className="muted" style={{ fontSize: 13 }}>
+        <span className="muted sm">
           Opens clean, with no portal chrome. Print from there, or save it as a
           PDF to send to a print shop.
         </span>
@@ -126,7 +126,7 @@ export default async function SignupQrPage({
         />
       </div>
 
-      <div className="card" style={{ marginBlockStart: 24, maxWidth: 640 }}>
+      <div className="card" style={{ maxWidth: 640 }}>
         <p className="eyebrow">Sending this to a print shop</p>
         <ul className="notes">
           <li>

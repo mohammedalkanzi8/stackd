@@ -62,7 +62,6 @@
      darkens with the theme, never --gold directly. */
   --label: var(--gold);
 
-  --r-sm: 10px;
   --r-md: 16px;
   --r-lg: 24px;
   --r-xl: 34px;
@@ -264,6 +263,26 @@ svg {
    the text gap — otherwise it crowds the lede above it. */
 .stack > .status {
   margin-block-start: 8px;
+}
+/* The stack owns the spacing of everything inside it, so a block that carries
+   its own margin elsewhere gives it up here. */
+.stack > .clock {
+  margin-block: 4px;
+}
+
+/* The gap between a section header and the block it introduces. Stated once as
+   a relationship instead of an inline pixel value at each call site — those had
+   drifted to 26px, 30px and 0 for what is the same join. */
+.stack + .grid,
+.stack + .info,
+.stack + .rw-steps {
+  margin-block-start: var(--sp-block);
+}
+
+/* A section-closing call to action, separated from the block it follows. */
+.grid + .link-row,
+.info + .link-row {
+  margin-block-start: var(--sp-block);
 }
 
 /* Radial brand glow. The device that gives the dark ground depth. */
@@ -487,6 +506,12 @@ svg {
   overflow: hidden;
 }
 
+/* Interior-page hero. Shorter than the home hero because there is no artwork
+   beside the copy holding the height open — the same lit ground, less of it. */
+.hero-page {
+  padding-block-end: clamp(30px, 5vw, 56px);
+}
+
 .hero-grid {
   display: grid;
   gap: clamp(32px, 5vw, 56px);
@@ -517,20 +542,6 @@ svg {
   color: var(--text-dim);
   margin: 0;
   max-width: 34ch;
-}
-
-.hero-slogan {
-  font-family: var(--font-display);
-  display: inline-block;
-  font-size: clamp(15px, 2.4vw, 22px);
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  color: var(--label);
-  margin: 0;
-}
-[dir='ltr'] .hero-slogan {
-  font-family: var(--font-display);
-  text-transform: uppercase;
 }
 
 .hero-actions {
@@ -697,18 +708,6 @@ svg {
   height: 3px;
   background: var(--gold);
   border-radius: 2px;
-}
-
-.band-second {
-  font-family: var(--font-display);
-  font-size: clamp(15px, 2.6vw, 27px);
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: var(--gold-soft);
-  margin: 0;
-}
-[dir='ltr'] .band-second[lang='en'] {
-  text-transform: uppercase;
 }
 
 /* ==========================================================================
@@ -942,8 +941,8 @@ svg {
   background-image:
     linear-gradient(45deg, var(--red-dark) 25%, transparent 25% 75%, var(--red-dark) 75%),
     linear-gradient(45deg, var(--red-dark) 25%, transparent 25% 75%, var(--red-dark) 75%);
-  background-size: 26px 26px;
-  background-position: 0 0, 13px 13px;
+  background-size: calc(var(--checker) * 2) calc(var(--checker) * 2);
+  background-position: 0 0, var(--checker) var(--checker);
 }
 .card-media-mark {
   width: 42%;
@@ -1053,7 +1052,6 @@ svg {
   border-color: rgba(254, 254, 254, 0.22);
 }
 .card-feature .price {
-  font-family: var(--font-display);
   background: var(--paper);
   color: var(--red);
 }
@@ -1089,6 +1087,9 @@ svg {
 .night .lede {
   color: rgba(254, 254, 254, 0.85);
 }
+.night .lede + .link-row {
+  margin-block-start: var(--sp-group);
+}
 
 .clock {
   display: flex;
@@ -1116,6 +1117,29 @@ svg {
 }
 [dir='ltr'] .clock-sep {
   text-transform: uppercase;
+}
+
+/* The clock at hero scale rather than panel scale. On the visit page it sits
+   under an h1 instead of inside the red panel, so it must not out-shout the
+   heading above it. */
+.clock-sm .clock-t {
+  font-size: clamp(34px, 7vw, 62px);
+}
+
+/* The night panel is a fixed dark red in BOTH themes, so anything on it that
+   would otherwise inherit a theme token has to be pinned to the light end.
+   These were inline styles on the elements themselves, which put brand colour
+   values in the markup and made the panel impossible to restyle in one place. */
+.night .eyebrow {
+  color: var(--gold-soft);
+}
+.night .btn-ghost {
+  border-color: rgba(254, 254, 254, 0.4);
+  color: var(--paper);
+}
+.night .btn-ghost:hover {
+  border-color: var(--paper);
+  background: rgba(254, 254, 254, 0.12);
 }
 
 /* ==========================================================================
@@ -1183,11 +1207,14 @@ svg {
    Info cards
    ========================================================================== */
 
+/* No top margin here: the gap belongs to the join with the section header above
+   it, which `.stack + .info` owns. Setting it on `.info` itself meant the visit
+   page — where this grid opens the section with no header — had to cancel it
+   with an inline zero. */
 .info {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
   gap: clamp(14px, 2vw, 20px);
-  margin-block-start: var(--sp-block);
 }
 .info .card:hover {
   transform: none;
@@ -1220,13 +1247,21 @@ svg {
   text-wrap: balance;
 }
 
+/* A status pill that is a link. Gold-on-ground at rest, inverting to a filled
+   gold pill on hover. `--label`, not `--gold`: this sits on the page background,
+   and raw gold on cream is 1.96:1.
+   The colours were inline styles on the anchor, which is why the hover rule
+   needed `!important` to win — same specificity, but an inline style outranks a
+   stylesheet. Both now live here and the override is gone. */
 .status-link {
+  border-color: var(--label);
+  color: var(--label);
   text-decoration: none;
   transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
 .status-link:hover {
   background: var(--label);
-  color: var(--ink) !important;
+  color: var(--ink);
 }
 
 .info-big {
@@ -1239,9 +1274,10 @@ svg {
   unicode-bidi: isolate;
   font-variant-numeric: tabular-nums;
 }
-/* An address is far longer than a phone number: 18 characters at the size above
-   overflows a 250px card, which is the narrowest this grid produces. Smaller,
-   and allowed to break as a last resort so it can never widen the card. */
+/* An email address is far longer than a phone number and has no natural break
+   point, so at the size above it overflows a 250px card — the narrowest this
+   grid produces. Smaller, and allowed to break anywhere as a last resort so it
+   can never widen the card. */
 .info-email {
   font-size: clamp(15px, 2vw, 19px);
   letter-spacing: -0.01em;
@@ -1535,7 +1571,6 @@ svg {
     gap: 10px;
   }
   .price {
-  font-family: var(--font-display);
     align-self: flex-start;
   }
 }

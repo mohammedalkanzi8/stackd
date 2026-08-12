@@ -90,11 +90,14 @@ export default async function RewardsPage({
       {/* ---- Three steps -------------------------------------------------- */}
       <section className="section">
         <div className="wrap">
-          <p className="eyebrow">{isAr ? 'ثلاث خطوات' : 'Three steps'}</p>
-          <h2 className="display h-lg" style={{ marginBlockEnd: 'clamp(24px, 4vw, 40px)' }}>
-            {isAr ? 'كيف يشتغل' : 'How it works'}
-          </h2>
-          <ol className="rw-steps">
+          {/* `.stack` rather than a loose eyebrow and heading: it is the section
+              header pattern the other three pages use, and it carries the gap to
+              the block below it, which was an inline clamp here. */}
+          <div className="stack reveal">
+            <p className="eyebrow">{isAr ? 'ثلاث خطوات' : 'Three steps'}</p>
+            <h2 className="display h-lg">{isAr ? 'كيف يشتغل' : 'How it works'}</h2>
+          </div>
+          <ol className="rw-steps reveal">
             {copy.steps.map((step, i) => (
               <li key={i} className="rw-step">
                 <span className="rw-step-n" aria-hidden="true">
@@ -109,20 +112,27 @@ export default async function RewardsPage({
 
       {/* ---- The rate ----------------------------------------------------- */}
       <section className="section">
-        <div className="wrap rw-rate">
-          <div className="rw-rate-fig">
-            <span className="rw-rate-num">{num(REWARDS.earnPercent)}%</span>
-            <span className="rw-rate-lbl">{isAr ? 'ترجع لك' : 'comes back'}</span>
-          </div>
-          <div className="rw-rate-fig">
-            <span className="rw-rate-num">{num(REWARDS.pointsPerRiyal)}</span>
-            <span className="rw-rate-lbl">
-              {isAr ? 'نقطة = ١ ريال خصم' : 'points = 1 SAR off'}
-            </span>
-          </div>
-          <div className="rw-rate-fig">
-            <span className="rw-rate-num">{num(12)}</span>
-            <span className="rw-rate-lbl">{isAr ? 'شهراً صلاحية' : 'months to spend'}</span>
+        {/* The panel is a child of `.wrap`, not `.wrap` itself. Combined, its
+            own padding overrode the wrap's gutter, so this was the one block on
+            the site that ignored the content margin: 52px wider than every
+            other section on desktop, and flush to both screen edges on a phone
+            with its rounded corners cut off against them. */}
+        <div className="wrap">
+          <div className="rw-rate reveal">
+            <div className="rw-rate-fig">
+              <span className="rw-rate-num">{num(REWARDS.earnPercent)}%</span>
+              <span className="rw-rate-lbl">{isAr ? 'ترجع لك' : 'comes back'}</span>
+            </div>
+            <div className="rw-rate-fig">
+              <span className="rw-rate-num">{num(REWARDS.pointsPerRiyal)}</span>
+              <span className="rw-rate-lbl">
+                {isAr ? 'نقطة = ١ ريال خصم' : 'points = 1 SAR off'}
+              </span>
+            </div>
+            <div className="rw-rate-fig">
+              <span className="rw-rate-num">{num(12)}</span>
+              <span className="rw-rate-lbl">{isAr ? 'شهراً صلاحية' : 'months to spend'}</span>
+            </div>
           </div>
         </div>
       </section>
@@ -132,7 +142,7 @@ export default async function RewardsPage({
       {/* ---- What you get ------------------------------------------------- */}
       <section className="section">
         <div className="wrap">
-          <div className="grid">
+          <div className="grid reveal">
             {copy.points.map((p) => (
               <div className="card" key={p.title}>
                 <h2 className="card-name">{p.title}</h2>
@@ -145,7 +155,7 @@ export default async function RewardsPage({
 
       {/* ---- Close -------------------------------------------------------- */}
       <section className="section">
-        <div className="wrap stack rw-close">
+        <div className="wrap stack rw-close reveal">
           <h2 className="display h-lg">{copy.subhead}</h2>
           <div className="link-row link-row-center">
             <a href={`${PORTAL_URL}/registration`} className="btn btn-primary btn-cta">

@@ -50,22 +50,18 @@ export default async function VisitPage({
 
   return (
     <>
-      <section className="hero" style={{ paddingBlockEnd: 'clamp(30px, 5vw, 56px)' }}>
+      <section className="hero hero-page">
         <div className="glow-bg" />
         <div className="wrap stack above">
           <p className="eyebrow">{isAr ? BRANCH.cityAr : BRANCH.cityEn}</p>
           <h1 className="display h-xl">{t(locale, 'visit.title')}</h1>
-          <div className="clock" style={{ marginBlock: 4 }}>
+          <div className="clock clock-sm">
             {/* Derived, like the home page's clock — the hours table further
                 down this same page was already reading STACKD_HOURS while this
                 headline was typed out, which is how the two came to disagree. */}
-            <span className="clock-t" style={{ fontSize: 'clamp(34px, 7vw, 62px)' }}>
-              {formatTime(STACKD_HOURS[0].opens, 'en')}
-            </span>
+            <span className="clock-t">{formatTime(STACKD_HOURS[0].opens, 'en')}</span>
             <span className="clock-sep">{isAr ? 'حتى' : 'until'}</span>
-            <span className="clock-t" style={{ fontSize: 'clamp(34px, 7vw, 62px)' }}>
-              {formatTime(STACKD_HOURS[0].closes, 'en')}
-            </span>
+            <span className="clock-t">{formatTime(STACKD_HOURS[0].closes, 'en')}</span>
           </div>
           <OpenStatus locale={locale} />
         </div>
@@ -75,15 +71,12 @@ export default async function VisitPage({
 
       <section className="section">
         <div className="wrap">
-          <div className="info reveal" style={{ marginBlockStart: 0 }}>
+          <div className="info reveal">
             <div className="card">
               <h2 className="info-title">{t(locale, 'visit.address')}</h2>
               <span className="info-big info-address">
                 {isAr ? BRANCH.addressAr : BRANCH.addressEn}
               </span>
-              <p style={{ fontSize: 13, color: 'var(--text-faint)' }}>
-                <span dir="ltr">{BRANCH.plusCode}</span>
-              </p>
               <div className="link-row">
                 <a
                   href={BRANCH.mapsUrl}
@@ -134,9 +127,6 @@ export default async function VisitPage({
                   <li key={s}>{s}</li>
                 ))}
               </ul>
-              <p style={{ fontSize: 13, color: 'var(--text-faint)', marginBlockStart: 8 }}>
-                {t(locale, 'visit.avgSpend')}: {BRANCH.priceRange}
-              </p>
             </div>
           </div>
         </div>

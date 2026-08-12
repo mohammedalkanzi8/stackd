@@ -89,14 +89,14 @@ export default async function ScanPage({
       {ok ? <div className="banner ok">{ok}</div> : null}
       {error ? <div className="banner bad">{error}</div> : null}
 
-      <div className="card" style={{ marginBlockEnd: 22 }}>
+      <div className="card">
         {/* A follow-up form takes the caret instead, so a hardware scanner or a
             typed total lands where the cashier is looking. */}
         <ScanClient identify={identify} takeFocus={!memberCode && !redeem && !claim} />
       </div>
 
       {member ? (
-        <div className="card" style={{ marginBlockEnd: 22 }}>
+        <div className="card">
           <p className="eyebrow">Give points</p>
           <h2>
             {member.full_name ?? 'Member'}{' '}
@@ -104,7 +104,7 @@ export default async function ScanPage({
               {member.member_code}
             </span>
           </h2>
-          <p className="lede" style={{ marginBlockEnd: 16 }}>
+          <p className="lede">
             Balance {member.balance} points ({formatSar(member.balance)}). Type the
             bill total and 10% of it goes on.
           </p>
@@ -135,13 +135,13 @@ export default async function ScanPage({
       ) : null}
 
       {redemption ? (
-        <div className="card" style={{ marginBlockEnd: 22 }}>
+        <div className="card">
           <p className="eyebrow">Take points off</p>
           <h2>
             {redemption.points} points ={' '}
             <span style={{ color: 'var(--accent)' }}>{formatSar(redemption.points)}</span> off
           </h2>
-          <p className="lede" style={{ marginBlockEnd: 16 }}>
+          <p className="lede">
             {redemption.full_name ?? 'Member'}{' '}
             <span className="mono">{redemption.member_code}</span>
           </p>
@@ -175,7 +175,7 @@ export default async function ScanPage({
       ) : null}
 
       {claimRow ? (
-        <div className="card" style={{ marginBlockEnd: 22 }}>
+        <div className="card">
           <p className="eyebrow">Receipt code</p>
           <h2>
             {claimRow.points} points from ticket{' '}
@@ -185,7 +185,7 @@ export default async function ScanPage({
             <div className="banner bad">Those points have already been claimed.</div>
           ) : (
             <>
-              <p className="lede" style={{ marginBlockEnd: 16 }}>
+              <p className="lede">
                 Scan or type the customer&rsquo;s member code to put these on their
                 account.
               </p>
@@ -213,7 +213,7 @@ export default async function ScanPage({
         </div>
       ) : null}
 
-      <p className="muted" style={{ fontSize: 13 }}>
+      <p className="muted sm">
         Earning is 10% of the bill, and one point is one halala &mdash; so 100
         points takes 1.00 SAR off. Both figures are on the Points page.
       </p>

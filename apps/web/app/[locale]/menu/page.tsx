@@ -35,7 +35,7 @@ export default async function MenuPage({
 
   return (
     <>
-      <section className="hero" style={{ paddingBlockEnd: 'clamp(30px, 5vw, 56px)' }}>
+      <section className="hero hero-page">
         <div className="glow-bg" />
         <div className="wrap stack above">
           <p className="eyebrow">{isAr ? 'الأسعار بالريال السعودي' : 'Prices in Saudi Riyal'}</p>

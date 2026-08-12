@@ -111,9 +111,15 @@ export const REWARDS_COPY: Record<Locale, RewardsCopy> = {
           'Show it when you order and the points go on automatically. Add it to Apple Wallet or your home screen and it is one swipe away.',
       },
       {
-        title: 'Spend any amount',
+        // ⚠ This used to read "Take the whole balance off a bill, or a few
+        // riyals", which stopped being true when a 500-point floor was added to
+        // counter redemptions on 12 Aug 2026. The floor lives in
+        // loyalty_settings.min_redeem_points; the website is a static export
+        // with no database, so the number is written out here and the two have
+        // to be changed together.
+        title: 'Save up, then spend',
         body:
-          'Take the whole balance off a bill, or a few riyals. 100 points is 1 riyal, so you never need to work out what anything is worth.',
+          'Once you reach 500 points you can take them off a bill — the whole balance or part of it. 100 points is 1 riyal, so you never need to work out what anything is worth.',
       },
     ],
     joinCta: 'Join now',
@@ -148,9 +154,9 @@ export const REWARDS_COPY: Record<Locale, RewardsCopy> = {
           'اعرضه عند الطلب وتضاف النقاط تلقائياً. أضفه لمحفظة أبل أو لشاشتك الرئيسية ويصير على بُعد لمسة.',
       },
       {
-        title: 'اصرف أي مبلغ',
+        title: 'اجمع ثم اصرف',
         body:
-          'اخصم رصيدك كامل من الفاتورة، أو بس كم ريال. ١٠٠ نقطة تساوي ريال، فما تحتاج تحسب شي.',
+          'من ٥٠٠ نقطة تقدر تخصمها من الفاتورة، كامل الرصيد أو جزء منه. ١٠٠ نقطة تساوي ريال، فما تحتاج تحسب شي.',
       },
     ],
     joinCta: 'سجّل الحين',

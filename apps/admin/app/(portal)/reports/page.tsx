@@ -17,7 +17,7 @@
 import { query, queryOne } from '@stackd/server';
 import Link from 'next/link';
 
-import { MANAGERIAL, requireStaff } from '@/lib/auth.ts';
+import { ADMIN, requireStaff } from '@/lib/auth.ts';
 
 export const metadata = { title: 'Reports · STACKD admin' };
 export const dynamic = 'force-dynamic';
@@ -80,6 +80,19 @@ const BUCKET = `
   end`;
 
 /** Shared by the headline and the trend, so one definition of "spent" exists. */
+/**
+ * What counts as trade.
+ *
+ * Two conditions, and they mean different things. `status` is about fulfilment —
+ * a cancelled or unpaid ticket never became a sale. `voided_at` is about the
+ * books — a real sale that a Super Admin struck out. Both have to hold, and they
+ * live here as one string so a void cannot be excluded from the revenue figure
+ * but counted in the daily chart. Prefix with a table alias where the query
+ * needs one.
+ */
+const IS_TRADE = (a = '') =>
+  `${a}status not in ('cancelled','pending_payment','refunded') and ${a}voided_at is null`;
+
 const IS_CONSUMED = `(
   t.reason = 'redeem_reward'
   or t.reason::text = 'redeem_counter'
@@ -179,7 +192,7 @@ export default async function ReportsPage({
   // Revenue, liability and who the best customers are is management
   // information. A cashier has no reason to hold it and the nav does not offer
   // this page to one, but the page is what actually enforces that.
-  if (!MANAGERIAL.includes(staff.role)) {
+  if (!ADMIN.includes(staff.role)) {
     return (
       <>
         <p className="eyebrow">Reports</p>
@@ -235,14 +248,14 @@ export default async function ReportsPage({
   // being revenue, so they are counted separately rather than quietly dropped.
   const trade = (await queryOne<Trade>(
     `select
-       count(*) filter (where status not in ('cancelled','pending_payment','refunded'))::int as orders,
-       coalesce(sum(grand_total) filter (where status not in ('cancelled','pending_payment','refunded')), 0)::int as revenue,
-       coalesce(sum(vat_total) filter (where status not in ('cancelled','pending_payment','refunded')), 0)::int as vat,
-       coalesce(avg(grand_total) filter (where status not in ('cancelled','pending_payment','refunded')), 0)::int as avg_ticket,
-       count(*) filter (where status not in ('cancelled','pending_payment','refunded') and customer_id is not null)::int as member_orders,
-       count(distinct customer_id) filter (where status not in ('cancelled','pending_payment','refunded'))::int as distinct_members,
-       count(*) filter (where status = 'refunded')::int as refunded,
-       coalesce(sum(grand_total) filter (where status = 'refunded'), 0)::int as refunded_value
+       count(*) filter (where ${IS_TRADE()})::int as orders,
+       coalesce(sum(grand_total) filter (where ${IS_TRADE()}), 0)::int as revenue,
+       coalesce(sum(vat_total) filter (where ${IS_TRADE()}), 0)::int as vat,
+       coalesce(avg(grand_total) filter (where ${IS_TRADE()}), 0)::int as avg_ticket,
+       count(*) filter (where ${IS_TRADE()} and customer_id is not null)::int as member_orders,
+       count(distinct customer_id) filter (where ${IS_TRADE()})::int as distinct_members,
+       count(*) filter (where status = 'refunded' and voided_at is null)::int as refunded,
+       coalesce(sum(grand_total) filter (where status = 'refunded' and voided_at is null), 0)::int as refunded_value
      from orders t
      where ${within}`,
     [days],
@@ -268,7 +281,7 @@ export default async function ReportsPage({
      ), o as (
        select service_date as day, count(*)::int as n, sum(grand_total)::int as revenue
          from orders
-        where status not in ('cancelled','pending_payment','refunded')
+        where ${IS_TRADE()}
         group by 1
      ), c as (
        select riyadh_service_date(t.created_at) as day, -sum(t.delta)::int as consumed
@@ -297,7 +310,7 @@ export default async function ReportsPage({
        from customers c
        left join loyalty_balances b on b.customer_id = c.id
        left join orders o on o.customer_id = c.id
-             and o.status not in ('cancelled','pending_payment','refunded')
+             and ${IS_TRADE('o.')}
              and ($1::int = 0 or o.created_at >= now() - make_interval(days => $1::int))
       group by c.id, c.full_name, c.member_code, b.balance
      having count(o.id) > 0
@@ -346,7 +359,7 @@ export default async function ReportsPage({
         with the decimal point moved — not a conversion anyone chose.
       </p>
 
-      <form className="card row" style={{ marginBlockEnd: 22 }}>
+      <form className="card row">
         <div className="field field-sm">
           <label htmlFor="days">Period</label>
           <select id="days" name="days" defaultValue={String(days)}>
@@ -372,7 +385,7 @@ export default async function ReportsPage({
       ) : null}
 
       {/* ---- the headline: what the programme cost ---- */}
-      <div className="card" style={{ marginBlockEnd: 16 }}>
+      <div className="card">
         <div className="k-lbl">Points consumed · {period.label.toLowerCase()}</div>
         <div className="hero">{pts(points.consumed)}</div>
         <div className="hero-sub">
@@ -402,7 +415,7 @@ export default async function ReportsPage({
         </div>
       </div>
 
-      <div className="grid" style={{ marginBlockEnd: 28 }}>
+      <div className="grid">
         <div className="card stat">
           <div className="k">Points issued</div>
           <div className="v num">{pts(points.issued)}</div>
@@ -431,14 +444,14 @@ export default async function ReportsPage({
       </div>
 
       {/* ---- the full ledger, so the headline can be checked ---- */}
-      <div className="card" style={{ marginBlockEnd: 22 }}>
+      <div className="card">
         <div className="spread" style={{ marginBlockEnd: 6 }}>
           <h2>Where every point went</h2>
-          <span className="muted" style={{ fontSize: 13 }}>
+          <span className="muted sm">
             {period.label.toLowerCase()}
           </span>
         </div>
-        <p className="lede" style={{ marginBlockEnd: 14 }}>
+        <p className="lede">
           Every movement in the ledger, so the number above can be checked rather
           than trusted. <b>Expired points are not a cost</b> — they are a
           liability that lapsed, which is the opposite.
@@ -462,7 +475,7 @@ export default async function ReportsPage({
                   <tr key={b.bucket}>
                     <td>
                       <b>{BUCKET_LABEL[b.bucket]?.label ?? b.bucket}</b>
-                      <span className="muted" style={{ fontSize: 12 }}>
+                      <span className="muted xs">
                         {' '}
                         · {BUCKET_LABEL[b.bucket]?.note ?? ''}
                       </span>
@@ -497,13 +510,13 @@ export default async function ReportsPage({
       </div>
 
       {/* ---- trade ---- */}
-      <div className="spread" style={{ marginBlockEnd: 12 }}>
+      <div className="spread">
         <h2>Trade</h2>
-        <span className="muted" style={{ fontSize: 13 }}>
+        <span className="muted sm">
           {period.label.toLowerCase()}
         </span>
       </div>
-      <div className="grid" style={{ marginBlockEnd: 16 }}>
+      <div className="grid">
         <div className="card stat">
           <div className="k">Taken</div>
           <div className="v num">{sar(trade.revenue)}</div>
@@ -548,14 +561,14 @@ export default async function ReportsPage({
       {/* ---- the trend ----
           Two measures on one pair of axes would be a lie about scale, so revenue
           and points spent get a chart each, over the same days. */}
-      <div className="card" style={{ marginBlockEnd: 22 }}>
+      <div className="card">
         <div className="spread" style={{ marginBlockEnd: 4 }}>
           <h2>Day by day</h2>
-          <span className="muted" style={{ fontSize: 13 }}>
+          <span className="muted sm">
             last {trend.length} trading days
           </span>
         </div>
-        <p className="lede" style={{ marginBlockEnd: 18 }}>
+        <p className="lede">
           Trading days run to 03:00, so a 01:30 ticket belongs to the night
           before. The table below carries the same figures.
         </p>
@@ -563,7 +576,7 @@ export default async function ReportsPage({
         <div className="chart">
           <div className="chart-hd">
             <span className="k-lbl">Taken</span>
-            <span className="muted" style={{ fontSize: 12 }}>
+            <span className="muted xs">
               peak {sar(maxRevenue)}
             </span>
           </div>
@@ -583,7 +596,7 @@ export default async function ReportsPage({
         <div className="chart">
           <div className="chart-hd">
             <span className="k-lbl">Points spent</span>
-            <span className="muted" style={{ fontSize: 12 }}>
+            <span className="muted xs">
               peak {pts(maxConsumed)} ({sar(maxConsumed)})
             </span>
           </div>
@@ -637,10 +650,10 @@ export default async function ReportsPage({
       </div>
 
       {/* ---- who and what ---- */}
-      <div className="card" style={{ marginBlockEnd: 22 }}>
-        <div className="spread" style={{ marginBlockEnd: 14 }}>
+      <div className="card">
+        <div className="spread">
           <h2>Best members</h2>
-          <span className="muted" style={{ fontSize: 13 }}>
+          <span className="muted sm">
             by spend, {period.label.toLowerCase()}
           </span>
         </div>
@@ -665,7 +678,7 @@ export default async function ReportsPage({
                   <tr key={m.id}>
                     <td>
                       <Link href={`/members/${m.id}`}>{m.full_name ?? 'Unnamed'}</Link>{' '}
-                      <span className="mono muted" style={{ fontSize: 12 }}>
+                      <span className="mono muted xs">
                         {m.member_code}
                       </span>
                     </td>
@@ -692,9 +705,9 @@ export default async function ReportsPage({
       </div>
 
       <div className="card">
-        <div className="spread" style={{ marginBlockEnd: 14 }}>
+        <div className="spread">
           <h2>What sells</h2>
-          <span className="muted" style={{ fontSize: 13 }}>
+          <span className="muted sm">
             by revenue, {period.label.toLowerCase()}
           </span>
         </div>

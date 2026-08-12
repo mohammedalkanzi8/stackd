@@ -26,17 +26,20 @@ export interface ActiveCode {
 
 export function RedeemPanel({
   balance,
+  minRedeem,
   active,
   issue,
   cancel,
 }: {
   balance: number;
+  /** Fewest points that may be spent in one go. 0 means no floor. */
+  minRedeem: number;
   active: ActiveCode | null;
   issue: (formData: FormData) => Promise<void>;
   cancel: () => Promise<void>;
 }) {
   if (active) return <LiveCode active={active} cancel={cancel} />;
-  return <AmountForm balance={balance} issue={issue} />;
+  return <AmountForm balance={balance} minRedeem={minRedeem} issue={issue} />;
 }
 
 /** 1 point = 1 halala, so the riyal value is the balance with a decimal point. */
@@ -46,9 +49,11 @@ function asRiyals(points: number): string {
 
 function AmountForm({
   balance,
+  minRedeem,
   issue,
 }: {
   balance: number;
+  minRedeem: number;
   issue: (formData: FormData) => Promise<void>;
 }) {
   // Defaults to everything, which is what most people want and saves a decision
@@ -64,7 +69,21 @@ function AmountForm({
     );
   }
 
-  const invalid = !Number.isInteger(points) || points < 1 || points > balance;
+  // Below the floor there is nothing to fill in, so the form is replaced rather
+  // than shown disabled. Telling somebody exactly how far off they are is more
+  // use than telling them the rule.
+  if (minRedeem > 0 && balance < minRedeem) {
+    return (
+      <p className="empty">
+        You need <b>{minRedeem} points</b> before you can spend any off a bill.
+        That is {minRedeem - balance} more — about{' '}
+        {asRiyals((minRedeem - balance) * 10)} SAR of spending away.
+      </p>
+    );
+  }
+
+  const floor = minRedeem > 0 ? minRedeem : 1;
+  const invalid = !Number.isInteger(points) || points < floor || points > balance;
 
   return (
     /* The server action directly, not wrapped in a client closure. Wrapping it
@@ -72,19 +91,30 @@ function AmountForm({
        counter on bad shop wifi is exactly who cannot afford that. */
     <form action={issue} className="redeem-form">
       <label htmlFor="points">
-        How many points? <span className="hint">you have {balance}</span>
+        How many points?{' '}
+        <span className="hint">
+          you have {balance}
+          {minRedeem > 0 ? ` · ${minRedeem} minimum` : ''}
+        </span>
       </label>
       <div className="redeem-input">
+        {/* The line below the field is this input's description in both states:
+            the riyal value when the amount is good, the reason when it is not.
+            Without aria-describedby it was neither announced nor connected to
+            the field, so a screen reader hit a disabled Redeem button with no
+            way to find out why. */}
         <input
           id="points"
           name="points"
           type="number"
           inputMode="numeric"
-          min={1}
+          min={floor}
           max={balance}
           step={1}
           value={Number.isNaN(points) ? '' : points}
           onChange={(e) => setPoints(e.target.valueAsNumber)}
+          aria-describedby="points-worth"
+          aria-invalid={invalid || undefined}
           required
         />
         <button
@@ -97,9 +127,11 @@ function AmountForm({
         </button>
       </div>
 
-      <p className="redeem-worth">
+      <p className="redeem-worth" id="points-worth">
         {invalid ? (
-          <span className="neg">Enter between 1 and {balance} points.</span>
+          <span className="neg">
+            Enter between {floor} and {balance} points.
+          </span>
         ) : (
           <>
             Worth <b>{asRiyals(points)} SAR</b> off your bill

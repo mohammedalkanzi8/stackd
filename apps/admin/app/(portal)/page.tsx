@@ -67,7 +67,7 @@ export default async function OverviewPage() {
         somebody can still claim.
       </p>
 
-      <div className="grid" style={{ marginBlockEnd: 28 }}>
+      <div className="grid">
         <div className="card stat">
           <div className="k">Members</div>
           <div className="v num">{totals.members}</div>
@@ -103,9 +103,9 @@ export default async function OverviewPage() {
       </div>
 
       <div className="card">
-        <div className="spread" style={{ marginBlockEnd: 14 }}>
+        <div className="spread">
           <h2>Latest point movements</h2>
-          <span className="muted" style={{ fontSize: 13 }}>
+          <span className="muted sm">
             newest first
           </span>
         </div>
@@ -142,7 +142,7 @@ export default async function OverviewPage() {
                       <Link href={`/members/${m.customer_id}`}>
                         {m.member ?? 'Unnamed'}
                       </Link>{' '}
-                      <span className="mono muted" style={{ fontSize: 12 }}>
+                      <span className="mono muted xs">
                         {m.member_code}
                       </span>
                     </td>

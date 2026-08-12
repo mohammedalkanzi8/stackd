@@ -2,7 +2,23 @@
    Palette from packages/shared/src/tokens.ts — the artwork's own values.
    Neutrals are warm because the brand ground is cream, not grey. */
 
+/* The portal follows the device preference and offers no theme switch of its
+   own — unlike the website, which commits to dark and lets a visitor opt out.
+   Staff use this on whatever the shop hands them, so the OS setting is the
+   right authority and there is no choice to persist.
+   There were `:root[data-theme='dark']` and `:root[data-theme='light']` blocks
+   here carrying a second full copy of both palettes. Nothing in this app has
+   ever set `data-theme` — no toggle, no no-flash script — so neither block
+   could match, and the only thing they could do was drift out of step with the
+   two live declarations below. If a switch is ever added, reintroduce them
+   deliberately along with it. */
 :root {
+  /* Tells the browser which way its OWN chrome should render — select menus,
+     the date picker, checkboxes, scrollbars. Without it those stay light-mode
+     while everything around them is dark, which is where this portal's dark
+     theme was visibly coming apart: every filter row has a <select>. */
+  color-scheme: light dark;
+
   --bg: #faf8f4;
   --card: #fefefe;
   --text: #1b1c19;
@@ -12,10 +28,9 @@
   --rule-strong: #cfc5b6;
   --accent: #b82712;
   --accent-ink: #fefefe;
-  /* Gold as TYPE is 1.96:1 on cream. Labels use the darkened value; --gold is
-     for decoration on fixed grounds only. See STATUS.md. */
+  /* Gold as TYPE is 1.96:1 on cream, so labels use this darkened value.
+     See STATUS.md. */
   --label: #7a5200;
-  --gold: #eca70f;
   --chip: #f1ece3;
   --ok: #2f6b45;
   --ok-bg: #e8f2ea;
@@ -47,22 +62,6 @@
     --danger-bg: #2e1e1b;
     --focus: #7ba7f0;
   }
-}
-
-:root[data-theme='dark'] {
-  --bg: #141512; --card: #1f211d; --text: #f0ede7; --dim: #a9a296;
-  --faint: #7e776b; --rule: #2f322c; --rule-strong: #41453d;
-  --accent: #e2664f; --accent-ink: #1b1c19; --label: #eca70f; --chip: #282b25;
-  --ok: #6fb98a; --ok-bg: #1e2b23; --warn: #e0ac4c; --warn-bg: #2c2519;
-  --danger: #e2664f; --danger-bg: #2e1e1b; --focus: #7ba7f0;
-}
-
-:root[data-theme='light'] {
-  --bg: #faf8f4; --card: #fefefe; --text: #1b1c19; --dim: #645c50;
-  --faint: #8a8175; --rule: #e4ddd1; --rule-strong: #cfc5b6;
-  --accent: #b82712; --accent-ink: #fefefe; --label: #7a5200; --chip: #f1ece3;
-  --ok: #2f6b45; --ok-bg: #e8f2ea; --warn: #8a5a00; --warn-bg: #fbf1dd;
-  --danger: #b82712; --danger-bg: #fbeae7; --focus: #1b64d8;
 }
 
 * { box-sizing: border-box; }
@@ -136,10 +135,23 @@ nav.main a svg { width: 16px; height: 16px; flex: none; }
 .whoami button svg { width: 14px; height: 14px; vertical-align: -2px; margin-inline-end: 5px; }
 
 @media (max-width: 900px) {
-  /* Eight labels will not fit a narrow screen. Drop the words, keep the glyphs,
-     and keep the accessible name via title. */
-  nav.main a { gap: 0; padding: 8px; font-size: 0; }
+  /* Ten labels will not fit a narrow screen, so the words go and the glyphs
+     stay. This used `font-size: 0` on the anchor, which shrinks the text to
+     nothing but leaves it in the layout and in the accessibility tree by
+     accident rather than by intent — and the comment here claimed a `title`
+     that no link actually had, so a cashier on a tablet got a row of unlabelled
+     icons and no way to identify one. The label is now a real element, hidden
+     properly, and every link carries a title so hovering still names it. */
+  nav.main a { gap: 0; padding: 8px; }
   nav.main a svg { width: 19px; height: 19px; }
+  .nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 nav.main a:hover { background: var(--chip); color: var(--text); }
 nav.main a[aria-current='page'] { background: var(--chip); color: var(--text); }
@@ -164,6 +176,27 @@ h2 { font-size: 17px; margin: 0 0 4px; letter-spacing: -0.01em; }
   border-radius: 8px;
   padding: 18px 20px;
 }
+
+/* The gap between the blocks a page is built from. It was an inline
+   `marginBlockEnd` at thirteen call sites, plus 16 and 20 at five more for what
+   is the same join, which is how one page ends up with three different gaps
+   between cards depending on who wrote it.
+   Scoped to direct children of `main`, NOT to `.card` itself: cards also sit
+   inside `.grid`, where the container's own gap already spaces them and a
+   margin here would add to it. `main` carries the trailing space, so the last
+   block on a page drops its own. */
+main > .card,
+main > .grid {
+  margin-block-end: 22px;
+}
+main > :last-child { margin-block-end: 0; }
+
+/* A lede inside a card introduces that card, not the page, so it sits tighter
+   than the 22px the page-level rule gives it. */
+.card .lede { margin-block-end: 16px; }
+
+/* A `.spread` at the top of a card is its header row. */
+.card .spread { margin-block-end: 14px; }
 .stack { display: flex; flex-direction: column; gap: 16px; }
 .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 .row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
@@ -286,6 +319,29 @@ button.primary:hover { filter: brightness(1.08); }
 button.quiet { background: transparent; border-color: transparent; color: var(--dim); }
 button.quiet:hover { background: var(--chip); color: var(--text); }
 
+/* Destructive. Outlined rather than filled: a solid red button competes with
+   `.primary` for the eye, and the one irreversible control on a page should not
+   be the most attractive thing on it. It fills in only on hover, once you have
+   already reached for it. */
+button.danger, .btn.danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+button.danger:hover, .btn.danger:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--accent-ink);
+}
+
+/* The card a destructive action sits in. Tinted and edged so it reads as a
+   different kind of place from the cards above it, without shouting. */
+.card.danger {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+}
+.card.danger h2 { color: var(--danger); }
+
 /* ---------- scanner ---------- */
 .scan-form { display: flex; flex-direction: column; gap: 6px; }
 .scan-row { display: flex; gap: 8px; }
@@ -350,6 +406,15 @@ table.data td.right, table.data th.right { text-align: end; padding-inline-end: 
 .banner.bad { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
 .banner.note { background: var(--warn-bg); border-color: var(--warn); color: var(--warn); }
 .banner b { font-weight: 700; }
+
+/* The two small type steps below body. Between them these were written inline
+   as `fontSize: 13` and `fontSize: 12` around forty times — almost always on a
+   `.muted` span next to a figure — which made the small end of the scale a
+   per-call-site guess rather than a step. `.sm` is the secondary size the card
+   subtitles, table captions and hints already used; `.xs` is for the smallest
+   annotations that sit against a number. */
+.sm { font-size: 13px; }
+.xs { font-size: 12px; }
 
 .pos { color: var(--ok); }
 .neg { color: var(--danger); }

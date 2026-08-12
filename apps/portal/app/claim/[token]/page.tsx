@@ -174,7 +174,7 @@ export default async function ClaimPage({
             </div>
 
             {member ? null : (
-              <p className="muted" style={{ marginBlockStart: 18, textAlign: 'center' }}>
+              <p className="muted">
                 <Link href={`/login?from=claim`}>Sign in</Link> instead, or{' '}
                 <Link href="/registration">join now</Link>. This receipt stays valid
                 until {when(found.expires_at)}.

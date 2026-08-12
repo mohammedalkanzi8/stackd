@@ -25,10 +25,19 @@ async function addMember(formData: FormData): Promise<void> {
   const name = String(formData.get('fullName') ?? '').trim();
   const rawPhone = String(formData.get('phone') ?? '').trim();
   const locale = String(formData.get('locale') ?? 'ar');
+  // Optional, and usually skipped at a busy counter — but it is the only thing
+  // that lets this person ever sign in to the customer portal, because the
+  // forgotten-password code is the only way in for an account created here and
+  // there is nowhere to send it otherwise. It can be added later on the member's
+  // own page.
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
 
   const fail = (m: string) => redirect(`/members?error=${encodeURIComponent(m)}`);
 
   if (!name) fail('Enter their name.');
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    fail(`"${email}" is not an email address. Leave it blank if they would rather not say.`);
+  }
 
   // Accept 0500338808, 500338808, +966500338808, or with spaces. Stored as E.164.
   const digits = rawPhone.replace(/[^0-9]/g, '');
@@ -43,6 +52,9 @@ async function addMember(formData: FormData): Promise<void> {
   if (await queryOne('select 1 from customers where phone = $1', [phone!])) {
     fail(`${phone!} is already a member.`);
   }
+  if (email && (await queryOne('select 1 from customers where lower(email) = $1', [email]))) {
+    fail(`${email} is already on another member's account.`);
+  }
 
   const settings = await queryOne<{ signup_bonus: number }>(
     'select signup_bonus from loyalty_settings',
@@ -50,12 +62,17 @@ async function addMember(formData: FormData): Promise<void> {
 
   const code = await transaction(async (c) => {
     // The customer row hangs off auth.users, so both go in together.
-    const { rows } = await c.query('insert into auth.users (phone) values ($1) returning id', [phone!]);
+    const { rows } = await c.query(
+      'insert into auth.users (phone, email) values ($1, $2) returning id',
+      [phone!, email || null],
+    );
     const id = rows[0].id;
     const created = await c.query(
-      `insert into customers (id, full_name, phone, locale)
-       values ($1, $2, $3, $4) returning member_code`,
-      [id, name, phone!, locale],
+      `insert into customers (id, full_name, phone, email, locale)
+       values ($1, $2, $3, $4, $5) returning member_code`,
+      // Empty becomes NULL, never '': the unique index on lower(email) exempts
+      // NULLs, so a table of empty strings would all collide with each other.
+      [id, name, phone!, email || null, locale],
     );
     if (settings && settings.signup_bonus > 0) {
       await c.query(
@@ -131,7 +148,7 @@ export default async function MembersPage({
       {ok ? <div className="banner ok">{ok}</div> : null}
       {error ? <div className="banner bad">{error}</div> : null}
 
-      <form className="card row" style={{ marginBlockEnd: 20 }}>
+      <form className="card row">
         <div className="field">
           <label htmlFor="q">
             Member code, name or phone <span className="hint">blank lists everyone</span>
@@ -193,9 +210,9 @@ export default async function MembersPage({
         )}
       </div>
 
-      <div className="card" style={{ marginBlockStart: 22 }}>
+      <div className="card">
         <h2>Sign someone up</h2>
-        <p className="lede" style={{ marginBlockEnd: 16 }}>
+        <p className="lede">
           For a customer joining at the counter. They get a member code straight
           away. Read it out, or let them scan the QR on their next receipt.
         </p>
@@ -209,6 +226,12 @@ export default async function MembersPage({
               Mobile <span className="hint">050 033 8808</span>
             </label>
             <input id="phone" name="phone" type="text" inputMode="tel" required />
+          </div>
+          <div className="field">
+            <label htmlFor="email">
+              Email <span className="hint">optional, lets them use the app</span>
+            </label>
+            <input id="email" name="email" type="email" placeholder="name@example.com" />
           </div>
           <div className="field field-sm">
             <label htmlFor="locale">Language</label>

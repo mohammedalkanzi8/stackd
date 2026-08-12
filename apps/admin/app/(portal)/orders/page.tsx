@@ -19,6 +19,7 @@ interface OrderRow {
   lines: number;
   claim_token: string | null;
   claimed_at: Date | null;
+  voided_at: Date | null;
 }
 
 const STATUS_CHIP: Record<string, string> = {
@@ -54,6 +55,7 @@ export default async function OrdersPage({
     `select o.id, o.pickup_code, o.service_date, o.source, o.status,
             o.grand_total, o.points_earned, o.created_at,
             c.full_name as member, c.member_code,
+            o.voided_at,
             (select count(*)::int from order_items i where i.order_id = o.id) as lines,
             cl.token as claim_token, cl.claimed_at
        from orders o
@@ -67,11 +69,14 @@ export default async function OrdersPage({
   );
 
   const days = await query<{ service_date: string; n: number; total: number }>(
-    `select service_date, count(*)::int as n, sum(grand_total)::int as total
+    // Voided tickets are excluded from the money but still counted, so a day
+    // whose total drops has a visible reason rather than looking like a bug.
+    `select service_date, count(*)::int as n,
+            sum(grand_total) filter (where voided_at is null)::int as total
        from orders group by service_date order by service_date desc limit 10`,
   );
 
-  const shown = orders.reduce((sum, o) => sum + o.grand_total, 0);
+  const shown = orders.reduce((sum, o) => sum + (o.voided_at ? 0 : o.grand_total), 0);
 
   return (
     <>
@@ -82,7 +87,7 @@ export default async function OrdersPage({
         evening. That is the day shown here, not the calendar date.
       </p>
 
-      <form className="card row" style={{ marginBlockEnd: 20 }}>
+      <form className="card row">
         <div className="field field-sm">
           <label htmlFor="day">Trading day</label>
           <select id="day" name="day" defaultValue={day}>
@@ -113,11 +118,11 @@ export default async function OrdersPage({
       </form>
 
       <div className="card">
-        <div className="spread" style={{ marginBlockEnd: 14 }}>
+        <div className="spread">
           <h2>
             {orders.length} {orders.length === 1 ? 'order' : 'orders'}
           </h2>
-          <span className="muted" style={{ fontSize: 13 }}>
+          <span className="muted sm">
             {formatSar(shown)} taken
           </span>
         </div>
@@ -145,7 +150,7 @@ export default async function OrdersPage({
                       <Link href={`/orders/${o.id}`}>
                         <b>{o.pickup_code}</b>
                       </Link>
-                      <span className="muted" style={{ fontSize: 12 }}>
+                      <span className="muted xs">
                         {' '}
                         · {o.lines || '-'} {o.lines === 1 ? 'line' : 'lines'}
                       </span>
@@ -166,7 +171,7 @@ export default async function OrdersPage({
                       {o.member ? (
                         <>
                           {o.member}{' '}
-                          <span className="mono muted" style={{ fontSize: 12 }}>
+                          <span className="mono muted xs">
                             {o.member_code}
                           </span>
                         </>
@@ -176,14 +181,23 @@ export default async function OrdersPage({
                         <span className="muted">Walk-in</span>
                       )}
                     </td>
-                    <td className="right num">{formatSar(o.grand_total)}</td>
+                    {/* Struck through, not hidden. A voided ticket still
+                        happened, and someone reconciling the till needs to see
+                        it sitting there with its number. */}
+                    <td className="right num">
+                      {o.voided_at ? <s className="muted">{formatSar(o.grand_total)}</s> : formatSar(o.grand_total)}
+                    </td>
                     <td className="right num">
                       {o.points_earned > 0 ? o.points_earned : <span className="muted">-</span>}
                     </td>
                     <td className="right">
-                      <span className={`chip ${STATUS_CHIP[o.status] ?? ''}`}>
-                        {STATUS_LABEL[o.status] ?? o.status}
-                      </span>
+                      {o.voided_at ? (
+                        <span className="chip hot">Voided</span>
+                      ) : (
+                        <span className={`chip ${STATUS_CHIP[o.status] ?? ''}`}>
+                          {STATUS_LABEL[o.status] ?? o.status}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

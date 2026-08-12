@@ -6,7 +6,7 @@ import path from 'node:path';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
-import { MANAGERIAL, requireRole, requireStaff } from '@/lib/auth.ts';
+import { ADMIN, requireRole, requireStaff } from '@/lib/auth.ts';
 
 export const metadata = { title: 'Menu · STACKD admin' };
 export const dynamic = 'force-dynamic';
@@ -70,7 +70,7 @@ function done(message: string): never {
  */
 async function saveItem(formData: FormData): Promise<void> {
   'use server';
-  await requireRole(...MANAGERIAL);
+  await requireRole(...ADMIN);
 
   const id = String(formData.get('id') ?? '');
   const priceRaw = String(formData.get('price') ?? '').trim();
@@ -126,7 +126,7 @@ async function saveItem(formData: FormData): Promise<void> {
  */
 async function uploadPhoto(formData: FormData): Promise<void> {
   'use server';
-  await requireRole(...MANAGERIAL);
+  await requireRole(...ADMIN);
 
   const id = String(formData.get('id') ?? '');
   const file = formData.get('photo');
@@ -167,7 +167,7 @@ async function uploadPhoto(formData: FormData): Promise<void> {
 
 async function removePhoto(formData: FormData): Promise<void> {
   'use server';
-  await requireRole(...MANAGERIAL);
+  await requireRole(...ADMIN);
 
   const id = String(formData.get('id') ?? '');
   const item = await queryOne<{ name_en: string; image_url: string | null }>(
@@ -191,7 +191,7 @@ export default async function MenuPage({
 }) {
   const staff = await requireStaff();
   const { ok, error, edit } = await searchParams;
-  const canEdit = MANAGERIAL.includes(staff.role);
+  const canEdit = ADMIN.includes(staff.role);
 
   const items = await query<Item>(`
     select mi.id, mi.slug, mi.name_en, mi.name_ar, mi.price, mi.calories,
@@ -229,14 +229,14 @@ export default async function MenuPage({
       {error ? <div className="banner bad">{error}</div> : null}
 
       {editing && canEdit ? (
-        <div className="card" style={{ marginBlockEnd: 22 }}>
+        <div className="card">
           <h2>
             {editing.name_en}{' '}
-            <span className="mono muted" style={{ fontSize: 13 }}>
+            <span className="mono muted sm">
               {editing.slug}
             </span>
           </h2>
-          <p className="lede" style={{ marginBlockEnd: 16 }}>
+          <p className="lede">
             <span dir="rtl" lang="ar">
               {editing.name_ar}
             </span>{' '}
@@ -321,7 +321,7 @@ export default async function MenuPage({
 
           <h2 style={{ fontSize: 15 }}>Photo</h2>
           {!editing.show_photos ? (
-            <p className="muted" style={{ fontSize: 13 }}>
+            <p className="muted sm">
               {editing.category} are text cards on the website. A 3 SAR sauce does
               not earn a photo, and seventeen placeholder tiles read as unfinished.
               An image uploaded here would be stored but never shown.
@@ -395,7 +395,7 @@ export default async function MenuPage({
                 immediately.
               </p>
               {editing.photo_note ? (
-                <p className="muted" style={{ fontSize: 13 }}>
+                <p className="muted sm">
                   <b>Note on the current photo:</b> {editing.photo_note}
                 </p>
               ) : null}
@@ -405,7 +405,7 @@ export default async function MenuPage({
       ) : null}
 
       {categories.map(([slug, name]) => (
-        <div className="card" style={{ marginBlockEnd: 16 }} key={slug}>
+        <div className="card" key={slug}>
           <h2 style={{ marginBlockEnd: 12 }}>{name}</h2>
           <div className="table-wrap">
             <table className="data">

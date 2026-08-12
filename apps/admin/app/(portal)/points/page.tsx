@@ -2,7 +2,7 @@ import { formatSar, query, queryOne } from '@stackd/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
-import { MANAGERIAL, requireRole, requireStaff } from '@/lib/auth.ts';
+import { SUPER_ADMIN, requireRole, requireStaff } from '@/lib/auth.ts';
 
 export const metadata = { title: 'Points · STACKD admin' };
 export const dynamic = 'force-dynamic';
@@ -13,6 +13,7 @@ interface Settings {
   claim_window_days: number;
   redeem_window_secs: number;
   signup_bonus: number;
+  min_redeem_points: number;
 }
 
 interface ItemRow {
@@ -39,13 +40,18 @@ function done(message: string): never {
 
 async function saveSettings(formData: FormData): Promise<void> {
   'use server';
-  await requireRole(...MANAGERIAL);
+  // Super Admin only, on the owner's instruction (12 Aug 2026). These five
+  // numbers set what every riyal spent in the shop is worth; changing the earn
+  // rate reprices the whole programme retroactively for everyone still holding
+  // a balance.
+  await requireRole(...SUPER_ADMIN);
 
   const percent = Number(String(formData.get('earnPercent') ?? '').trim());
   const expiry = Number(String(formData.get('expiryMonths') ?? '').trim());
   const claimDays = Number(String(formData.get('claimWindowDays') ?? '').trim());
   const redeemSecs = Number(String(formData.get('redeemWindowSecs') ?? '').trim());
   const signup = Number(String(formData.get('signupBonus') ?? '').trim());
+  const minRedeem = Number(String(formData.get('minRedeemPoints') ?? '').trim());
 
   if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
     fail('The earn rate must be a percentage between 0 and 100.');
@@ -56,12 +62,16 @@ async function saveSettings(formData: FormData): Promise<void> {
     fail('A redemption code must last between 30 seconds and an hour.');
   }
   if (!Number.isInteger(signup) || signup < 0) fail('The sign-up bonus cannot be negative.');
+  if (!Number.isInteger(minRedeem) || minRedeem < 0) {
+    fail('The minimum redemption cannot be negative. Use 0 for no minimum.');
+  }
 
   await query(
     `update loyalty_settings
         set earn_percent = $1, expiry_months = $2, claim_window_days = $3,
-            redeem_window_secs = $4, signup_bonus = $5, updated_at = now()`,
-    [percent, expiry, claimDays, redeemSecs, signup],
+            redeem_window_secs = $4, signup_bonus = $5, min_redeem_points = $6,
+            updated_at = now()`,
+    [percent, expiry, claimDays, redeemSecs, signup, minRedeem],
   );
   done('Programme settings saved.');
 }
@@ -75,7 +85,9 @@ async function saveSettings(formData: FormData): Promise<void> {
  */
 async function saveAward(formData: FormData): Promise<void> {
   'use server';
-  await requireRole(...MANAGERIAL);
+  // Super Admin only — a per-item award is the same lever as the earn rate,
+  // pointed at one dish.
+  await requireRole(...SUPER_ADMIN);
 
   const id = String(formData.get('id') ?? '');
   const raw = String(formData.get('award') ?? '').trim();
@@ -106,7 +118,7 @@ export default async function PointsPage({
 }) {
   const staff = await requireStaff();
   const { ok, error } = await searchParams;
-  const canEdit = MANAGERIAL.includes(staff.role);
+  const canEdit = SUPER_ADMIN.includes(staff.role);
 
   const settings = (await queryOne<Settings>('select * from loyalty_settings'))!;
   const items = await query<ItemRow>(`
@@ -136,11 +148,18 @@ export default async function PointsPage({
       {ok ? <div className="banner ok">{ok}</div> : null}
       {error ? <div className="banner bad">{error}</div> : null}
 
-      <div className="card" style={{ marginBlockEnd: 22 }}>
+      <div className="card">
         <h2>The programme</h2>
-        <p className="lede" style={{ marginBlockEnd: 16 }}>
+        <p className="lede">
           These apply to every order from the moment you save. Points already
           earned are untouched. The ledger is a record of what was, not a formula.
+        </p>
+        <p className="lede">
+          <b>Min redemption</b> is the fewest points a customer may take off a
+          bill in one go — 500 points is 5.00 SAR. It does not apply to the
+          rewards below, which are already priced individually; Free Sauce at 300
+          stays claimable. The website states this figure in its own copy, so a
+          change here needs the site deployed with it.
         </p>
 
         {canEdit ? (
@@ -171,6 +190,20 @@ export default async function PointsPage({
                   min="0"
                   required
                   defaultValue={settings.signup_bonus}
+                />
+              </div>
+              <div className="field field-sm">
+                <label htmlFor="minRedeemPoints">
+                  Min redemption <span className="hint">points, 0 = none</span>
+                </label>
+                <input
+                  id="minRedeemPoints"
+                  name="minRedeemPoints"
+                  type="number"
+                  step="1"
+                  min="0"
+                  required
+                  defaultValue={settings.min_redeem_points}
                 />
               </div>
               <div className="field field-sm">
@@ -240,15 +273,15 @@ export default async function PointsPage({
         )}
       </div>
 
-      <div className="spread" style={{ marginBlockEnd: 12 }}>
+      <div className="spread">
         <h2>Points per dish</h2>
-        <span className="muted" style={{ fontSize: 13 }}>
+        <span className="muted sm">
           {overridden} of {items.length} overridden
         </span>
       </div>
 
       {categories.map(([slug, name]) => (
-        <div className="card" style={{ marginBlockEnd: 16 }} key={slug}>
+        <div className="card" key={slug}>
           <h2 style={{ marginBlockEnd: 12, fontSize: 15 }}>{name}</h2>
           <div className="table-wrap">
             <table className="data">
@@ -310,7 +343,7 @@ export default async function PointsPage({
         </div>
       ))}
 
-      <p className="muted" style={{ fontSize: 13 }}>
+      <p className="muted sm">
         Leave the box empty to earn by value. Enter <code>0</code> to make an item
         earn nothing at all. They are not the same thing.
       </p>

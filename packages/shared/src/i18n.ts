@@ -102,7 +102,6 @@ const strings = {
     'visit.dineIn': 'تناول في المطعم',
     'visit.takeaway': 'طلبات خارجية',
     'visit.delivery': 'توصيل',
-    'visit.avgSpend': 'متوسط الإنفاق للفرد',
 
     // The offer changed from a point per riyal to 10% of the bill back. These
     // strings are read off the home page by people standing in the shop, so
@@ -157,7 +156,6 @@ const strings = {
     'visit.dineIn': 'Dine-in',
     'visit.takeaway': 'Takeaway',
     'visit.delivery': 'Delivery',
-    'visit.avgSpend': 'Average spend per person',
 
     'loyalty.title': 'STACKD Rewards',
     'loyalty.lead': 'Get 10% of every bill back as points, and take them off your next order.',

@@ -180,7 +180,7 @@ export default async function StaffPage({
       {ok ? <div className="banner ok">{ok}</div> : null}
       {error ? <div className="banner bad">{error}</div> : null}
 
-      <div className="card" style={{ marginBlockEnd: 22 }}>
+      <div className="card">
         <div className="table-wrap">
           <table className="data">
             <thead>
@@ -236,7 +236,7 @@ export default async function StaffPage({
                   {isOwner ? (
                     <td className="right" style={{ whiteSpace: 'nowrap' }}>
                       {p.id === me.id ? (
-                        <span className="muted" style={{ fontSize: 13 }}>
+                        <span className="muted sm">
                           &nbsp;
                         </span>
                       ) : (
@@ -268,7 +268,7 @@ export default async function StaffPage({
       </div>
 
       {isOwner && resetting ? (
-        <div className="card" style={{ marginBlockEnd: 22 }}>
+        <div className="card">
           <h2>New password for {resetting.full_name}</h2>
           <form action={resetPassword} className="row" style={{ marginBlockStart: 12 }}>
             <input type="hidden" name="id" value={resetting.id} />
@@ -291,7 +291,7 @@ export default async function StaffPage({
       {isOwner ? (
         <div className="card">
           <h2>Add someone</h2>
-          <p className="lede" style={{ marginBlockEnd: 16 }}>
+          <p className="lede">
             They can sign in immediately with the password you set here.
           </p>
           <form action={addStaff} className="stack">

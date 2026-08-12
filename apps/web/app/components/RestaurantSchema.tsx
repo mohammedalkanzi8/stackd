@@ -37,7 +37,6 @@ export function RestaurantSchema({ locale }: { locale: Locale }) {
     alternateName: isAr ? BRAND.nameEn : BRAND.nameAr,
     slogan: isAr ? BRAND.taglineAr : BRAND.taglineEn,
     servesCuisine: isAr ? ['أمريكي', 'دجاج', 'برجر'] : ['American', 'Fried Chicken', 'Burgers'],
-    priceRange: BRANCH.priceRange,
     currenciesAccepted: 'SAR',
     address: {
       '@type': 'PostalAddress',

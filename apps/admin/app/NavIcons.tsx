@@ -1,13 +1,17 @@
 /**
  * Nav glyphs for the staff portal.
  *
- * Inline SVG rather than an icon font: eight glyphs do not justify a network
+ * Inline SVG rather than an icon font: eleven glyphs do not justify a network
  * request, and `currentColor` means they follow the nav's own colour through
  * both themes without a second rule.
  *
- * They sit beside labels, never replacing them. An icon alone is a guessing game
- * for anyone who has not used the tool before, and this is a tool people use
- * mid-shift with a queue in front of them.
+ * They sit beside labels wherever there is room for both. Below 900px there is
+ * not, and the label is visually hidden — so each glyph has to be legible on its
+ * own, and no two of them may be the same drawing. Print studio used to share
+ * IconStaff with the Staff link, which at that width left two identical icons
+ * pointing at unrelated pages. Every link also carries a `title`, so the name is
+ * one hover away for anyone who has not used the tool before. This is a tool
+ * people use mid-shift with a queue in front of them.
  */
 
 // Typed as SVGProps so the literals keep their narrow types when spread. An
@@ -90,6 +94,20 @@ export function IconMenu() {
   return (
     <svg {...base}>
       <path d="M4 6h16M4 12h16M4 18h10" />
+    </svg>
+  );
+}
+
+/* Print studio. A sheet feeding in, the machine, and the printed piece coming
+   out the front — the page is for ordering physical table cards and posters, so
+   the glyph is the press rather than the QR that ends up on it. IconQr already
+   belongs to Scan. */
+export function IconPrint() {
+  return (
+    <svg {...base}>
+      <path d="M7 9.5V3.5h10v6" />
+      <path d="M7 17.5H5.5A1.5 1.5 0 0 1 4 16v-4.5A1.5 1.5 0 0 1 5.5 10h13a1.5 1.5 0 0 1 1.5 1.5V16a1.5 1.5 0 0 1-1.5 1.5H17" />
+      <path d="M7 14.5h10v6H7z" />
     </svg>
   );
 }
