@@ -36,11 +36,24 @@ the code is created rather than after it is sent — a misconfigured deployment
 fails while the customer is still looking at the form and can be told something
 true. `deploy/env.example` has the block.
 
-⚠ **The example value points at Zoho and STACKD's mail is on MXroute.** It is a
-placeholder and it has never been run against the real host. Prove it with
-`node scripts/mail-test.mjs <you@example.com>` before anyone relies on this — it
-sends the real template, imported rather than copied, so it tests the mail that
-actually goes out. It touches no database and is safe to run against production.
+**✅ The mail is proven, 12 Aug.** `rewards@stackd.com.sa` on MXroute
+(`smtps://…@sunfire.mxrouting.net:465`), credentials in `/home/kanzi/stackd/.env`
+locally. `node scripts/mail-test.mjs <address>` authenticated, sent the real
+template and the server returned `250 OK`. That script sends the mail customers
+actually get — imported from `lib/reset.ts` rather than copied, because a
+deliverability test against a lookalike proves nothing. It touches no database
+and its code is a fixed dummy, so it is safe to run against production.
+
+The domain is aligned for that sender: SPF `v=spf1 include:mxroute.com -all`,
+MXroute's DKIM on selector `x`, DMARC at `p=none`.
+
+⚠ **A `250` is the server accepting the message, not the inbox accepting it.**
+Spam placement is the failure mode SPF and DKIM exist to prevent and it does not
+show up here — check the folder it actually landed in before customers do.
+
+⚠ **The same credentials still have to be put in `deploy/.env` on the VM.** The
+local `.env` is not deployed and nothing reads it there. `deploy/env.example`
+carries the real host now; only the password is missing from it.
 
 ### The form must not say whether an address is registered
 
