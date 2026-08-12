@@ -15,6 +15,74 @@ one — `mohamed.kanzi@` is an admin-portal login and is never shown to customer
 
 ---
 
+## 13 August 2026 — the customer portal is bilingual, and Arabic is the default
+
+**✅ LIVE.** 122 keys across every customer screen, with a language switch on
+each one — including the screens reachable before sign-in.
+
+### ⚠ The shop had been collecting this preference all along and never using it
+
+`customers.locale` has defaulted to `'ar'` since the schema was written, the
+registration form asks for it, and the counter signup sets it — **while the
+portal served every customer English.**
+
+So Arabic is the default, and the language cookie is **seeded from the
+customer's own record at sign-in**. A member enrolled at the counter as an
+Arabic speaker now opens the portal in Arabic without touching anything. Seeded
+in `startSession()` rather than read in the layout, so the common request path
+carries no extra query, and only when the cookie is absent, so a customer who
+switches keeps their choice.
+
+⚠ **The switch has to be on the pre-auth screens too.** It first shipped only in
+the signed-in chrome, which meant a new customer landing on the Arabic sign-in
+page had no route to English. That matters more here than in the staff portal
+*because* Arabic is the default.
+
+### ⚠ A space between two JSX expressions is not rendered
+
+`{label}<span className="hint">` produced `كلمة المرورat least 8 characters` —
+the two runs jammed together, and then bidi reordered the halves, which made a
+missing space look like broken Arabic.
+
+The gap is a `margin-inline-start` on `.hint` now, so it cannot be lost by an
+edit to the markup, and the hint is its own bidi isolate so a Latin hint beside
+an Arabic label cannot be reordered into it.
+
+### ⚠ There was a SECOND English reason map, named differently
+
+`REASON` in the portal, `REASON_LABEL` in two admin files. Removing the ones a
+regex could find left this one, which is why every line of a customer's history
+stayed English under an Arabic heading. All three are gone; reasons come from
+the dictionary keyed by the database enum.
+
+### ⚠ The audit note is no longer shown to customers
+
+It is written by and for staff, in English, and carried strings like
+`Refund: reward claim gave no code (fix 0008) #19` — an internal reference that
+means nothing to a customer and cannot be translated. The reason and the reward
+name already say what happened.
+
+### What carried over, and what it cost to learn twice
+
+Everything the staff portal learned the hard way applies here and is written
+into `apps/portal/app/globals.css`: never letter-space or uppercase Arabic;
+Western numerals so a code read aloud and a total checked against a receipt
+match; and **`unicode-bidi: isolate` WITHOUT `direction` on block elements** —
+direction on a block also flips how `text-align: start` resolves, which is what
+threw the staff portal's figures to the wrong side of every column.
+
+⚠ **A sweep over JSX text nodes cannot find a translated UI.** Strings assembled
+inside expressions — ternaries, template literals, chip labels, select options,
+server-action error messages — are invisible to it. That blind spot hid about
+170 strings in the staff portal and another handful here. Sweep for quoted
+string literals as well as text nodes.
+
+`scripts/fetch-fonts.mjs` now mirrors the woff2 into **every** app that renders
+Arabic rather than just `web` and `admin`. Hand-copying is how they drift on the
+next run, and the failure surfaces as a heading set in the wrong typeface.
+
+---
+
 ## 13 August 2026 — a reward claim took the points and gave back nothing
 
 **✅ FIXED AND LIVE.** Migration `0008_reward_redemption_tokens.sql`, applied to
