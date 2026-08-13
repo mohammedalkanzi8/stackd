@@ -9,8 +9,7 @@ import {
   toArabicDigits,
   formatDuration,
   WEEKDAY_NAMES,
-  LOCALES,
-} from './i18n.ts';
+  LOCALES, itemCount } from './i18n.ts';
 
 test('localeSwapPath keeps you on the same page', () => {
   assert.equal(localeSwapPath('/ar/menu/', 'en'), '/en/menu/');
@@ -104,4 +103,25 @@ test('formatDuration', () => {
   assert.equal(formatDuration(0, 'en'), 'less than a minute');
   assert.ok(formatDuration(90, 'ar').includes('ساعة'));
   assert.ok(formatDuration(45, 'ar').includes('دقيقة'));
+});
+
+test('itemCount follows Arabic number agreement, not English pluralisation', () => {
+  // ⚠ This label was `${n} أطباق` for every count, and two of the forms were
+  // wrong on the live site. Arabic has a DUAL — two items is صنفان, never
+  // ٢ أصناف — and from eleven upward the counted noun returns to the singular.
+  // Giants has two items, so the dual case was visible on stackd.com.sa.
+  assert.equal(itemCount('ar', 1), 'صنف واحد');
+  assert.equal(itemCount('ar', 2), 'صنفان');
+  assert.equal(itemCount('ar', 3), '٣ أصناف');
+  assert.equal(itemCount('ar', 10), '١٠ أصناف');
+  assert.equal(itemCount('ar', 11), '١١ صنفًا');
+  assert.equal(itemCount('ar', 25), '٢٥ صنفًا');
+
+  // English keeps its own, much duller, rule.
+  assert.equal(itemCount('en', 1), '1 item');
+  assert.equal(itemCount('en', 2), '2 items');
+
+  // ⚠ صنف, not طبق. A category counts sauces and drinks as well as dishes, and
+  // طبق means a dish specifically.
+  assert.ok(!itemCount('ar', 3).includes('أطباق'));
 });

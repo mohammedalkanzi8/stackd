@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { MENU, formatAmount, t, toArabicDigits, assertLocale } from '@stackd/shared';
+import { MENU, formatAmount, t, toArabicDigits, assertLocale, itemCount } from '@stackd/shared';
 import { SloganBand } from '../../components/SloganBand';
 import { CardMedia } from '../../components/CardMedia';
 
@@ -54,7 +54,7 @@ export default async function MenuPage({
                 <h2 className="cat-name display">{isAr ? cat.nameAr : cat.nameEn}</h2>
                 <span className="cat-rule" />
                 <span className="cat-count">
-                  {num(cat.items.length)} {isAr ? 'أطباق' : 'items'}
+                  {itemCount(locale, cat.items.length)}
                 </span>
               </div>
 

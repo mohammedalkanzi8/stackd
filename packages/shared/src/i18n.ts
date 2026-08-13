@@ -177,6 +177,32 @@ export function t(locale: Locale, key: StringKey): string {
  * Arabic-Indic digits. Saudi audiences read both, but Arabic-Indic looks native
  * in Arabic body copy. Prices stay Western-Arabic for scannability.
  */
+/**
+ * "N items" under a menu category heading.
+ *
+ * ⚠ ARABIC DOES NOT PLURALISE THE WAY ENGLISH DOES, and this label was
+ * hard-coded as `${n} أطباق` for every count. Two of them were wrong on the live
+ * site: Arabic has a DUAL, so two items is صنفان and not ٢ أصناف, and from
+ * eleven upward the counted noun goes back to the singular. Giants has two
+ * items, so the dual case was visible on stackd.com.sa.
+ *
+ *   1      صنف واحد
+ *   2      صنفان            ← the dual, which no English-shaped rule produces
+ *   3-10   ٣ أصناف          ← plural
+ *   11+    ١١ صنفًا          ← singular again, accusative
+ *
+ * The word is صنف — item — not طبق. A category counts sauces and drinks as well
+ * as dishes, and طبق means a dish specifically. It is also the word the staff
+ * portal already uses for the same thing.
+ */
+export function itemCount(locale: Locale, n: number): string {
+  if (locale === 'en') return `${n} ${n === 1 ? 'item' : 'items'}`;
+  if (n === 1) return 'صنف واحد';
+  if (n === 2) return 'صنفان';
+  if (n >= 3 && n <= 10) return `${toArabicDigits(n)} أصناف`;
+  return `${toArabicDigits(n)} صنفًا`;
+}
+
 export function toArabicDigits(input: string | number): string {
   const map = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
   return String(input).replace(/\d/g, (d) => map[Number(d)]);
