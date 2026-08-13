@@ -15,6 +15,98 @@ one — `mohamed.kanzi@` is an admin-portal login and is never shown to customer
 
 ---
 
+## 13 August 2026 — the earn rate stops being typed, and email grows up
+
+### The rate was written into the copy in nine places
+
+Reported from production: the rate was raised to 11% in the admin portal and the
+site, the rewards page and the printed poster all went on saying 10%.
+
+`loyalty_settings.earn_percent` was only ever read by the **ring** on the home
+page, which is why the page looked right at a glance — while the sentence
+directly beside the ring contradicted it.
+
+It is a `{p}` token now, filled from the setting, in the headline and first
+rewards card (both languages), the home-page lede, the rewards page cards, the
+`<title>` a search result shows, the portal's empty state, and two admin lines —
+including `sq.lede`, the print-studio sentence that **promises the figure is
+read from the Points page** while hard-coding it.
+
+**⚠ THE POSTER FAILED SILENTLY, WHICH IS WHY THIS WENT UNNOTICED.** `Poster.tsx`
+sets the offer in gold by searching the headline for the filled token. Headline
+"10%", token "11%" — the search returned −1, so it printed the stale figure with
+no highlight, no error and nothing in any log.
+
+English also spelled it out as "Ten percent" and Arabic as "عشرة بالمئة", which
+no substitution could ever have reached.
+
+`fillRewards()` now takes `{n, p}` together. A percent-only helper would have
+left the same trap one call site away. Ten tests guard it and were confirmed to
+**fail against the bug** before being kept.
+
+### And then the number turned out to be 10
+
+After all that, production's `loyalty_settings` read **10.00 / 500 / 100**,
+updated at 02:24 that morning — it had said 11 / 5000 / 100 a few hours earlier.
+So the site showing 10% is now correct: it is faithfully reporting the setting.
+
+Proof the chain works end to end without touching the number: `signupBonus` in
+the same generated block went from the repo default `0` to `100`, which is only
+possible if `sync:menu` is reading live database values.
+
+**The rate is the owner's to set** — Points page, earn rate. Everything follows
+within two minutes.
+
+### The password-reset email is branded
+
+**⚠ A PNG, NOT THE SVG WE ALREADY HAVE.** Gmail strips `<svg>` and Outlook
+renders with Word; neither shows a fallback, so the customer just gets a gap.
+
+**⚠ EMBEDDED AS BASE64 IN A `.ts` FILE, NOT READ FROM DISK.** The portals ship as
+Next standalone bundles, which copy only what the tracer can see referenced. A
+runtime `readFile` would exist in the repo, pass every local test, and be missing
+inside the container.
+
+**⚠ A `cid:` ATTACHMENT, NEVER A HOSTED URL.** Remote images are blocked by
+default in Gmail, Outlook and Apple Mail, so a linked logo is a broken box until
+the reader opts in — and asking them to is the tracking-pixel prompt those
+clients are defending against.
+
+Verified by sending the real template through the live SMTP server (250 OK).
+
+### Promotions
+
+A staff tab: compose in Arabic and English, send to customers who agreed.
+
+**⚠ `marketing_opt_in` HAS EXISTED SINCE THE FIRST SCHEMA AND NOTHING EVER SET
+IT.** Default false, written by neither signup path — every customer was opted
+out and this would have reached nobody. The column was never the missing piece;
+the consent question was. Both signups now ask, ticked, in plain words.
+
+Consent is the owner's call, not a technical one: dropping `defaultChecked` in
+the two forms is the whole change if explicit opt-in is wanted instead.
+
+Also found: online registration hard-coded `locale: 'en'` for every customer
+regardless of which language they signed up in — the row that decides which
+language their mail is written in.
+
+One message per customer, never BCC (BCC cannot carry a per-customer unsubscribe
+and is one mis-click from publishing the list). Batches of 20 with a pause,
+because a throttled domain takes the password-reset mail down with it. The
+audience is re-read at send time. The unsubscribe token is a random uuid, never
+the customer id — the link travels through mail servers that are not ours — and
+the change happens on a form POST, because mail gateways fetch every URL in a
+message to scan it.
+
+### Two traps re-confirmed
+
+- **A literal NBSP does not survive a heredoc.** Only `chr(0xA0)` with an assert.
+  Four times now.
+- **`node --test "src/**/*.test.mjs"` does not match files directly in `src/`.**
+  Eight new tests silently did not run. Server went 6 → 14 passing once fixed.
+
+---
+
 ## 13 August 2026 — pre-launch security review, and two things it caught
 
 A full pre-production review the night before go-live: code review, an attacker's
@@ -2440,6 +2532,12 @@ No exposure today — the website is static and collects nothing.
 - **No MFA on the Super Admin account.** One password stands between the
   internet and every customer record plus the ability to move points. Worth a
   second factor once the launch settles.
+- **Set the earn rate.** `loyalty_settings` currently reads 10%. The owner
+  stated it should be 11%. Points page → earn rate; the site, the portal and
+  the printed poster all follow within two minutes. Every place that states the
+  rate is now wired to this one number.
+- **Consent wording for promotions.** The signup checkbox ships ticked. If
+  explicit opt-in is wanted, remove `defaultChecked` from the two signup forms.
 - **The two staff passwords' strength is unknown** — they are scrypt hashes and
   cannot be read back. This is the most load-bearing unknown left: every control
   above assumes they are not guessable. Set them with
