@@ -113,7 +113,24 @@ services:
       PORT: '3001'
       DATABASE_URL: postgres://${POSTGRES_USER:-stackd}:${POSTGRES_PASSWORD}@db:5432/${STACKD_DB:-stackd}
       STACKD_DB: ${STACKD_DB:-stackd}
+      # ⚠ ALSO THE KEY THAT DECRYPTS THE STORED SMTP PASSWORD. Rotating it signs
+      # every staff member out AND makes the saved mail credential unreadable,
+      # at which point mail falls back to SMTP_URL below and the Settings page
+      # says so. See packages/server/src/secrets.ts.
       STACKD_ADMIN_SECRET: ${STACKD_ADMIN_SECRET:?set STACKD_ADMIN_SECRET in .env}
+      # ⚠ ADMIN SENDS MAIL NOW AND DID NOT USED TO. Promotions and the Settings
+      # test message both go out from this container, and it had no SMTP
+      # variables at all — only `portal` was given them, back when a password
+      # reset was the only thing the system ever sent.
+      #
+      # ⚠ OPTIONAL HERE, REQUIRED ON THE PORTAL, and the difference is
+      # deliberate. The portal uses `:?` because a customer locked out of their
+      # points has no other way back in, so it must not start misconfigured.
+      # Admin is the till: it must start even with no mail at all, because staff
+      # taking orders matters more than a promotion that can wait. It is also
+      # only a fallback now — the Settings page is the primary source.
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-}
       # Printed QR codes point at the customer portal, not at admin.
       STACKD_PORTAL_URL: ${STACKD_PORTAL_URL}
     expose:
