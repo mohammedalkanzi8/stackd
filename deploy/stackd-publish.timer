@@ -1,0 +1,17 @@
+# Every two minutes. The work is one SQL query and a file comparison unless the
+# menu actually changed, so this is far cheaper than it looks — see the note at
+# the top of deploy/auto-publish.sh.
+[Unit]
+Description=Check every two minutes whether stackd.com.sa needs republishing
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=2min
+# ⚠ Persistent=false on purpose. If the box was off, the fingerprint check on
+# the next tick catches up anyway; replaying missed timers would only queue
+# several identical publishes at boot.
+Persistent=false
+Unit=stackd-publish.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,19 @@
+# Publishes stackd.com.sa when the menu has changed. Fired by the timer beside
+# this file; does nothing at all unless the fingerprint moved.
+#
+# ⚠ A SERVICE, NOT A DAEMON. Type=oneshot, so systemd waits for it to finish and
+# the timer cannot start a second copy on top of a running build. The script
+# also takes a flock, which covers a manual run racing the timer.
+[Unit]
+Description=Publish stackd.com.sa if the menu changed
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/stackd
+ExecStart=/opt/stackd/deploy/auto-publish.sh
+# A Next build on two cores takes minutes. Left unbounded a wedged build would
+# block every later run; left too short it would kill a healthy one.
+TimeoutStartSec=25min
