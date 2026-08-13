@@ -1,10 +1,12 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import {
+  ALLOWED_IMAGE_TYPES,
   REWARDS_MARK_CID,
   REWARDS_MARK_PNG_BASE64,
   emailHtml,
   esc,
+  looksLikeImage,
   query,
   queryOne,
   sendMail,
@@ -61,6 +63,45 @@ interface Campaign {
 const BATCH = 20;
 const BATCH_PAUSE_MS = 1000;
 
+/** Content-ID for the promotion's own picture, distinct from the brand mark. */
+const PROMO_IMAGE_CID = 'stackd-promo-image';
+
+/**
+ * ⚠ SMALLER THAN THE MENU UPLOAD'S 4 MB, AND FOR A DIFFERENT REASON. A menu
+ * photo is written to disk once. This one is base64'd into EVERY message, which
+ * inflates it by about a third and then multiplies by the size of the list —
+ * a 4 MB picture to 300 customers is over 1.5 GB through the SMTP server, and
+ * Gmail clips messages over 102 KB of HTML and refuses very large ones outright.
+ * 1 MB is generous for something read on a phone.
+ */
+const MAX_IMAGE_BYTES = 1024 * 1024;
+
+/**
+ * The attached picture, or null when none was chosen.
+ *
+ * ⚠ NEVER TRUSTS `file.type`. That is client-supplied; the bytes are checked
+ * against the container's magic numbers, the same check the menu photo upload
+ * makes and now literally the same function.
+ */
+async function readPromoImage(
+  formData: FormData,
+  lang: Awaited<ReturnType<typeof getLang>>,
+): Promise<{ filename: string; base64: string } | null> {
+  const file = formData.get('image');
+  if (!(file instanceof File) || file.size === 0) return null;
+
+  const ext = ALLOWED_IMAGE_TYPES[file.type];
+  if (!ext) fail(t(lang, 'promo.errImageType'));
+  if (file.size > MAX_IMAGE_BYTES) {
+    fail(tf(lang, 'promo.errImageBig', { n: (file.size / 1024 / 1024).toFixed(1) }));
+  }
+
+  const bytes = Buffer.from(await file.arrayBuffer());
+  if (!looksLikeImage(bytes, ext)) fail(t(lang, 'promo.errImageFake'));
+
+  return { filename: `promotion.${ext}`, base64: bytes.toString('base64') };
+}
+
 /**
  * Sends the promotion.
  *
@@ -82,12 +123,20 @@ async function sendPromotion(formData: FormData): Promise<void> {
   const subjectAr = String(formData.get('subjectAr') ?? '').trim();
   const bodyAr = String(formData.get('bodyAr') ?? '').trim();
 
-  // A language counts as usable only when BOTH its parts are filled. A subject
-  // with no body, or a body with no subject, is a half-written message and the
-  // fallback below would rather use the other language than send it.
-  const hasEn = Boolean(subjectEn && bodyEn);
-  const hasAr = Boolean(subjectAr && bodyAr);
-  if (!hasEn && !hasAr) fail(t(lang, 'promo.errEmpty'));
+  // ⚠ THE IMAGE IS READ BEFORE VALIDATION, because whether a body is required
+  // depends on whether there is one. A promotion may be text, a picture, or
+  // both — a shop announcing a new burger has an image and little to say.
+  const picture = await readPromoImage(formData, lang);
+
+  // A language is usable when it has a SUBJECT. Every email needs one: it is
+  // what the customer sees on a lock screen, and a blank subject is both a spam
+  // signal and unopenable. The body may be empty when a picture carries the
+  // message.
+  const hasEn = Boolean(subjectEn) && Boolean(bodyEn || picture);
+  const hasAr = Boolean(subjectAr) && Boolean(bodyAr || picture);
+  if (!hasEn && !hasAr) {
+    fail(t(lang, picture ? 'promo.errNoSubject' : 'promo.errEmpty'));
+  }
 
   // ⚠ Checked BEFORE anything is written or sent. Without SMTP this would
   // otherwise record a campaign that reached nobody and report success.
@@ -157,10 +206,26 @@ async function sendPromotion(formData: FormData): Promise<void> {
             // ⚠ The plain-text part carries the unsubscribe URL too. A text-only
             // client that could not opt out would leave the customer with no way
             // off the list but marking the mail as spam.
-            text: `${hello}\n\n${body}\n\n—\n${footerNote}\n${unsubLabel}: ${unsubUrl}\n`,
+            // ⚠ A text part that is only a greeting reads as broken. When the
+            // promotion is a picture with no words, say so — a text-only client
+            // shows this and nothing else.
+            text:
+              `${hello}\n\n` +
+              `${body || (useAr ? '(الرسالة صورة مرفقة.)' : '(This message is a picture.)')}\n\n` +
+              `—\n${footerNote}\n${unsubLabel}: ${unsubUrl}\n`,
             html: emailHtml({
               heading: subject,
-              blocks: [{ p: hello }, ...body.split(/\n{2,}/).map((p) => ({ p }))],
+              blocks: [
+                { p: hello },
+                // Blank paragraphs are dropped, so an image-only promotion does
+                // not render an empty <p> under the greeting.
+                ...body
+                  .split(/\n{2,}/)
+                  .map((p) => p.trim())
+                  .filter(Boolean)
+                  .map((p) => ({ p })),
+                ...(picture ? [{ image: { cid: PROMO_IMAGE_CID, alt: subject } }] : []),
+              ],
               // esc() is applied to the parts, then the anchor is added — the
               // footer is the one place composed markup is intended.
               footer:
@@ -174,6 +239,15 @@ async function sendPromotion(formData: FormData): Promise<void> {
                 filename: 'stackd-rewards.png',
                 base64: REWARDS_MARK_PNG_BASE64,
               },
+              ...(picture
+                ? [
+                    {
+                      cid: PROMO_IMAGE_CID,
+                      filename: picture.filename,
+                      base64: picture.base64,
+                    },
+                  ]
+                : []),
             ],
           });
           delivered += 1;
@@ -251,33 +325,50 @@ export default async function PromotionsPage({
         <div className="banner bad">{t(lang, 'promo.noSmtp')}</div>
       ) : null}
 
-      {/* `.grid` of `.card.stat` with `.k`/`.v`, the same shape the overview
-          page uses — not a private layout invented for this screen. */}
+      {/* ⚠ `<div>`, NOT `<span>`. `.stat .k/.v/.sub` are styled but never given
+          a display, so they inherit it from the element — and inline spans run
+          the label straight into the figure on one line: "WILL RECEIVE0The gap
+          between…". The overview page has always used divs; this screen was the
+          odd one out. Reported from a screenshot, in both languages.
+
+          The long note moved out from under the first figure too. As a `.sub`
+          it wrapped to four lines and made one card three times the height of
+          its neighbours. */}
       <div className="grid">
         <div className="card stat">
-          <span className="k">{t(lang, 'promo.willReceive')}</span>
-          <span className="v">{mailable}</span>
-          <span className="sub">{t(lang, 'promo.audienceNote')}</span>
+          <div className="k">{t(lang, 'promo.willReceive')}</div>
+          <div className="v num">{mailable}</div>
         </div>
         <div className="card stat">
-          <span className="k">{t(lang, 'promo.optedIn')}</span>
-          <span className="v">{counts?.opted ?? 0}</span>
+          <div className="k">{t(lang, 'promo.optedIn')}</div>
+          <div className="v num">{counts?.opted ?? 0}</div>
         </div>
         <div className="card stat">
-          <span className="k">{t(lang, 'promo.members')}</span>
-          <span className="v">{counts?.total ?? 0}</span>
+          <div className="k">{t(lang, 'promo.members')}</div>
+          <div className="v num">{counts?.total ?? 0}</div>
         </div>
       </div>
+      <p className="muted sm">{t(lang, 'promo.audienceNote')}</p>
 
       {canSend ? (
         <div className="card">
           <h2>{t(lang, 'promo.compose')}</h2>
           <p className="muted sm">{t(lang, 'promo.composeNote')}</p>
 
-          <form action={sendPromotion} className="stack">
+          {/* encType is required for a file to arrive at all — without it the
+              browser sends the filename as a string and the server sees no
+              File. Server Actions accept multipart, but only if asked. */}
+          <form action={sendPromotion} className="stack" encType="multipart/form-data">
             <div className="field">
               <label htmlFor="subjectAr">{t(lang, 'promo.subjectAr')}</label>
-              <input id="subjectAr" name="subjectAr" lang="ar" dir="rtl" maxLength={120} />
+              <input
+                id="subjectAr"
+                name="subjectAr"
+                type="text"
+                lang="ar"
+                dir="rtl"
+                maxLength={120}
+              />
             </div>
             <div className="field">
               <label htmlFor="bodyAr">{t(lang, 'promo.bodyAr')}</label>
@@ -286,11 +377,30 @@ export default async function PromotionsPage({
 
             <div className="field">
               <label htmlFor="subjectEn">{t(lang, 'promo.subjectEn')}</label>
-              <input id="subjectEn" name="subjectEn" lang="en" dir="ltr" maxLength={120} />
+              <input
+                id="subjectEn"
+                name="subjectEn"
+                type="text"
+                lang="en"
+                dir="ltr"
+                maxLength={120}
+              />
             </div>
             <div className="field">
               <label htmlFor="bodyEn">{t(lang, 'promo.bodyEn')}</label>
               <textarea id="bodyEn" name="bodyEn" lang="en" dir="ltr" rows={6} />
+            </div>
+
+            <div className="field">
+              <label htmlFor="image">
+                {t(lang, 'promo.image')} <span className="hint">{t(lang, 'promo.imageHint')}</span>
+              </label>
+              <input
+                id="image"
+                name="image"
+                type="file"
+                accept="image/webp,image/jpeg,image/png"
+              />
             </div>
 
             <p className="muted sm">{tf(lang, 'promo.confirm', { n: mailable })}</p>

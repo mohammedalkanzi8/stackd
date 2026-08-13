@@ -34,6 +34,15 @@ export interface EmailBlock {
   code?: string;
   /** A call-to-action button. */
   button?: { label: string; href: string };
+  /**
+   * A picture already attached to the message, referenced by its Content-ID.
+   *
+   * ⚠ `width` is set as an ATTRIBUTE as well as in the style. Outlook's Word
+   * renderer ignores `max-width` and will print the image at its intrinsic
+   * pixel size, so a 2000px promotion photo blows the layout apart. `height:auto`
+   * keeps the aspect ratio everywhere that does understand CSS.
+   */
+  image?: { cid: string; alt: string };
 }
 
 /**
@@ -70,6 +79,13 @@ export function emailHtml({
                     b.code,
                   )}</span>
                 </div>
+              </td></tr>`;
+      }
+      if (b.image) {
+        return `
+              <tr><td align="center" style="padding:4px 0 20px;">
+                <img src="cid:${esc(b.image.cid)}" alt="${esc(b.image.alt)}" width="456"
+                     style="display:block;width:100%;max-width:456px;height:auto;border:0;outline:none;border-radius:10px;">
               </td></tr>`;
       }
       if (b.button) {

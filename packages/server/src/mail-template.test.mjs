@@ -93,3 +93,44 @@ test('rtl mail is marked rtl', () => {
   assert.ok(html.includes('dir="rtl"'));
   assert.ok(html.includes('lang="ar"'));
 });
+
+test('a picture block renders as a cid image, sized for Outlook', () => {
+  const html = emailHtml({
+    heading: 'New burger',
+    blocks: [{ p: 'Hi,' }, { image: { cid: 'promo-pic', alt: 'New burger' } }],
+    footer: 'f',
+  });
+  assert.ok(html.includes('src="cid:promo-pic"'));
+  // ⚠ A width ATTRIBUTE as well as CSS. Outlook's Word renderer ignores
+  // max-width and prints the image at its intrinsic size, so a 2000px photo
+  // would blow the layout apart.
+  assert.ok(/<img[^>]+width="456"/.test(html), 'no width attribute for Outlook');
+  assert.ok(html.includes('height:auto'), 'aspect ratio not preserved');
+  assert.ok(!/<img[^>]+src="https?:/i.test(html), 'the picture is loaded remotely');
+});
+
+test('blocks map one-to-one to rows, so nothing phantom is rendered', () => {
+  // Image-only is a supported mode: a shop announcing a burger has a photo and
+  // little to say. The template must render exactly the blocks it is handed —
+  // filtering blank paragraphs is the caller's job, and this proves the
+  // template is not quietly adding or dropping one.
+  const rows = (blocks) =>
+    (emailHtml({ heading: 'h', blocks, footer: 'f' }).match(/<tr><td/g) || []).length;
+
+  // The shell itself contributes a fixed number of rows: mark, eyebrow,
+  // heading, the body table's cell, and the footer.
+  const shell = rows([]);
+  assert.equal(rows([{ p: 'one' }]), shell + 1);
+  assert.equal(rows([{ p: 'Hi,' }, { image: { cid: 'c', alt: 'a' } }]), shell + 2);
+  assert.equal(rows([{ image: { cid: 'c', alt: 'a' } }]), shell + 1);
+});
+
+test('an alt text with markup in it cannot break the img tag', () => {
+  const html = emailHtml({
+    heading: 'h',
+    blocks: [{ image: { cid: 'c', alt: '"><script>alert(1)</script>' } }],
+    footer: 'f',
+  });
+  assert.ok(!html.includes('<script>'), 'markup survived through alt');
+  assert.ok(html.includes('&quot;&gt;&lt;script&gt;'));
+});

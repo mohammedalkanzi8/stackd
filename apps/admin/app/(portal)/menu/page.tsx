@@ -1,5 +1,13 @@
 import { SubmitButton } from '@/app/SubmitButton.tsx';
-import { formatSar, parseRiyals, query, queryOne, toRiyalInput } from '@stackd/server';
+import {
+  ALLOWED_IMAGE_TYPES,
+  formatSar,
+  looksLikeImage,
+  parseRiyals,
+  query,
+  queryOne,
+  toRiyalInput,
+} from '@stackd/server';
 import { writeFile, mkdir, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -55,38 +63,13 @@ interface Item {
  * The env var is the deployment's answer and the relative path is the local
  * one; neither guesses.
  */
-/**
- * Magic-byte check: does the file actually contain what its extension claims?
- *
- * Deliberately narrow. It is not trying to be a virus scanner — it is closing
- * the gap between "the browser said image/webp" and "the bytes are an image",
- * which is the difference between an upload form and an arbitrary-file-write
- * into a directory that gets published to the public website.
- */
-function looksLikeImage(b: Buffer, ext: string): boolean {
-  if (b.length < 12) return false;
-  // PNG: \x89PNG\r\n\x1a\n
-  if (ext === 'png') return b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-  // JPEG: FF D8 FF, and it must end FF D9
-  if (ext === 'jpg' || ext === 'jpeg') {
-    return b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
-  }
-  // WebP is a RIFF container: 'RIFF' <size> 'WEBP'
-  if (ext === 'webp') {
-    return b.subarray(0, 4).toString('ascii') === 'RIFF' && b.subarray(8, 12).toString('ascii') === 'WEBP';
-  }
-  return false;
-}
 
 const PHOTO_DIR =
   process.env.STACKD_PHOTO_DIR ?? path.resolve(process.cwd(), '../web/public/menu');
 
-/** webp first — that is what the eight existing photos are. */
-const ALLOWED: Record<string, string> = {
-  'image/webp': 'webp',
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-};
+/** webp first — that is what the eight existing photos are. Shared with the
+    promotion image upload, so the two cannot accept different things. */
+const ALLOWED = ALLOWED_IMAGE_TYPES;
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
