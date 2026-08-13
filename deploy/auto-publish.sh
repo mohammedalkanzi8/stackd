@@ -76,7 +76,21 @@ photo_fingerprint() {
     | sort | md5sum | cut -d' ' -f1
 }
 
-want="$(db_fingerprint)-$(photo_fingerprint)"
+# ⚠ THE SITE'S OWN CODE CHANGES IT TOO, and a data-only fingerprint misses that
+# entirely. A wording fix or a layout change is pulled onto this host by
+# `git pull` and would then sit there until some unrelated price edit happened
+# to trigger a build.
+#
+# Git TREE hashes, not the commit: they move only when those directories
+# actually change, so a commit touching only the admin portal does not rebuild
+# the website. `apps/web` is the site; `packages/shared` is the menu, the money
+# maths and the copy it imports.
+code_fingerprint() {
+  git -C "$ROOT" rev-parse HEAD:apps/web HEAD:packages/shared 2>/dev/null \
+    | md5sum | cut -d' ' -f1
+}
+
+want="$(db_fingerprint)-$(photo_fingerprint)-$(code_fingerprint)"
 have="$(cat "$STATE" 2>/dev/null || echo none)"
 
 if [ -z "${want%%-*}" ]; then
