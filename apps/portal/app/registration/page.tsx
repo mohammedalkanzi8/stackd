@@ -23,6 +23,9 @@ async function register(formData: FormData): Promise<void> {
     .toLowerCase();
   const rawPhone = String(formData.get('phone') ?? '').trim();
   const password = String(formData.get('password') ?? '');
+  // An unchecked checkbox submits NOTHING at all — it is absent from the form
+  // data rather than present and false — so this reads presence, never a value.
+  const wantsMail = formData.get('marketingOptIn') !== null;
 
   // Everything the person typed comes back with the error, so a typo in the
   // phone number does not cost them the whole form.
@@ -85,9 +88,19 @@ async function register(formData: FormData): Promise<void> {
         [phone, email],
       );
       const customerId = rows[0].id as string;
+      // ⚠ THE LANGUAGE THEY REGISTERED IN, not a hard-coded 'en'. This row
+      // decides which language their promotional mail is written in and how the
+      // portal greets them, and it was pinned to English for every customer no
+      // matter which side of the toggle they used to sign up.
+      //
+      // ⚠ marketing_opt_in was ALSO never written here. It has existed since the
+      // first schema, defaulting to false, so every customer was opted out and a
+      // promotion would have reached nobody. The column was never the missing
+      // piece — nobody had been asked.
       await c.query(
-        'insert into customers (id, full_name, phone, email, locale) values ($1, $2, $3, $4, $5)',
-        [customerId, name, phone, email, 'en'],
+        `insert into customers (id, full_name, phone, email, locale, marketing_opt_in)
+         values ($1, $2, $3, $4, $5, $6)`,
+        [customerId, name, phone, email, lg, wantsMail],
       );
       await c.query(
         'insert into customer_credentials (customer_id, password_hash) values ($1, $2)',
@@ -189,6 +202,19 @@ export default async function RegistrationPage({
                 autoComplete="new-password"
               />
             </div>
+            {/* ⚠ VISIBLE AND WORDED PLAINLY, not buried in the terms. It ships
+                ticked, which is ordinary practice for marketing to a shop's own
+                customers and is why the list is not empty on day one — but it
+                is a consent decision, not a technical one. Removing
+                `defaultChecked` here and on the counter signup is the whole
+                change if the owner wants explicit opt-in instead.
+
+                Every promotional mail carries a one-click unsubscribe, which is
+                what makes a pre-ticked box defensible rather than sharp. */}
+            <label className="check">
+              <input type="checkbox" name="marketingOptIn" defaultChecked />
+              <span>{t(lang, 'reg.marketing')}</span>
+            </label>
             <SubmitButton className="primary wide" pendingLabel="Creating your account…">
               {t(lang, 'reg.create')}
             </SubmitButton>

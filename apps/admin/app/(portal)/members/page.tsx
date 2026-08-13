@@ -29,6 +29,8 @@ async function addMember(formData: FormData): Promise<void> {
   const name = String(formData.get('fullName') ?? '').trim();
   const rawPhone = String(formData.get('phone') ?? '').trim();
   const locale = String(formData.get('locale') ?? 'ar');
+  // An unchecked checkbox is absent from the form data, never present-and-false.
+  const wantsMail = formData.get('marketingOptIn') !== null;
   // Optional, and usually skipped at a busy counter — but it is the only thing
   // that lets this person ever sign in to the customer portal, because the
   // forgotten-password code is the only way in for an account created here and
@@ -80,11 +82,11 @@ async function addMember(formData: FormData): Promise<void> {
     );
     const id = rows[0].id;
     const created = await c.query(
-      `insert into customers (id, full_name, phone, email, locale)
-       values ($1, $2, $3, $4, $5) returning member_code`,
+      `insert into customers (id, full_name, phone, email, locale, marketing_opt_in)
+       values ($1, $2, $3, $4, $5, $6) returning member_code`,
       // Empty becomes NULL, never '': the unique index on lower(email) exempts
       // NULLs, so a table of empty strings would all collide with each other.
-      [id, name, phone!, email || null, locale],
+      [id, name, phone!, email || null, locale, wantsMail],
     );
     if (settings && settings.signup_bonus > 0) {
       // ⚠ THE NOTE IS A BOUND PARAMETER, NOT SQL. It was previously written as
@@ -268,6 +270,13 @@ export default async function MembersPage({
               <option value="en">English</option>
             </select>
           </div>
+          {/* Ticked by default, and the cashier is expected to say the sentence
+              out loud rather than tick it silently. Only matters when an email
+              was given — there is nowhere to send a promotion otherwise. */}
+          <label className="check">
+            <input type="checkbox" name="marketingOptIn" defaultChecked />
+            <span>{t(lang, 'mem.marketing')}</span>
+          </label>
           <button type="submit" className="primary">
             {t(lang, 'mem.addButton')}
           </button>

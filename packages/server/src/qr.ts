@@ -31,6 +31,19 @@ export function registrationUrl(): string {
   return `${portalBase()}/registration`;
 }
 
+/**
+ * The one-click unsubscribe link carried by every promotional email.
+ *
+ * ⚠ Built from `portalBase()` like every other customer-facing URL, so it is
+ * right on a laptop and right in production without a second setting to keep in
+ * step. An unsubscribe link pointing at localhost is worse than no link: the
+ * customer's only remaining way off the list is the spam button, and that costs
+ * the sending reputation the password-reset mail depends on.
+ */
+export function unsubscribeUrl(token: string): string {
+  return `${portalBase()}/unsubscribe/${token}`;
+}
+
 export async function qrSvg(target: string): Promise<string> {
   return QRCode.toString(target, {
     type: 'svg',

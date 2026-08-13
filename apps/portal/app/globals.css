@@ -124,6 +124,15 @@ h2 { font-size: 17px; margin: 0 0 10px; letter-spacing: -0.01em; }
 main > .card { margin-block-start: 18px; }
 .stack { display: flex; flex-direction: column; gap: 16px; }
 .row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+
+/* A checkbox and its label on one line — the marketing opt-in on registration.
+   `width: auto` because the base rule sizes every input to the full column,
+   which would stretch a checkbox into a band across the card.
+   `align-items: center` rather than baseline: a checkbox has no text baseline
+   to sit on, so baseline alignment drops it below the words in RTL and LTR
+   alike. Matches the admin portal's own `.check`. */
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.check input { width: auto; flex: none; }
 .spread { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
 
 /* ---------- balance ---------- */

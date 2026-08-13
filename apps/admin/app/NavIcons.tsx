@@ -112,6 +112,16 @@ export function IconPrint() {
   );
 }
 
+/** An envelope. Promotional email to customers. */
+export function IconPromotions() {
+  return (
+    <svg {...base}>
+      <rect x="3" y="5.5" width="18" height="13" rx="2" />
+      <path d="M3.5 7l8.5 6 8.5-6" />
+    </svg>
+  );
+}
+
 export function IconStaff() {
   return (
     <svg {...base}>

@@ -19,6 +19,7 @@ import {
   IconOverview,
   IconPoints,
   IconPrint,
+  IconPromotions,
   IconQr,
   IconReports,
   IconRewards,
@@ -48,6 +49,9 @@ const NAV: { href: string; key: string; Icon: () => React.ReactElement; roles?: 
   { href: '/rewards', key: 'nav.rewards', Icon: IconRewards },
   { href: '/signup-qr', key: 'nav.print', Icon: IconPrint },
   { href: '/menu', key: 'nav.menu', Icon: IconMenu },
+  // Manager and owner only. Emailing every customer at once is a brand-level
+  // act, not something a till session should reach by wandering into a URL.
+  { href: '/promotions', key: 'nav.promotions', Icon: IconPromotions, roles: ADMIN },
   { href: '/reports', key: 'nav.reports', Icon: IconReports, roles: ADMIN },
   { href: '/staff', key: 'nav.staff', Icon: IconStaff, roles: ['owner'] },
 ];

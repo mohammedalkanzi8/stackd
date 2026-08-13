@@ -339,7 +339,14 @@ create table customers (
   email         text,
   locale        text not null default 'ar' check (locale in ('ar','en')),
   birthday      date,                 -- drives a birthday reward
+  -- ⚠ SET BY BOTH SIGNUP PATHS, and for a long time by neither. It defaulted to
+  -- false and nothing ever wrote it, so every customer was opted out and the
+  -- promotions tab would have reached nobody. See migration 0011.
   marketing_opt_in boolean not null default false,
+  -- Opaque value for the one-click unsubscribe link. ⚠ NEVER the customer id:
+  -- the link travels through mail servers and inboxes that are not ours, and an
+  -- id in that URL would let anyone holding it act on an arbitrary customer.
+  unsubscribe_token uuid not null unique default gen_random_uuid(),
   created_at    timestamptz not null default now()
 );
 
@@ -818,6 +825,31 @@ create table rate_limits (
   primary key (action, key)
 );
 create index rate_limits_window on rate_limits (window_start);
+
+-- ---------------------------------------------------------------------------
+-- Promotional email
+--
+-- One row per send. Kept for audit — a mass mail to customers is an act with a
+-- name on it — and so staff can see what has already gone out rather than
+-- guessing and sending it twice.
+-- ---------------------------------------------------------------------------
+create table email_campaigns (
+  id           uuid primary key default gen_random_uuid(),
+  -- Both languages, because customers.locale exists and defaults to 'ar'.
+  -- Either pair may be blank; a customer falls back to whichever is filled.
+  subject_en   text,
+  body_en      text,
+  subject_ar   text,
+  body_ar      text,
+  sent_by      uuid references staff(id),
+  created_at   timestamptz not null default now(),
+  -- Counted at send time, not derived later: the audience changes as people
+  -- unsubscribe, and "how many did this reach" must stay answerable.
+  recipients   int not null default 0,
+  delivered    int not null default 0,
+  failed       int not null default 0
+);
+create index email_campaigns_recent on email_campaigns (created_at desc);
 
 -- Cached balance for fast reads. Maintained by trigger below; the ledger stays
 -- the source of truth and can always rebuild this.
@@ -1497,6 +1529,9 @@ alter table customer_credentials      enable row level security;
 -- credential, and only the portal's server role has any business reading one.
 alter table customer_password_resets  enable row level security;
 alter table rate_limits              enable row level security;
+-- What the shop is promoting and how large its list is. Staff-only, like the
+-- rest: no policy, so only the portals' own role reaches it.
+alter table email_campaigns           enable row level security;
 alter table device_tokens             enable row level security;
 alter table orders                    enable row level security;
 alter table order_items               enable row level security;
@@ -1649,6 +1684,30 @@ grant execute on function is_branch_open(uuid, timestamptz) to anon, authenticat
 grant execute on function riyadh_service_date(timestamptz)  to anon, authenticated;
 grant execute on function points_for_amount(int, numeric)    to anon, authenticated;
 grant execute on function points_for_order(uuid)            to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Turning marketing off
+--
+-- security definer so the unsubscribe route needs no privileges of its own, and
+-- so the only thing an unsubscribe link can ever do is this one update.
+--
+-- Returns true when a customer was found. An unknown or already-used token
+-- returns false rather than raising: the page it backs says the same reassuring
+-- thing either way, because somebody clicking twice has not failed at anything.
+-- ---------------------------------------------------------------------------
+create or replace function unsubscribe_by_token(p_token uuid)
+returns boolean
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare hit int;
+begin
+  update customers
+     set marketing_opt_in = false
+   where unsubscribe_token = p_token;
+  get diagnostics hit = row_count;
+  return hit > 0;
+end $$;
+
+revoke all on function unsubscribe_by_token(uuid) from public;
 
 -- Staff-facing, and gated internally on the caller being active staff.
 grant execute on function find_member(text) to authenticated;

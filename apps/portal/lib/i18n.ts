@@ -55,6 +55,16 @@ const AR: Dict = {
   'reg.name': 'الاسم',
   'reg.mobile': 'رقم الجوال',
   'reg.create': 'إنشاء حسابي',
+  'reg.marketing': 'أرسلوا لي العروض والجديد بالبريد',
+
+  // Unsubscribing from promotional email
+  'unsub.title': 'إلغاء الاشتراك في العروض',
+  'unsub.lede': 'اضغط الزر وتتوقف رسائل العروض. لن نرسل لك أي عرض بعدها.',
+  'unsub.confirm': 'إيقاف رسائل العروض',
+  'unsub.note': 'رسائل الحساب — مثل رمز استعادة كلمة المرور — تبقى تصلك، لأنك أنت من يطلبها.',
+  'unsub.doneTitle': 'تم إلغاء الاشتراك',
+  'unsub.doneLede': 'لن تصلك رسائل عروض بعد الآن.',
+  'unsub.stillMember': 'نقاطك وعضويتك كما هي، ولم يتغير شيء في حسابك.',
   'reg.already': 'عضو بالفعل؟',
   'reg.errName': 'من فضلك أدخل اسمك.',
   'reg.errEmail': 'عنوان البريد الإلكتروني لا يبدو صحيحًا.',
@@ -196,6 +206,16 @@ const EN: Dict = {
   'reg.name': 'Your name',
   'reg.mobile': 'Mobile',
   'reg.create': 'Create my account',
+  'reg.marketing': 'Email me offers and news',
+
+  // Unsubscribing from promotional email
+  'unsub.title': 'Unsubscribe from offers',
+  'unsub.lede': 'Press the button and the offers stop. We will not email you any more of them.',
+  'unsub.confirm': 'Stop sending me offers',
+  'unsub.note': 'Account email — a password reset code, for instance — still reaches you, because you are the one asking for it.',
+  'unsub.doneTitle': 'Unsubscribed',
+  'unsub.doneLede': 'You will not receive any more offers from us.',
+  'unsub.stillMember': 'Your points and your membership are untouched. Nothing else about your account has changed.',
   'reg.already': 'Already a member?',
   'reg.errName': 'Please enter your name.',
   'reg.errEmail': 'That email address does not look right.',
