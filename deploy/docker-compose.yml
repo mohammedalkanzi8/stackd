@@ -162,7 +162,11 @@ services:
       PGHOST: db
       PGUSER: ${POSTGRES_USER:-stackd}
       PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-      PGDATABASE: ${STACKD_DB:-stackd}
+      # ⚠ STACKD_DB, not PGDATABASE. scripts/db-reset.mjs derives the database
+      # name from STACKD_DB and defaults it to `stackd_dev`, so a publish that
+      # sets only the standard PG* vars connects to a development database that
+      # does not exist on this host — which is exactly how the first run failed.
+      STACKD_DB: ${STACKD_DB:-stackd}
       # ⚠ REQUIRED. Without it wrangler cannot upload and the site silently keeps
       # serving the previous menu, which is the failure this whole pipeline
       # exists to prevent.
