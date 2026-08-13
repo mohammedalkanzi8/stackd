@@ -15,6 +15,117 @@ one — `mohamed.kanzi@` is an admin-portal login and is never shown to customer
 
 ---
 
+## 13 August 2026 — pre-launch security review, and two things it caught
+
+A full pre-production review the night before go-live: code review, an attacker's
+pass over everything reachable without a credential, and a gap analysis against
+OWASP. Everything below was found, fixed, deployed and then re-verified against
+production rather than assumed.
+
+### Critical — customer data was readable with no login at all
+
+`/`, `/orders` and `/members` on the staff portal each returned **HTTP 200 and a
+full flight payload to an anonymous request**, carrying a real customer's name,
+member code, mobile number and order totals.
+
+**⚠ THE CAUSE IS A NEXT.JS FACT THAT LOOKS LIKE A BUG AND ISN'T. A layout
+renders CONCURRENTLY with its page.** `(portal)/layout.tsx` calls
+`requireStaff()`, and that reads like a gate over everything beneath it. It is
+not one. The layout's `redirect()` does not prevent the page component from
+running, so every page under a "protected" layout was fetching and returning
+data. Requesting with the `RSC: 1` header skips the HTML shell and hands the
+payload over directly.
+
+Every page component now calls `requireStaff()` **itself**.
+
+**⚠ AND THE FIRST SWEEP MISSED `/members`, because I audited with grep.** That
+file does contain `requireStaff()` — inside the `addMember` server action. An
+action guard and a page guard are not the same thing and no file-level search
+can tell them apart. The re-audit reads each default export's body instead.
+Every admin page and every portal page is now genuinely guarded, and the check
+that proves it is a live request, not a search:
+
+```
+/members  before 7378 bytes, a real customer   after 3993 bytes, nothing
+```
+
+### Critical — counter signups were broken outright
+
+Not security; found while verifying the above. The ledger note on
+`(portal)/members/page.tsx` was written as `t(await getLang(), 'err.signedCounter')`
+**inside the SQL string**, where nothing interpolates it. Postgres received those
+characters as SQL and raised `42601 syntax error at or near "getLang"`.
+
+`signup_bonus` is 100 in production, so that branch runs on **every** counter
+signup — enrolling anybody at the till failed. The surrounding transaction rolled
+the half-made customer back, which is why it left no wreckage and nothing
+noticed.
+
+**⚠ Typecheck cannot see this. The string is valid TypeScript; only Postgres
+ever parses it.** Neither can the test suite, which does not exercise that path.
+
+### High — nothing was rate limited, anywhere
+
+Both sign-in forms and the forgotten-password form accepted unlimited attempts
+from any address, with `ADMIN_ALLOW_CIDR` still open to `0.0.0.0/0`.
+
+**⚠ THE DENIAL OF SERVICE MATTERED MORE THAN THE GUESSING.** Every attempt costs
+~64 MB and ~100 ms of scrypt — *including* failures against accounts that do not
+exist, because the login deliberately verifies a dummy hash so it cannot leak
+which addresses are real. This box has **two cores** and also runs Postgres, both
+portals and the till. A few dozen concurrent requests take the counter offline
+mid-service, and no credential is needed to send them.
+
+Counters live in Postgres (`0010_rate_limits.sql`), not memory: the portals are
+separate processes and every deploy restarts them, so an in-memory counter is
+per-process *and* wiped by each deploy. Limits run **before** the hash — a
+limiter placed after it still pays for the attack it exists to stop. Per-IP and
+per-account both, since either alone is bypassable.
+
+**⚠ I BROKE THE PRODUCTION LOGIN WITH THIS FIX, for about an hour.** `max` was
+passed as `$3` but never referenced in the SQL. An unused placeholder has no
+inferable type, so Postgres raised `42P18 could not determine data type of
+parameter $3` and **every sign-in returned 500**. Found in `docker logs`, not by
+any test.
+
+**⚠ AND MY FIRST ATTEMPT TO VERIFY THE LIMITER PROVED NOTHING.** A plain POST to
+`/login` just re-renders the page: 200s, zero counters, and it looks like a pass.
+Server Actions need the `Next-Action` action ID, which changes on every build and
+has to be re-scraped from the page. The real test:
+
+```
+13 attempts → 303 ×13, then location: /login?error=slow, retry_after=899s
+rate_limits: admin_login 13 · admin_login_id 13
+```
+
+Brute force also left **no trace anywhere** before this. It is logged now.
+
+### The rest, fixed and verified live
+
+- **CSP, Permissions-Policy, Referrer-Policy, `X-Robots-Tag: noindex`** added in
+  `deploy/Caddyfile` on both hosts. Camera stays allowed on admin — the scanner
+  needs it.
+- **`/_next/image` closed** on both portals (`images.unoptimized`). sharp 0.34.5
+  carries four high CVEs and neither portal uses the feature. Both 404 now.
+- **Menu photo uploads check magic bytes**, not the file extension.
+- Confirmed nothing is published off the box but Caddy's 80 and 443 — Postgres
+  and both portals are container-internal only. That is also what makes the
+  `x-forwarded-for` handling in `callerIp()` trustworthy; if a second ingress is
+  ever added, per-IP limiting becomes bypassable.
+
+### What this session is actually evidence of
+
+Four rounds of source review did not find the layout bug, and a clean typecheck,
+a clean build and 131 passing tests did not find the broken signup SQL. A live
+request found the first and a `psql` prompt found the second.
+
+**⚠ The pattern is now unmistakable and it is the same one the Arabic rounds
+taught: green checks describe the code, not the running system.** Verify against
+the thing itself — an HTTP request, a database, a screenshot — or it is not
+verified.
+
+---
+
 ## 13 August 2026 — the website publishes itself when the menu changes
 
 **✅ LIVE.** Edit a price in the admin portal and `stackd.com.sa` updates itself
@@ -2322,7 +2433,17 @@ No exposure today — the website is static and collects nothing.
 
 - **Narrow `ADMIN_ALLOW_CIDR`** — still `0.0.0.0/0` by decision, so the staff
   portal is open to the internet. The tooling and runbook are in place; it needs
-  the shop's public IP and one command. See the 6 Aug entry above.
+  the shop's public IP and one command. See the 6 Aug entry above. Rate limiting
+  now carries the load this was meant to carry, so it is no longer the only
+  thing standing in front of the login — but it is still the control that would
+  make the staff portal unreachable to strangers outright.
+- **No MFA on the Super Admin account.** One password stands between the
+  internet and every customer record plus the ability to move points. Worth a
+  second factor once the launch settles.
+- **The two staff passwords' strength is unknown** — they are scrypt hashes and
+  cannot be read back. This is the most load-bearing unknown left: every control
+  above assumes they are not guessable. Set them with
+  `npm run admin:passwd -- <email>` if there is any doubt.
 - **ZATCA Phase 2** — Wave 24 (turnover > SAR 375K) deadline was 30 June 2026,
   already passed. Confirm whether STACKD is in scope. Applies to the till now,
   independent of this project.
