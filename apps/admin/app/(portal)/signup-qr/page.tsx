@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { qrSvg, registrationUrl, queryOne } from '@stackd/server';
-import { LOCALES, isLocale, DEFAULT_LOCALE } from '@stackd/shared';
+import { LOCALES, REWARDS_COPY, fillRewards, isLocale, DEFAULT_LOCALE } from '@stackd/shared';
 
 import { requireStaff } from '@/lib/auth.ts';
 import { FORMATS, FORMAT_IDS, isFormatId } from '@/lib/poster/formats.ts';
@@ -43,7 +43,11 @@ export default async function SignupQrPage({
     <>
       <p className="eyebrow">STACKD Rewards</p>
       <h1>{t(uiLang, 'sq.title')}</h1>
-      <p className="lede">{t(uiLang, 'sq.lede')}</p>
+      <p className="lede">
+        {tf(uiLang, 'sq.lede', {
+          pct: fillRewards(REWARDS_COPY[uiLang].percent, uiLang, { n: earnPercent }),
+        })}
+      </p>
 
       {onLocalhost ? (
         <div className="banner note">

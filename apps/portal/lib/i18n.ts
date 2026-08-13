@@ -132,7 +132,10 @@ const AR: Dict = {
   'rsn.manual_adjust': 'تعديل من الفريق',
   'rsn.expiry': 'منتهية الصلاحية',
   'rsn.order_refund': 'طلب مسترجع',
-  'rp.noPoints': 'لا توجد نقاط للخصم بعد. اعرض رمزك عند الطلب ويعود إليك 10% من الفاتورة.',
+  // {pct} is the live earn rate, already carrying ٪ and Arabic-Indic digits.
+  // It was a literal "10%" here — Western digits inside Arabic copy, and wrong
+  // the moment the rate moved to 11%.
+  'rp.noPoints': 'لا توجد نقاط للخصم بعد. اعرض رمزك عند الطلب ويعود إليك {pct} من الفاتورة.',
   'rp.needMore': 'تحتاج {n} نقطة قبل أن تتمكن من الخصم من الفاتورة.',
   'rp.thatIs': 'أي {n} نقطة إضافية.',
   'rp.howMany': 'كم نقطة؟',
@@ -270,7 +273,8 @@ const EN: Dict = {
   'rsn.manual_adjust': 'Adjusted by the team',
   'rsn.expiry': 'Expired',
   'rsn.order_refund': 'Refunded order',
-  'rp.noPoints': 'No points to spend yet. Show your code when you order and 10% of the bill comes back.',
+  'rp.noPoints':
+    'No points to spend yet. Show your code when you order and {pct} of the bill comes back.',
   'rp.needMore': 'You need {n} points before you can spend any off a bill.',
   'rp.thatIs': 'That is {n} more.',
   'rp.howMany': 'How many points?',

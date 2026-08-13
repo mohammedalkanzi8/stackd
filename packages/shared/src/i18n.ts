@@ -103,11 +103,14 @@ const strings = {
     'visit.takeaway': 'طلبات خارجية',
     'visit.delivery': 'توصيل',
 
-    // The offer changed from a point per riyal to 10% of the bill back. These
-    // strings are read off the home page by people standing in the shop, so
-    // they have to match `REWARDS` and the admin Points page exactly.
+    // ⚠ THE RATE IS `{p}`, NEVER A TYPED NUMBER. These strings are read off the
+    // home page by people standing in the shop, so they have to match `REWARDS`
+    // and the admin Points page exactly — and when they were written as a
+    // literal "10%" they did not: raising the rate to 11% in the admin portal
+    // moved the figure in the ring above and left this line contradicting it on
+    // the same screen. Fill with fillRewards(..., { p: REWARDS.earnPercent }).
     'loyalty.title': 'مكافآت ستاكد',
-    'loyalty.lead': 'استرجع ١٠٪ من كل فاتورة نقاطاً، واخصمها من طلبك القادم.',
+    'loyalty.lead': 'استرجع {p} من كل فاتورة نقاطاً، واخصمها من طلبك القادم.',
     'loyalty.comingSoon': 'اعرف نقاطك',
     'loyalty.more': 'كيف يشتغل البرنامج',
 
@@ -158,7 +161,7 @@ const strings = {
     'visit.delivery': 'Delivery',
 
     'loyalty.title': 'STACKD Rewards',
-    'loyalty.lead': 'Get 10% of every bill back as points, and take them off your next order.',
+    'loyalty.lead': 'Get {p} of every bill back as points, and take them off your next order.',
     'loyalty.comingSoon': 'Check my points',
     'loyalty.more': 'How it works',
 

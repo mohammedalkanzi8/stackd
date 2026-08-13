@@ -22,11 +22,15 @@ export async function generateMetadata({
   const { locale: raw } = await params;
   const locale = assertLocale(raw);
   const copy = REWARDS_COPY[locale];
+  // The rate is built from REWARDS.earnPercent, never typed. A search result
+  // and a browser tab promising 10% while the page behind them says 11% is the
+  // same stale-number bug, just in the one place nobody thinks to look at.
+  const pct = fillRewards(copy.percent, locale, { n: REWARDS.earnPercent });
   return {
     title:
       locale === 'ar'
-        ? 'مكافآت ستاكد | استرجع ١٠٪ من كل فاتورة'
-        : 'STACKD Rewards | 10% back on every order',
+        ? `مكافآت ستاكد | استرجع ${pct} من كل فاتورة`
+        : `STACKD Rewards | ${pct} back on every order`,
     // The offer is the description. Someone deciding from a search result is
     // deciding on the number, not on adjectives.
     description: copy.lead,
@@ -144,13 +148,26 @@ export default async function RewardsPage({
           <div className="grid reveal">
             {copy.points.map((p) => (
               <div className="card" key={p.title}>
-                <h2 className="card-name">{p.title}</h2>
-                {/* {n} is the redemption floor, which sync:menu writes into
-                    REWARDS from loyalty_settings. Filling it here rather than
-                    baking the number into the copy is what lets a change made
-                    in the admin portal reach this page. */}
+                {/* ⚠ THE TITLE IS FILLED TOO. It carries {p} — "{p} back, not a
+                    discount" — and was previously printed raw, which is exactly
+                    how the literal "10%" survived here after the rate moved to
+                    11%. A heading is as much copy as a paragraph. */}
+                <h2 className="card-name">
+                  {fillRewards(p.title, locale, {
+                    n: REWARDS.minRedeemPoints,
+                    p: REWARDS.earnPercent,
+                  })}
+                </h2>
+                {/* Both tokens come from REWARDS, which sync:menu writes from
+                    loyalty_settings at build time: {n} the redemption floor,
+                    {p} the earn rate. Filling them here rather than baking the
+                    numbers into the copy is what lets a change made in the
+                    admin portal reach this page. */}
                 <p className="card-desc">
-                  {fillRewards(p.body, locale, REWARDS.minRedeemPoints)}
+                  {fillRewards(p.body, locale, {
+                    n: REWARDS.minRedeemPoints,
+                    p: REWARDS.earnPercent,
+                  })}
                 </p>
               </div>
             ))}

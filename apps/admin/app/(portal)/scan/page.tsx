@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { formatSar, queryOne } from '@stackd/server';
+import { REWARDS_COPY, fillRewards } from '@stackd/shared';
 
 import { requireStaff } from '@/lib/auth.ts';
 import { getLang } from '@/lib/prefs.ts';
@@ -50,6 +51,16 @@ export default async function ScanPage({
   await requireStaff();
   const lang = await getLang();
   const { ok, error, member: memberCode, redeem, claim } = await searchParams;
+
+  // The earn rate as it should be read, from the setting rather than the copy.
+  // Two lines on this page state it to the cashier and both used to say 10%.
+  const pct = fillRewards(REWARDS_COPY[lang].percent, lang, {
+    n: Number(
+      (
+        await queryOne<{ earn_percent: string }>('select earn_percent from loyalty_settings')
+      )?.earn_percent ?? 10,
+    ),
+  });
 
   const member = memberCode
     ? await queryOne<MemberView>(
@@ -116,8 +127,11 @@ export default async function ScanPage({
             </span>
           </h2>
           <p className="lede">
-            Balance {member.balance} points ({formatSar(member.balance)}). Type the
-            bill total and 10% of it goes on.
+            {tf(lang, 'scan.balanceLede', {
+              n: member.balance,
+              sar: formatSar(member.balance),
+              pct,
+            })}
           </p>
           <form action={creditBill} className="row">
             <input type="hidden" name="memberCode" value={member.member_code} />
@@ -247,7 +261,7 @@ export default async function ScanPage({
         </div>
       ) : null}
 
-      <p className="muted sm">{t(lang, 'scan.foot')}</p>
+      <p className="muted sm">{tf(lang, 'scan.foot', { pct })}</p>
     </>
   );
 }

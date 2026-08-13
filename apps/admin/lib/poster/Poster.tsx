@@ -74,8 +74,17 @@ export function Poster({
         </span>
       </p>
 
+      {/* ⚠ THE HEADLINE ITSELF IS FILLED, not just the token used to find the
+          offer inside it. It previously said "10%" literally while the token
+          was built from the live rate, so raising the rate to 11% made the two
+          disagree: highlight() searched for "11%" in a line reading "10%",
+          found nothing, and printed the stale figure with no gold on it. Both
+          now come from the same fill, so they cannot drift apart again. */}
       <h1 className="ph-h1">
-        {highlight(a.headline, fillRewards(a.percent, lead, earnPercent))}
+        {highlight(
+          fillRewards(a.headline, lead, { p: earnPercent }),
+          fillRewards(a.percent, lead, { n: earnPercent }),
+        )}
       </h1>
 
       {/*
@@ -85,7 +94,7 @@ export function Poster({
         its period stranded on the left.
       */}
       <p className="ph-h2" lang={sub} dir={rtl(sub)}>
-        {lines(b.headline)}
+        {lines(fillRewards(b.headline, sub, { p: earnPercent }))}
       </p>
 
       <div className="ph-qr" dangerouslySetInnerHTML={{ __html: qrSvg }} />
@@ -124,9 +133,9 @@ export function Poster({
             the bonus is zero rather than printing "0 points". */}
         {signupBonus > 0 ? (
           <p className="ph-rate">
-            {fillRewards(a.bonus, lead, signupBonus)}{' '}
+            {fillRewards(a.bonus, lead, { n: signupBonus })}{' '}
             <span lang={sub} dir={rtl(sub)}>
-              · {fillRewards(b.bonus, sub, signupBonus)}
+              · {fillRewards(b.bonus, sub, { n: signupBonus })}
             </span>
           </p>
         ) : null}

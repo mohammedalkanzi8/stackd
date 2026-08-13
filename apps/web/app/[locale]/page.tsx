@@ -10,6 +10,7 @@ import {
   formatTime,
   t,
   assertLocale,
+  fillRewards,
   toArabicDigits,
 } from '@stackd/shared';
 
@@ -189,7 +190,13 @@ export default async function HomePage({
             <h2 className="display h-lg">
               {isAr ? 'كل ريال يرجع لك' : 'Every Riyal Comes Back'}
             </h2>
-            <p className="lede">{t(locale, 'loyalty.lead')}</p>
+            {/* The ring below and this sentence state the same offer, so they
+                are filled from the same value. They disagreed on the live site
+                — ring 11%, sentence 10% — because only the ring was wired to
+                REWARDS.earnPercent. */}
+            <p className="lede">
+              {fillRewards(t(locale, 'loyalty.lead'), locale, { p: REWARDS.earnPercent })}
+            </p>
             <div className="link-row">
               <Link href={`/${locale}/rewards/`} className="btn btn-primary btn-sm">
                 {t(locale, 'loyalty.more')}

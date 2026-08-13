@@ -36,6 +36,7 @@ export interface ActiveCode {
 export function RedeemPanel({
   balance,
   minRedeem,
+  pct,
   active,
   issue,
   cancel,
@@ -48,12 +49,23 @@ export function RedeemPanel({
   balance: number;
   /** Fewest points that may be spent in one go. 0 means no floor. */
   minRedeem: number;
+  /**
+   * The earn rate as the customer should read it — `11%` / `١١٪`, sign and
+   * numerals already correct for the language.
+   *
+   * Formatted on the server and passed down rather than built here, because it
+   * comes from loyalty_settings and this is a client component with no database
+   * of its own. It was previously a literal "10%" inside the empty-state copy.
+   */
+  pct: string;
   active: ActiveCode | null;
   issue: (formData: FormData) => Promise<void>;
   cancel: () => Promise<void>;
 }) {
   if (active) return <LiveCode active={active} cancel={cancel} lang={lang} />;
-  return <AmountForm balance={balance} minRedeem={minRedeem} issue={issue} lang={lang} />;
+  return (
+    <AmountForm balance={balance} minRedeem={minRedeem} pct={pct} issue={issue} lang={lang} />
+  );
 }
 
 /** 1 point = 1 halala, so the riyal value is the balance with a decimal point. */
@@ -64,12 +76,14 @@ function asRiyals(points: number): string {
 function AmountForm({
   balance,
   minRedeem,
+  pct,
   issue,
   lang,
 }: {
   lang: Lang;
   balance: number;
   minRedeem: number;
+  pct: string;
   issue: (formData: FormData) => Promise<void>;
 }) {
   // Defaults to everything, which is what most people want and saves a decision
@@ -79,7 +93,7 @@ function AmountForm({
   if (balance <= 0) {
     return (
       <p className="empty">
-        {t(lang, 'rp.noPoints')}
+        {tf(lang, 'rp.noPoints', { pct })}
       </p>
     );
   }

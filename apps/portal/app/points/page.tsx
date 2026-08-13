@@ -5,6 +5,7 @@ import { t, tf, fmtDate } from '@/lib/i18n.ts';
 import { LangSwitch } from '../LangSwitch.tsx';
 import { revalidatePath } from 'next/cache';
 import { formatSar, qrSvg, query, queryOne, walletOptions } from '@stackd/server';
+import { REWARDS_COPY, fillRewards } from '@stackd/shared';
 
 import { SubmitButton } from '../SubmitButton.tsx';
 import { IconPoints, IconQr, IconRewards, IconSignOut } from '../NavIcons.tsx';
@@ -215,10 +216,19 @@ export default async function PointsPage({
   // The floor on spending points off a bill. Read here rather than hardcoded in
   // the panel so changing it in the admin portal changes what the customer is
   // told, in the same breath as changing what the database will allow.
-  const minRedeem =
-    (await queryOne<{ min_redeem_points: number }>(
-      'select min_redeem_points from loyalty_settings',
-    ))?.min_redeem_points ?? 0;
+  const settings = await queryOne<{ min_redeem_points: number; earn_percent: string }>(
+    'select min_redeem_points, earn_percent from loyalty_settings',
+  );
+  const minRedeem = settings?.min_redeem_points ?? 0;
+
+  // The earn rate as the customer reads it, formatted server-side because the
+  // panel is a client component. Same reason as the floor above: it is stated
+  // to the customer in the empty state, and a rate typed into the copy goes
+  // stale the moment it is changed in the admin portal — which is exactly what
+  // happened when it moved from 10% to 11%.
+  const pct = fillRewards(REWARDS_COPY[lang].percent, lang, {
+    n: Number(settings?.earn_percent ?? 10),
+  });
 
   /**
    * The redeem card, held in a variable because WHERE it goes depends on whether
@@ -251,6 +261,7 @@ export default async function PointsPage({
       )}
           <RedeemPanel
             minRedeem={minRedeem}
+            pct={pct}
             balance={member.balance}
             active={activeCode}
             lang={lang}

@@ -93,10 +93,11 @@ interface RewardsCopy {
    */
   bonus: string;
   /**
-   * How the earn rate is written in this language, e.g. `10%` / `١٠٪`.
+   * How the earn rate is written in this language, e.g. `11%` / `١١٪`.
    *
-   * `{n}` is the figure. Used to find and highlight the offer inside the
-   * headline, so the two cannot disagree about which numerals to use.
+   * `{n}` is the figure. This is what `{p}` expands to everywhere else, so the
+   * headline, the cards and the poster's gold highlight cannot disagree about
+   * the number or about which numerals to set it in.
    */
   percent: string;
 }
@@ -104,7 +105,7 @@ interface RewardsCopy {
 export const REWARDS_COPY: Record<Locale, RewardsCopy> = {
   en: {
     name: 'STACKD Rewards',
-    headline: 'Get 10% back.\nEvery single order.',
+    headline: 'Get {p} back.\nEvery single order.',
     subhead: 'Free to join. Takes about a minute.',
     steps: [
       'Scan the code and sign up',
@@ -117,9 +118,16 @@ export const REWARDS_COPY: Record<Locale, RewardsCopy> = {
       'Every riyal you spend comes back as points, and points come straight off a future bill. No stamps, no card to lose, nothing to remember.',
     points: [
       {
-        title: '10% back, not a discount',
+        // ⚠ {p} IS THE EARN RATE AND MUST NEVER BE TYPED OUT HERE. The rate is
+        // `loyalty_settings.earn_percent`, editable in the admin portal, and
+        // these three lines used to spell "10%" and "Ten percent" literally.
+        // Raising it to 11% left the website, the rewards page and the printed
+        // poster all still promising 10% — the poster silently, because
+        // Poster.tsx locates the offer by searching the headline for the filled
+        // token and simply found nothing to highlight.
+        title: '{p} back, not a discount',
         body:
-          'Ten percent of every bill returns as points. Spend them whenever you like, on whatever you like. Nothing expires for a year.',
+          '{p} of every bill returns as points. Spend them whenever you like, on whatever you like. Nothing expires for a year.',
       },
       {
         title: 'Your code is on your phone',
@@ -146,7 +154,7 @@ export const REWARDS_COPY: Record<Locale, RewardsCopy> = {
   },
   ar: {
     name: 'مكافآت ستاكد',
-    headline: 'استرجع ١٠٪\nمن كل فاتورة',
+    headline: 'استرجع {p}\nمن كل فاتورة',
     subhead: 'الاشتراك مجاني ولا يستغرق دقيقة.',
     steps: [
       'امسح الرمز وسجّل',
@@ -159,9 +167,11 @@ export const REWARDS_COPY: Record<Locale, RewardsCopy> = {
       'كل ريال تصرفه يرجع لك نقاط، والنقاط تُخصم مباشرة من فاتورتك القادمة. بدون أختام، وبدون بطاقة تضيع، وبدون شي تتذكره.',
     points: [
       {
-        title: '١٠٪ ترجع لك، مو خصم',
+        // Same rule as the English: the rate is never typed. Arabic previously
+        // spelled it out as "عشرة بالمئة", which no substitution could reach.
+        title: '{p} ترجع لك، مو خصم',
         body:
-          'عشرة بالمئة من كل فاتورة ترجع لك نقاط. اصرفها متى ما تبي وعلى اللي تبي، وتبقى صالحة سنة كاملة.',
+          '{p} من كل فاتورة ترجع لك نقاط. اصرفها متى ما تبي وعلى اللي تبي، وتبقى صالحة سنة كاملة.',
       },
       {
         title: 'رمزك في جوالك',
@@ -198,7 +208,39 @@ export function rewardsNumber(locale: Locale, n: number): string {
   return locale === 'ar' ? toArabicDigits(n) : String(n);
 }
 
-/** Fills a `{n}` template with a locale-appropriate figure. */
-export function fillRewards(template: string, locale: Locale, n: number): string {
-  return template.replace('{n}', rewardsNumber(locale, n));
+/**
+ * Fills the copy tokens with locale-appropriate figures.
+ *
+ * Two tokens, and both come from `loyalty_settings` rather than from anything
+ * written here:
+ *
+ *   {n}  a plain count — the redemption floor, or the joining bonus
+ *   {p}  the earn rate, already carrying its percent sign in the right place
+ *        for the language (`11%` / `١١٪`)
+ *
+ * ⚠ ONE FUNCTION FOR BOTH, DELIBERATELY. This used to fill `{n}` only, and the
+ * earn rate was typed into the headline and the first card as a literal "10%".
+ * Changing the rate in the admin portal then updated the number in the ring on
+ * the home page and nothing else, so the site and the printed poster went on
+ * promising the old rate. A separate percent-only helper would have left the
+ * same trap one call site away, so there is no way to fill one token while
+ * quietly forgetting the other.
+ *
+ * Passing a value for a token the template does not contain is fine and common:
+ * most lines carry one or neither.
+ */
+export function fillRewards(
+  template: string,
+  locale: Locale,
+  values: { n?: number; p?: number },
+): string {
+  let out = template;
+  if (values.n !== undefined) out = out.split('{n}').join(rewardsNumber(locale, values.n));
+  if (values.p !== undefined) {
+    // The percent token is itself a per-language template, so that Arabic gets
+    // ٪ after Arabic-Indic digits and English gets % after Western ones.
+    const pct = REWARDS_COPY[locale].percent.replace('{n}', rewardsNumber(locale, values.p));
+    out = out.split('{p}').join(pct);
+  }
+  return out;
 }

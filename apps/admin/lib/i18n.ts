@@ -274,7 +274,8 @@ const AR: Dict = {
   'ov.noMovements': 'لم تتحرك أي نقاط بعد. ستظهر هنا فور أن يكسب طلب نقاطًا أو تُستبدل مكافأة.',
   'scan.eyebrow': 'الكاشير',
   'scan.lede': 'بطاقة العضو لإضافة النقاط، أو رمز الاستبدال لخصم النقاط من الفاتورة. يعمل قارئ الباركود هنا مثل لوحة المفاتيح، والحقل جاهز للكتابة.',
-  'scan.foot': 'الكسب هو 10% من الفاتورة، والنقطة الواحدة تساوي هللة واحدة، أي أن 100 نقطة تخصم 1.00 ريال. كلا الرقمين في صفحة النقاط.',
+  'scan.balanceLede': 'الرصيد {n} نقطة ({sar}). اكتب إجمالي الفاتورة ويضاف {pct} منه.',
+  'scan.foot': 'الكسب هو {pct} من الفاتورة، والنقطة الواحدة تساوي هللة واحدة، أي أن 100 نقطة تخصم 1.00 ريال. كلا الرقمين في صفحة النقاط.',
   'scan.givePoints': 'إضافة نقاط',
   'scan.addPoints': 'إضافة النقاط',
   'scan.addThePoints': 'إضافة النقاط',
@@ -441,7 +442,7 @@ const AR: Dict = {
   'stf.you': 'أنت',
   'stf.add': 'إضافة',
   'stf.set': 'تعيين',
-  'sq.lede': 'تصميم التسجيل بأربعة مقاسات. كل ما فيه حي: الرمز يشير إلى صفحة التسجيل الحقيقية، ونسبة 10% تُقرأ من صفحة النقاط، فلا يمكن لورقة مطبوعة أن تخالف النظام بصمت.',
+  'sq.lede': 'تصميم التسجيل بأربعة مقاسات. كل ما فيه حي: الرمز يشير إلى صفحة التسجيل الحقيقية، ونسبة {pct} تُقرأ من صفحة النقاط، فلا يمكن لورقة مطبوعة أن تخالف النظام بصمت.',
   'sq.a3': 'ملصق جداري A3',
   'sq.a3d': 'على الجدار بجانب الطابور، بمستوى النظر.',
   'sq.roll': 'بانر أرضي، 85 × 200 سم',
@@ -810,7 +811,14 @@ const EN: Dict = {
   'ov.noMovements': 'No points have moved yet. They appear here as soon as an order earns or a reward is redeemed.',
   'scan.eyebrow': 'Counter',
   'scan.lede': 'Their member card to give points, or a redemption code to take points off a bill. A barcode scanner works here as a keyboard; the field is already focused.',
-  'scan.foot': 'Earning is 10% of the bill, and one point is one halala, so 100 points takes 1.00 SAR off. Both figures are on the Points page.',
+  // {pct} is the live earn rate from loyalty_settings. A line whose whole job
+  // is telling staff where the number comes from must not be a typed copy of
+  // it — this read 10% while the setting was 11%.
+  // Was hard-coded English inside an otherwise bilingual page, and carried the
+  // stale rate as well. {sar} is the balance in riyals, {pct} the earn rate.
+  'scan.balanceLede':
+    'Balance {n} points ({sar}). Type the bill total and {pct} of it goes on.',
+  'scan.foot': 'Earning is {pct} of the bill, and one point is one halala, so 100 points takes 1.00 SAR off. Both figures are on the Points page.',
   'scan.givePoints': 'Give points',
   'scan.addPoints': 'Add points',
   'scan.addThePoints': 'Add the points',
@@ -977,7 +985,10 @@ const EN: Dict = {
   'stf.you': 'you',
   'stf.add': 'Add',
   'stf.set': 'Set',
-  'sq.lede': 'The signup artwork, at four sizes. Everything on it is live: the code points at the real registration page and the 10% is read from the Points page, so a printed sheet cannot quietly contradict the system.',
+  // ⚠ This sentence PROMISES the rate is read from the Points page, while
+  // hard-coding it. It was the 10% visible in the owner's screenshot of the
+  // print studio.
+  'sq.lede': 'The signup artwork, at four sizes. Everything on it is live: the code points at the real registration page and the {pct} is read from the Points page, so a printed sheet cannot quietly contradict the system.',
   'sq.a3': 'A3 wall poster',
   'sq.a3d': 'On the wall by the queue, at head height.',
   'sq.roll': 'Roll-up banner, 85 x 200 cm',
