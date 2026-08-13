@@ -57,17 +57,22 @@ export async function rateLimit(limit: Limit): Promise<LimitResult> {
      values ($1, $2, 1, now())
      on conflict (action, key) do update
         set attempts = case
-              when rate_limits.window_start < now() - make_interval(secs => $4) then 1
+              when rate_limits.window_start < now() - make_interval(secs => $3) then 1
               else rate_limits.attempts + 1
             end,
             window_start = case
-              when rate_limits.window_start < now() - make_interval(secs => $4) then now()
+              when rate_limits.window_start < now() - make_interval(secs => $3) then now()
               else rate_limits.window_start
             end
      returning attempts,
                greatest(0, ceil(extract(epoch from
-                 (window_start + make_interval(secs => $4)) - now())))::int as retry_after`,
-    [action, key, max, windowSecs],
+                 (window_start + make_interval(secs => $3)) - now())))::int as retry_after`,
+    // ⚠ `max` is NOT a query parameter. It is compared in JS below, and passing
+    // it as an unused $3 made Postgres raise 42P18 "could not determine data
+    // type of parameter" — which took the whole sign-in action down with a 500.
+    // An unused placeholder has no inferable type; there is nothing to infer it
+    // from.
+    [action, key, windowSecs],
   );
 
   const attempts = row?.attempts ?? 1;
