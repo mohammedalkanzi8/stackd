@@ -6,6 +6,8 @@ import { redirect } from 'next/navigation';
 
 import { query, queryOne, transaction } from '@stackd/server';
 
+import { requireStaff } from '@/lib/auth.ts';
+
 export const metadata = { title: 'Members · STACKD admin' };
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +24,6 @@ export const dynamic = 'force-dynamic';
  */
 async function addMember(formData: FormData): Promise<void> {
   'use server';
-  const { requireStaff } = await import('@/lib/auth.ts');
   await requireStaff();
 
   const name = String(formData.get('fullName') ?? '').trim();
@@ -63,6 +64,14 @@ async function addMember(formData: FormData): Promise<void> {
     'select signup_bonus from loyalty_settings',
   );
 
+  // Resolved out here rather than inside the transaction: it is the note that
+  // goes on the ledger row, and it is ordinary data. Note that this freezes the
+  // enrolling cashier's UI language into a permanent record, so a ledger worked
+  // by both an Arabic and an English till will read in both. That is the
+  // existing intent and is left as it is, but it is the reason to prefer a
+  // reason code over prose if these notes are ever reported on.
+  const signupNote = t(await getLang(), 'err.signedCounter');
+
   const code = await transaction(async (c) => {
     // The customer row hangs off auth.users, so both go in together.
     const { rows } = await c.query(
@@ -78,10 +87,18 @@ async function addMember(formData: FormData): Promise<void> {
       [id, name, phone!, email || null, locale],
     );
     if (settings && settings.signup_bonus > 0) {
+      // ⚠ THE NOTE IS A BOUND PARAMETER, NOT SQL. It was previously written as
+      // `t(await getLang(), 'err.signedCounter')` INSIDE the string, where
+      // nothing interpolates it — Postgres received those characters as SQL and
+      // raised 42601 "syntax error at or near getLang". Because signup_bonus is
+      // 100 in production this branch runs on EVERY counter signup, so enrolling
+      // anyone at the till failed outright. The transaction meant it rolled back
+      // cleanly rather than half-creating a customer, which is why it left no
+      // wreckage to notice.
       await c.query(
         `insert into loyalty_transactions (customer_id, delta, reason, note)
-         values ($1, $2, 'signup_bonus', t(await getLang(), 'err.signedCounter'))`,
-        [id, settings.signup_bonus],
+         values ($1, $2, 'signup_bonus', $3)`,
+        [id, settings.signup_bonus, signupNote],
       );
     }
     return created.rows[0].member_code as string;
@@ -112,6 +129,18 @@ export default async function MembersPage({
 }: {
   searchParams: Promise<{ q?: string; ok?: string; error?: string }>;
 }) {
+  // ⚠ THE LAYOUT'S requireStaff() DOES NOT PROTECT THIS PAGE. A Next layout
+  // renders concurrently with its page, so the layout's redirect does not stop
+  // this component running. Verified against production: an anonymous request
+  // with `RSC: 1` returned HTTP 200 and a flight payload containing a real
+  // customer's name, member code and mobile number.
+  //
+  // The requireStaff() further up this file guards the addMember ACTION only.
+  // An action guard and a page guard are different things, and a file-level
+  // grep for the symbol cannot tell them apart — which is exactly why this one
+  // survived the first sweep that fixed / and /orders.
+  await requireStaff();
+
   const lang = await getLang();
   const { q = '', ok, error } = await searchParams;
   const term = q.trim();
