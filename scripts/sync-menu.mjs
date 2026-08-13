@@ -33,6 +33,22 @@ const TARGET = path.join(ROOT, 'packages/shared/src/menu.ts');
 const BEGIN = '// <generated:menu> — npm run sync:menu. Do not edit by hand.';
 const END = '// </generated:menu>';
 
+/**
+ * The loyalty numbers the WEBSITE states in its own copy.
+ *
+ * ⚠ These were typed into rewards.ts by hand, so the earn rate could be changed
+ * in the admin portal and the website would go on advertising the old one with
+ * nothing to say so. The redemption floor had the same problem: 500 was written
+ * into the sentence itself.
+ *
+ * The site is a static export with no database, so the only way it can be right
+ * is for the number to be baked in at build time from the live settings — and
+ * for a build to happen when they change, which deploy/auto-publish.sh now does.
+ */
+const REWARDS_TARGET = path.join(ROOT, 'packages/shared/src/rewards.ts');
+const R_BEGIN = '// <generated:rewards>';
+const R_END = '// </generated:rewards>';
+
 /** Single-quoted JS string literal. Arabic passes through as-is. */
 function q(s) {
   return `'${s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n')}'`;
@@ -177,6 +193,8 @@ async function run() {
   const next = source.slice(0, start) + render(categories) + source.slice(stop + END.length);
   await writeFile(TARGET, next);
 
+  await syncRewards();
+
   const items = categories.reduce((n, c) => n + c.items.length, 0);
   console.log(
     `menu.ts regenerated — ${categories.length} categories, ${items} items`,
@@ -193,6 +211,50 @@ async function run() {
       console.log('    git diff packages/shared/src/menu.ts');
     }
   }
+}
+
+/**
+ * Writes the live loyalty settings into rewards.ts.
+ *
+ * Opened as its own connection rather than reusing the menu one, because the
+ * menu client is already closed by the time this runs and threading it through
+ * would couple two things that have no other reason to know about each other.
+ */
+async function syncRewards() {
+  const db = new pg.Client(connectionFor(DB_NAME));
+  await db.connect();
+  let row;
+  try {
+    const { rows } = await db.query(
+      'select earn_percent, min_redeem_points, signup_bonus from loyalty_settings limit 1',
+    );
+    row = rows[0];
+  } finally {
+    await db.end();
+  }
+  if (!row) {
+    console.log('no loyalty_settings row; rewards.ts left as it is');
+    return;
+  }
+
+  const source = await readFile(REWARDS_TARGET, 'utf8');
+  const start = source.indexOf(R_BEGIN);
+  const stop = source.indexOf(R_END);
+  if (start === -1 || stop === -1) {
+    throw new Error(`${path.relative(ROOT, REWARDS_TARGET)} has no <generated:rewards> region`);
+  }
+
+  const block =
+    `${R_BEGIN}\n` +
+    `  earnPercent: ${Number(row.earn_percent)},\n` +
+    `  minRedeemPoints: ${row.min_redeem_points},\n` +
+    `  signupBonus: ${row.signup_bonus},\n  `;
+
+  await writeFile(REWARDS_TARGET, source.slice(0, start) + block + source.slice(stop));
+  console.log(
+    `rewards.ts regenerated — ${Number(row.earn_percent)}% back, ` +
+      `${row.min_redeem_points} minimum, ${row.signup_bonus} signup bonus`,
+  );
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

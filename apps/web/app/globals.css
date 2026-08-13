@@ -944,13 +944,31 @@ svg {
   background-size: calc(var(--checker) * 2) calc(var(--checker) * 2);
   background-position: 0 0, var(--checker) var(--checker);
 }
+/* ⚠ THE WORDMARK HAS TO BE READABLE OR IT IS NOT A BRAND MARK.
+   This was 42% wide, capped at 130px, at HALF OPACITY and slightly desaturated,
+   sitting on a red checkerboard. Six letters across ~107px is about 18px each,
+   and at 0.5 alpha over a busy pattern the outer letters stop registering — the
+   lockup was read as "TACK" on a live card.
+
+   Bigger, opaque, and no grayscale. A placeholder standing in for photography
+   should look deliberate, and a half-faded logo reads as a loading state. */
 .card-media-mark {
-  width: 42%;
-  max-width: 130px;
+  width: 56%;
+  max-width: 190px;
   height: auto;
-  opacity: 0.5;
-  filter: grayscale(0.15);
+  opacity: 0.92;
 }
+
+/* The checkerboard is what the mark competes with, so it is calmed directly
+   behind it rather than the mark being faded to survive it. */
+.card-media-empty::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgb(0 0 0 / 0.45) 0%, transparent 68%);
+}
+.card-media-empty { position: relative; }
+.card-media-empty .card-media-mark { position: relative; z-index: 1; }
 
 /* The featured card keeps its gradient, so the placeholder must not fight it. */
 .card-feature .card-media-empty {

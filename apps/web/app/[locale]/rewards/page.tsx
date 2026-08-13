@@ -6,8 +6,7 @@ import {
   REWARDS_MARK_SVG,
   assertLocale,
   t,
-  toArabicDigits,
-} from '@stackd/shared';
+  toArabicDigits, fillRewards } from '@stackd/shared';
 import { SloganBand } from '../../components/SloganBand';
 import { PORTAL_URL } from '../../portal-url.ts';
 
@@ -146,7 +145,13 @@ export default async function RewardsPage({
             {copy.points.map((p) => (
               <div className="card" key={p.title}>
                 <h2 className="card-name">{p.title}</h2>
-                <p className="card-desc">{p.body}</p>
+                {/* {n} is the redemption floor, which sync:menu writes into
+                    REWARDS from loyalty_settings. Filling it here rather than
+                    baking the number into the copy is what lets a change made
+                    in the admin portal reach this page. */}
+                <p className="card-desc">
+                  {fillRewards(p.body, locale, REWARDS.minRedeemPoints)}
+                </p>
               </div>
             ))}
           </div>

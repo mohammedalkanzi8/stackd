@@ -109,7 +109,7 @@ export default async function HomePage({
             <h2 className="display h-lg">{isAr ? 'ابدأ من هنا' : 'Start Here'}</h2>
             <p className="lede lede-1">
               {isAr
-                ? 'ثلاثة أطباق تختصر ستاكد، ابدأ بواحد منها.'
+                ? 'ثلاثة أصناف تختصر ستاكد، ابدأ بواحد منها.'
                 : 'Three dishes that sum us up, start with one of these.'}
             </p>
           </div>

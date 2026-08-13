@@ -14,9 +14,25 @@
 import type { Locale } from './menu.ts';
 import { toArabicDigits } from './i18n.ts';
 
+/**
+ * ⚠ GENERATED between the markers by `npm run sync:menu`. Hand edits inside the
+ * region are overwritten.
+ *
+ * These mirror `loyalty_settings`, and they used to be typed in by hand — which
+ * meant the earn rate could be changed in the admin portal and the website would
+ * go on advertising the old one, with nothing to say so. The auto-publish
+ * pipeline rebuilds the site whenever those settings move, so the two stay
+ * together on their own now.
+ *
+ * `pointsPerRiyal` is outside the region on purpose: one point is one halala by
+ * the programme's design, not by a setting, and there is no row to read it from.
+ */
 export const REWARDS = {
-  /** Percent of the bill returned as points. Mirrors loyalty_settings.earn_percent. */
+  // <generated:rewards>
   earnPercent: 10,
+  minRedeemPoints: 500,
+  signupBonus: 0,
+  // </generated:rewards>
   /** Points per riyal of value when spending. One point is one halala. */
   pointsPerRiyal: 100,
 } as const;
@@ -111,15 +127,14 @@ export const REWARDS_COPY: Record<Locale, RewardsCopy> = {
           'Show it when you order and the points go on automatically. Add it to Apple Wallet or your home screen and it is one swipe away.',
       },
       {
-        // ⚠ This used to read "Take the whole balance off a bill, or a few
-        // riyals", which stopped being true when a 500-point floor was added to
-        // counter redemptions on 12 Aug 2026. The floor lives in
-        // loyalty_settings.min_redeem_points; the website is a static export
-        // with no database, so the number is written out here and the two have
-        // to be changed together.
+        // ⚠ {n} is the redemption floor, filled by fillRewards() from
+        // REWARDS.minRedeemPoints, which sync:menu writes from
+        // loyalty_settings. It used to be the literal 500, which meant changing
+        // the floor in the admin portal left the website advertising the old
+        // one.
         title: 'Save up, then spend',
         body:
-          'Once you reach 500 points you can take them off a bill — the whole balance or part of it. 100 points is 1 riyal, so you never need to work out what anything is worth.',
+          'Once you reach {n} points you can take them off a bill, the whole balance or part of it. 100 points is 1 riyal, so you never need to work out what anything is worth.',
       },
     ],
     joinCta: 'Join now',
@@ -156,7 +171,7 @@ export const REWARDS_COPY: Record<Locale, RewardsCopy> = {
       {
         title: 'اجمع ثم اصرف',
         body:
-          'من ٥٠٠ نقطة تقدر تخصمها من الفاتورة، كامل الرصيد أو جزء منه. ١٠٠ نقطة تساوي ريال، فما تحتاج تحسب شي.',
+          'من {n} نقطة تقدر تخصمها من الفاتورة، كامل الرصيد أو جزء منه. ١٠٠ نقطة تساوي ريال، فما تحتاج تحسب شي.',
       },
     ],
     joinCta: 'سجّل الحين',
