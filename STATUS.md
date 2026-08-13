@@ -15,6 +15,60 @@ one — `mohamed.kanzi@` is an admin-portal login and is never shown to customer
 
 ---
 
+## 13 August 2026 — a Settings tab, and mail stops living only in a file
+
+The request was "where do I configure the SMTP?" The honest answer was
+`deploy/.env` on the VM plus a container restart, which the owner cannot do from
+a phone at the counter. So there is a **Settings** tab now, owner-only.
+
+**⚠ THIS MOVES A CREDENTIAL FROM A FILE ON THE VM INTO THE DATABASE.** That is a
+trade, not a free improvement: an admin account is now closer to the mail
+password than it was. It is encrypted at rest (AES-256-GCM, key derived from
+`STACKD_ADMIN_SECRET`), which does *not* stop the portal reading it — the portal
+must — but closes the cheap paths: a database dump, a backup, a `select *`, a
+screenshot. Those are how credentials actually leak.
+
+**⚠ ENV REMAINS THE FALLBACK, FIELD BY FIELD.** Clearing the host hands mail back
+to `deploy/.env`. The database is preferred only where it has a value, and only
+when it has a host *and* a decryptable password — a stored host with an
+unreadable password would otherwise build a URL that authenticates as nobody.
+
+**Two senders, on purpose.** A reset code must reach the inbox; a promotion is
+the thing most likely to be reported as junk. From one address, a customer
+junking an offer can bury the reset code they need later.
+
+### The dangerous part, which typecheck passed clean on
+
+`mailConfigured()` became async. **`!mailConfigured()` on a promise is always
+false**, so the "no SMTP configured" guard in the promotion send and both warning
+banners silently stopped working — no error, no type complaint, nothing. Found by
+grepping call sites. `assertMailConfigured()` had the same problem in the
+forgotten-password action, where an un-awaited throw is a rejected promise
+nobody looks at.
+
+### And a gap the compose file hid
+
+**⚠ THE ADMIN CONTAINER HAD NO SMTP VARIABLES AT ALL.** Compose passed them to
+`portal` only — correct back when a password reset was the one thing this system
+sent. Promotions and the Settings test message both go out from admin, which saw
+neither. Found by reading the *running container's* environment, not the file:
+the file looks complete, and the feature just says "no mail server configured".
+
+Optional on admin, required on the portal, deliberately — the till must start
+even with no mail; a customer locked out of their points has no other way in.
+
+### What deliberately stays in deploy/.env, and is shown read-only on the page
+
+- `STACKD_PORTAL_URL` — encoded into every printed QR and poster. A typo in a web
+  form would silently invalidate paper already on the wall.
+- Wallet certificates — PEM files and passphrases, not form-shaped.
+- `ADMIN_ALLOW_CIDR` — enforced by Caddy before the app is reached. A setting the
+  app could edit would not be a control.
+- Loyalty settings — already have a home on the Points page, next to the menu
+  items they price.
+
+---
+
 ## 13 August 2026 — the earn rate stops being typed, and email grows up
 
 ### The rate was written into the copy in nine places
