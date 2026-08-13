@@ -799,6 +799,26 @@ create unique index loyalty_tx_one_earn_per_order
 create unique index loyalty_tx_one_clawback_per_order
   on loyalty_transactions (order_id) where reason = 'order_refund';
 
+-- ---------------------------------------------------------------------------
+-- Attempt counters for unauthenticated endpoints
+--
+-- ⚠ Counted in Postgres, not in memory: the portals are separate processes and
+-- every deploy restarts them, so an in-memory counter is per-process AND wiped
+-- on restart. An attacker would get a fresh budget from each process and a clean
+-- slate from every deploy.
+--
+-- Rows are disposable. Losing this table costs one window of protection, never
+-- correctness.
+-- ---------------------------------------------------------------------------
+create table rate_limits (
+  action       text not null,
+  key          text not null,
+  attempts     int  not null default 0,
+  window_start timestamptz not null default now(),
+  primary key (action, key)
+);
+create index rate_limits_window on rate_limits (window_start);
+
 -- Cached balance for fast reads. Maintained by trigger below; the ledger stays
 -- the source of truth and can always rebuild this.
 create table loyalty_balances (
@@ -1476,6 +1496,7 @@ alter table customer_credentials      enable row level security;
 -- No policy, like customer_credentials above: an in-flight reset code is a
 -- credential, and only the portal's server role has any business reading one.
 alter table customer_password_resets  enable row level security;
+alter table rate_limits              enable row level security;
 alter table device_tokens             enable row level security;
 alter table orders                    enable row level security;
 alter table order_items               enable row level security;

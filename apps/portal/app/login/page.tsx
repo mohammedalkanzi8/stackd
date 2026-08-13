@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { queryOne, verifyPassword } from '@stackd/server';
+import { queryOne, verifyPassword, rateLimit, clearLimit, callerIp } from '@stackd/server';
+import { headers } from 'next/headers';
 
 import { SubmitButton } from '../SubmitButton.tsx';
 import { currentMember, normalisePhone, startSession } from '@/lib/session.ts';
@@ -25,6 +26,25 @@ async function signIn(formData: FormData): Promise<void> {
   // {t(lang, 'login.id')}, whichever they remember. A number typed any way normalises
   // first so 0500338808 and +966500338808 find the same account.
   const phone = normalisePhone(identifier);
+
+  // ⚠ BEFORE THE HASH. Each attempt costs ~64 MB and ~100 ms of scrypt, and the
+  // dummy verification below runs even for unknown accounts so the response
+  // cannot leak which are real — so a limiter placed after it would still pay
+  // for the flood it exists to stop. Per-IP and per-identifier, because either
+  // alone is bypassable.
+  const ip = callerIp(await headers());
+  const byIp = await rateLimit({ action: 'portal_login', key: ip, max: 15, windowSecs: 300 });
+  const byId = await rateLimit({
+    action: 'portal_login_id',
+    key: identifier.toLowerCase(),
+    max: 8,
+    windowSecs: 900,
+  });
+  if (!byIp.allowed || !byId.allowed) {
+    console.warn(`[auth] portal login rate-limited ip=${ip} id=${identifier.toLowerCase()}`);
+    redirect(`/login?error=slow&id=${encodeURIComponent(identifier)}`);
+  }
+
   const row = await queryOne<{ id: string; password_hash: string }>(
     `select c.id, cc.password_hash
        from customers c
@@ -38,8 +58,11 @@ async function signIn(formData: FormData): Promise<void> {
   // nor the response time reveals which phone numbers are registered.
   const ok = await verifyPassword(password, row?.password_hash ?? DUMMY);
   if (!row || !ok) {
+    console.warn(`[auth] portal login failed ip=${ip} id=${identifier.toLowerCase()}`);
     redirect(`/login?error=1&id=${encodeURIComponent(identifier)}`);
   }
+
+  await clearLimit('portal_login_id', identifier.toLowerCase());
 
   await startSession(row.id);
   redirect('/points');

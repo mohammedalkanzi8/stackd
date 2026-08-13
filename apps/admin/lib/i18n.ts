@@ -89,6 +89,7 @@ const AR: Dict = {
   'login.submit': 'تسجيل الدخول',
   'login.pending': 'جارٍ الدخول',
   'login.lede': 'الولاء والمكافآت والقائمة.',
+  'login.slow': 'محاولات كثيرة جدًا. انتظر قليلًا ثم أعد المحاولة.',
   'login.failed': 'البريد الإلكتروني أو كلمة المرور لا يطابقان حسابًا نشطًا.',
 
   // ── Overview ──────────────────────────────────────────────────────────────
@@ -629,6 +630,7 @@ const EN: Dict = {
   'login.submit': 'Sign in',
   'login.pending': 'Signing in',
   'login.lede': 'Loyalty, rewards and the menu.',
+  'login.slow': 'Too many attempts. Wait a moment and try again.',
   'login.failed': 'That email and password do not match an active staff account.',
 
   'ov.title': 'Overview',

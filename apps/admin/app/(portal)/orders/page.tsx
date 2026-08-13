@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { getLang, type Lang } from '@/lib/prefs.ts';
 import { t, fmtDate } from '@/lib/i18n.ts';
+import { requireStaff } from '@/lib/auth.ts';
 
 
 export const metadata = { title: 'Orders · STACKD admin' };
@@ -47,6 +48,12 @@ export default async function OrdersPage({
 }: {
   searchParams: Promise<{ day?: string; source?: string }>;
 }) {
+  // ⚠ THE LAYOUT'S requireStaff() DOES NOT PROTECT THIS PAGE. A Next layout
+  // renders concurrently with its page, so its redirect does not stop this
+  // component running — an unauthenticated RSC request returned HTTP 200 with a
+  // customer's name, member code and order totals in the flight payload.
+  // Confirmed against production on 13 Aug 2026. Every page guards itself.
+  await requireStaff();
   const lang = await getLang();
   const { day = '', source = '' } = await searchParams;
 

@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { getLang } from '@/lib/prefs.ts';
 import { t, tf, fmtDate } from '@/lib/i18n.ts';
+import { requireStaff } from '@/lib/auth.ts';
 
 
 export const metadata = { title: 'Overview · STACKD admin' };
@@ -33,6 +34,12 @@ interface Movement {
    is also why "Sign-up bonus" was still showing on an Arabic screen. */
 
 export default async function OverviewPage() {
+  // ⚠ THE LAYOUT'S requireStaff() DOES NOT PROTECT THIS PAGE. A Next layout
+  // renders concurrently with its page, so its redirect does not stop this
+  // component running — an unauthenticated RSC request returned HTTP 200 with a
+  // customer's name, member code and order totals in the flight payload.
+  // Confirmed against production on 13 Aug 2026. Every page guards itself.
+  await requireStaff();
   const lang = await getLang();
   const totals = (await queryOne<Totals>(`
     select

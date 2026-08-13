@@ -55,6 +55,29 @@ interface Item {
  * The env var is the deployment's answer and the relative path is the local
  * one; neither guesses.
  */
+/**
+ * Magic-byte check: does the file actually contain what its extension claims?
+ *
+ * Deliberately narrow. It is not trying to be a virus scanner — it is closing
+ * the gap between "the browser said image/webp" and "the bytes are an image",
+ * which is the difference between an upload form and an arbitrary-file-write
+ * into a directory that gets published to the public website.
+ */
+function looksLikeImage(b: Buffer, ext: string): boolean {
+  if (b.length < 12) return false;
+  // PNG: \x89PNG\r\n\x1a\n
+  if (ext === 'png') return b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  // JPEG: FF D8 FF, and it must end FF D9
+  if (ext === 'jpg' || ext === 'jpeg') {
+    return b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+  }
+  // WebP is a RIFF container: 'RIFF' <size> 'WEBP'
+  if (ext === 'webp') {
+    return b.subarray(0, 4).toString('ascii') === 'RIFF' && b.subarray(8, 12).toString('ascii') === 'WEBP';
+  }
+  return false;
+}
+
 const PHOTO_DIR =
   process.env.STACKD_PHOTO_DIR ?? path.resolve(process.cwd(), '../web/public/menu');
 
@@ -163,9 +186,18 @@ async function uploadPhoto(formData: FormData): Promise<void> {
     fail(`That image is ${(file.size / 1024 / 1024).toFixed(1)} MB. Keep it under 4 MB.`);
   }
 
+  // ⚠ `file.type` IS CLIENT-SUPPLIED and was the only check. Anyone with an
+  // Admin account could send arbitrary bytes labelled image/webp and have them
+  // written into the website's public folder, published to stackd.com.sa by the
+  // next auto-publish. Verify the actual container instead of the claim.
+  const bytes = Buffer.from(await file.arrayBuffer());
+  if (!looksLikeImage(bytes, ext)) {
+    fail('That file is not a real image. Re-export it as webp, jpg or png.');
+  }
+
   await mkdir(PHOTO_DIR, { recursive: true });
   const filename = `${item.slug}.${ext}`;
-  await writeFile(path.join(PHOTO_DIR, filename), Buffer.from(await file.arrayBuffer()));
+  await writeFile(path.join(PHOTO_DIR, filename), bytes);
 
   // Uploading a jpg over an existing webp would otherwise leave the old file
   // sitting in public/ forever, still served to anyone with the URL.

@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import { rateLimit, callerIp } from '@stackd/server';
 
 import { SubmitButton } from '../../SubmitButton.tsx';
 import { currentMember, startSession } from '@/lib/session.ts';
@@ -29,6 +31,17 @@ async function submit(formData: FormData): Promise<void> {
   const code = String(formData.get('code') ?? '');
   const back = (m: string) =>
     redirect(`/forgot/verify?email=${encodeURIComponent(email)}&error=${encodeURIComponent(m)}`);
+
+  // The five-attempt cap inside verifyResetCode() is per CODE, and a new code
+  // resets it. This caps guesses per host regardless of how many codes are
+  // issued, which is what actually bounds an automated attack.
+  const ip = callerIp(await headers());
+  const guard = await rateLimit({ action: 'reset_verify', key: ip, max: 20, windowSecs: 900 });
+  if (!guard.allowed) {
+    console.warn(`[auth] reset code verification rate-limited ip=${ip}`);
+    redirect(`/forgot?error=${encodeURIComponent(messages(await getLang()).locked)}`);
+  }
+
 
   const result = await verifyResetCode(email, code);
   if (!result.ok) {

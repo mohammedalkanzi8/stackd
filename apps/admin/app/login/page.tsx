@@ -1,5 +1,6 @@
 import { SubmitButton } from '../SubmitButton.tsx';
-import { queryOne, verifyPassword } from '@stackd/server';
+import { queryOne, verifyPassword, rateLimit, clearLimit, callerIp } from '@stackd/server';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { currentStaff, startSession } from '@/lib/session.ts';
@@ -20,6 +21,32 @@ async function signIn(formData: FormData): Promise<void> {
   const email = String(formData.get('email') ?? '').trim();
   const password = String(formData.get('password') ?? '');
 
+  // ⚠ BEFORE THE DATABASE AND BEFORE THE HASH, and the order is the point. Every
+  // attempt costs ~64 MB and ~100 ms of scrypt — including failures against
+  // accounts that do not exist, because the dummy hash below is verified anyway
+  // so the response cannot leak which addresses are real. A limiter placed after
+  // that still pays for the attack it exists to stop.
+  //
+  // Two counters, deliberately. Per-IP stops one host hammering; per-account
+  // stops a botnet spread across addresses hammering one mailbox. Either alone
+  // is bypassable.
+  const ip = callerIp(await headers());
+  const byIp = await rateLimit({ action: 'admin_login', key: ip, max: 10, windowSecs: 300 });
+  const byAccount = await rateLimit({
+    action: 'admin_login_id',
+    key: email.toLowerCase(),
+    max: 5,
+    windowSecs: 900,
+  });
+  if (!byIp.allowed || !byAccount.allowed) {
+    // ⚠ Logged, because until now a brute-force attempt left no trace anywhere.
+    console.warn(
+      `[auth] admin login rate-limited ip=${ip} account=${email.toLowerCase()} ` +
+        `retry_after=${Math.max(byIp.retryAfter, byAccount.retryAfter)}s`,
+    );
+    redirect('/login?error=slow');
+  }
+
   const row = await queryOne<Credential>(
     `select s.id, c.password_hash
        from staff s
@@ -36,8 +63,18 @@ async function signIn(formData: FormData): Promise<void> {
     'scrypt$65536$8$1$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
   const ok = await verifyPassword(password, row?.password_hash ?? DUMMY);
 
-  if (!row || !ok) redirect('/login?error=1');
+  if (!row || !ok) {
+    // The only record that an attempt failed at all. Deliberately does not print
+    // the password or say whether the account exists.
+    console.warn(`[auth] admin login failed ip=${ip} account=${email.toLowerCase()}`);
+    redirect('/login?error=1');
+  }
 
+  // A correct password clears the account's budget, so a staff member who
+  // fat-fingers it four times is not locked out for the rest of their shift.
+  // The per-IP counter is left alone: a shared address that has just produced
+  // nine failures and one success is still worth slowing down.
+  await clearLimit('admin_login_id', email.toLowerCase());
   await startSession(row.id);
   redirect('/');
 }
@@ -58,7 +95,11 @@ export default async function LoginPage({
         <h1>{t(lang, 'login.title')}</h1>
         <p className="lede">{t(lang, 'login.lede')}</p>
 
-        {error ? <div className="banner bad">{t(lang, 'login.failed')}</div> : null}
+        {error ? (
+          <div className="banner bad">
+            {t(lang, error === 'slow' ? 'login.slow' : 'login.failed')}
+          </div>
+        ) : null}
 
         <div className="card">
           <form action={signIn} className="stack">

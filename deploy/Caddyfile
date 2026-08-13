@@ -28,6 +28,23 @@
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
+		# There was NO CSP on either host. Nothing contained an XSS if one ever
+		# landed — including the JSON-LD sink on the website, which puts
+		# JSON.stringify output into a <script> without escaping `<`.
+		#
+		# 'unsafe-inline' for style- and script-src is required by Next: it
+		# inlines the RSC flight payload and hydration bootstrap as inline
+		# <script>, and styled-jsx emits inline <style>. Dropping it breaks the
+		# app, so this is deliberately a containment boundary rather than a
+		# complete one — it still stops external script loads, framing, form
+		# hijacking and plugin embedding, which is most of what an injected
+		# payload wants.
+		#
+		# ⚠ `img-src data: blob:` is needed: the member QR is an inline SVG and
+		# the wallet buttons are data URIs.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'"
+		# The scanner asks for the camera; nothing else here needs any of these.
+		Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
 		-Server
 	}
 
@@ -68,6 +85,14 @@ To allow it, on the server:  deploy/admin-allow.sh add {http.request.remote.host
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
+		# ⚠ Was missing here while the portal had it: without it, a staff member
+		# following a link out of the portal leaks the admin URL they came from.
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'"
+		Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+		# Belt and braces with the noindex in metadata: a staff portal must never
+		# appear in a search result.
+		X-Robots-Tag "noindex, nofollow"
 		-Server
 	}
 

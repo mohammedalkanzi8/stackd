@@ -26,6 +26,12 @@ const nextConfig = {
   // of the whole workspace's node_modules. Without it a container image for this
   // monorepo carries three apps' dependencies to run one.
   output: 'standalone',
+  // ⚠ CLOSES /_next/image, WHICH NOTHING HERE USES. A standalone server exposes
+  // that endpoint unauthenticated whether or not next/image is imported, and it
+  // decodes images through sharp — which shipped at 0.34.5 with four high-severity
+  // libvips CVEs. No feature depends on it, so it is pure attack surface: an
+  // unauthenticated decoder on a two-core box that also runs the till.
+  images: { unoptimized: true },
   // File tracing has to start at the REPO root, or the traced bundle misses
   // @stackd/server and @stackd/shared, which live outside this app's folder.
   // The failure is at runtime, not build time: MODULE_NOT_FOUND on first request.

@@ -14,3 +14,4 @@ export * from './money.ts';
 export * from './qr.ts';
 export * from './session.ts';
 export * from './wallet/index.ts';
+export { rateLimit, clearLimit, callerIp, type Limit, type LimitResult } from './ratelimit.ts';

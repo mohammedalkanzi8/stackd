@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { assertMailConfigured, mailConfigured } from '@stackd/server';
+import { assertMailConfigured, mailConfigured, rateLimit, callerIp } from '@stackd/server';
+import { headers } from 'next/headers';
 
 import { SubmitButton } from '../SubmitButton.tsx';
 import { currentMember } from '@/lib/session.ts';
@@ -27,6 +28,27 @@ async function request(formData: FormData): Promise<void> {
   // be told the truth — instead of sending them to wait for a mail that was
   // never going to arrive.
   assertMailConfigured();
+
+  // ⚠ Two limits, closing two different holes.
+  //
+  // Per-IP caps how many DIFFERENT addresses can be probed from one host — the
+  // 60-second per-customer cooldown inside issueResetCode() does nothing against
+  // an attacker walking a list of addresses, and each request sends real mail
+  // from our domain, so the sender reputation being spent is ours.
+  //
+  // Per-address caps ISSUANCES, which is the gap the review found: each new code
+  // resets the five-guess counter, so an attacker who could resend freely got
+  // five fresh guesses a minute against a six-digit code, forever.
+  const ip = callerIp(await headers());
+  const byIp = await rateLimit({ action: 'reset_ip', key: ip, max: 5, windowSecs: 900 });
+  const byEmail = await rateLimit({ action: 'reset_email', key: email, max: 5, windowSecs: 3600 });
+  if (!byIp.allowed || !byEmail.allowed) {
+    console.warn(`[auth] password reset rate-limited ip=${ip}`);
+    // ⚠ The SAME destination as success. Saying "too many requests" for a real
+    // address and "sent" for an unknown one would hand back exactly the
+    // enumeration oracle this flow is built to deny.
+    redirect(`/forgot/verify?email=${encodeURIComponent(email)}`);
+  }
 
   // Returns the same way whether or not that address belongs to anybody. See
   // lib/reset.ts for why the page must not learn the difference.
