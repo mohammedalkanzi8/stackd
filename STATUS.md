@@ -15,6 +15,79 @@ one — `mohamed.kanzi@` is an admin-portal login and is never shown to customer
 
 ---
 
+## 13 August 2026 — the website publishes itself when the menu changes
+
+**✅ LIVE.** Edit a price in the admin portal and `stackd.com.sa` updates itself
+within about two and a half minutes. No commands, no laptop.
+
+**Proved end to end on production:** Classic-Stackd changed 27.00 → 28.00 in the
+database, the site showed 28.00 unaided at t+2m30s, then the price was put back
+and 28.00 was gone by t+2m00s.
+
+### ⚠ Why it has to run on the VM
+
+Three constraints, each of which alone rules out the obvious alternatives:
+
+- **The Pages project is DIRECT UPLOAD only** — no Git connection, no build
+  command. There is nothing on Cloudflare's side that *could* rebuild, so a
+  deploy hook would do nothing at all.
+- **The database is not publicly reachable.** Compose publishes 80 and 443 and
+  nothing else, so a remote builder could not read the menu even if one existed.
+- **The VM host has no Node**, only Docker — hence a container.
+
+The VM is the only place that holds the repo, the database and the uploaded
+photographs together. The photos matter: `apps/web/public/menu` is bind-mounted
+into the admin container, so a photo uploaded through the portal lands in the
+repo checkout and is picked up by the next build.
+
+### ⚠ The cheap check is the whole design
+
+The timer fires every two minutes and almost always does nothing but **one SQL
+query and a file comparison**. The heavy container — Next build, upload — starts
+only when the fingerprint has actually moved.
+
+The fingerprint covers every field `sync-menu.mjs` reads, plus the rewards
+catalogue and the earn rate (the site states both in its own copy), plus the
+photo directory, because a replaced photograph changes the site without touching
+a row.
+
+**The state file is written only on success.** A failed build is retried on the
+next tick rather than being marked done — one broken publish must not leave the
+site permanently stale and silent about it.
+
+### The pieces
+
+| | |
+|---|---|
+| `deploy/auto-publish.sh` | the fingerprint check and the trigger |
+| `deploy/publish.Dockerfile` | image with dependencies baked in — `npm ci` on two cores is minutes on its own |
+| `deploy/publish.sh` | sync:menu → build → wrangler, inside the container |
+| `deploy/stackd-publish.{service,timer}` | every two minutes, `Type=oneshot` |
+
+`publish` sits behind a **compose profile**, so `up -d` never starts it. It is a
+task, not a service, and a task in the default profile runs at the worst
+possible moment.
+
+### ⚠ Two traps this hit
+
+**`STACKD_DB`, not `PGDATABASE`.** The first run failed with *database
+"stackd_dev" does not exist*: `scripts/db-reset.mjs` derives the name from
+`STACKD_DB` and defaults it to the dev database, and the service passed only the
+standard PG\* vars, which pg honours for the connection but that helper never
+reads.
+
+**The VM has no cron.** The image ships without it. A systemd timer is better
+anyway — journald captures the output, there are no PATH surprises, and
+`Type=oneshot` stops a second publish starting on top of a running build.
+
+### ⚠ A price edit is now live in minutes with nobody reviewing it
+
+That is the owner's explicit decision — the admin edit *is* the decision. It
+also means a typo in a price reaches customers before anyone notices. The
+15-minute hold and the manual publish button were both offered and declined.
+
+---
+
 ## 13 August 2026 — the customer portal is bilingual, and Arabic is the default
 
 **✅ LIVE.** 122 keys across every customer screen, with a language switch on
