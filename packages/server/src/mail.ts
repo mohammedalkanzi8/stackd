@@ -26,8 +26,26 @@ import { createTransport, type Transporter } from 'nodemailer';
 export interface Mail {
   to: string;
   subject: string;
-  /** Plain text. Every mail this app sends is short enough not to need HTML. */
+  /**
+   * Plain text, and it is NOT optional even when `html` is supplied.
+   *
+   * ⚠ A MULTIPART MESSAGE WITH NO TEXT PART IS A SPAM SIGNAL, and it is also
+   * what a screen reader, a watch and a text-only client fall back to. The
+   * text part is the message; the HTML is a nicer rendering of it.
+   */
   text: string;
+  /** Optional HTML alternative. Sent alongside `text`, never instead of it. */
+  html?: string;
+  /**
+   * Images referenced from `html` as `cid:<cid>`.
+   *
+   * ⚠ EMBEDDED, NOT LINKED. A remote <img> is blocked by default in Gmail,
+   * Outlook and Apple Mail, so a linked logo shows as a broken box until the
+   * reader clicks "display images" — and loading one is also the tracking pixel
+   * pattern every client is defending against. A cid: attachment travels inside
+   * the message and renders immediately.
+   */
+  images?: { cid: string; filename: string; base64: string }[];
 }
 
 const FROM_FALLBACK = 'STACKD Rewards <no-reply@stackd.com.sa>';
@@ -76,7 +94,11 @@ export async function sendMail(mail: Mail): Promise<void> {
     process.stderr.write(
       `\n─── mail (no SMTP_URL, not sent) ───\n` +
         `To:      ${mail.to}\n` +
-        `Subject: ${mail.subject}\n\n${mail.text}\n` +
+        `Subject: ${mail.subject}\n` +
+        // The text part, not the HTML: this exists so a developer can read the
+        // reset code off the terminal, and 3KB of markup buries it.
+        (mail.html ? `(also has an HTML part and ${mail.images?.length ?? 0} inline image(s))\n` : '') +
+        `\n${mail.text}\n` +
         `────────────────────────────────────\n\n`,
     );
     return;
@@ -85,7 +107,47 @@ export async function sendMail(mail: Mail): Promise<void> {
   await transport().sendMail({
     from: process.env.MAIL_FROM ?? FROM_FALLBACK,
     to: mail.to,
+    ...mailBody(mail),
+  });
+}
+
+/**
+ * A `Mail` as nodemailer wants it.
+ *
+ * ⚠ EXPORTED SO `scripts/mail-test.mjs` CANNOT DRIFT FROM WHAT CUSTOMERS GET.
+ * That script's whole purpose is proving the real message delivers, and it used
+ * to spread a `Mail` straight into `sendMail()`. The moment this type grew an
+ * `images` field that stopped being equivalent: nodemailer knows `attachments`,
+ * not `images`, so the test would have sent the branded HTML with its `cid:`
+ * reference pointing at an attachment that was never added — a broken image in
+ * the one message whose job is to prove nothing is broken.
+ */
+export function mailBody(mail: Mail): {
+  subject: string;
+  text: string;
+  html?: string;
+  attachments?: {
+    filename: string;
+    content: Buffer;
+    cid: string;
+    contentDisposition: 'inline';
+  }[];
+} {
+  return {
     subject: mail.subject,
     text: mail.text,
-  });
+    ...(mail.html ? { html: mail.html } : {}),
+    ...(mail.images?.length
+      ? {
+          attachments: mail.images.map((img) => ({
+            filename: img.filename,
+            content: Buffer.from(img.base64, 'base64'),
+            // `cid` plus `inline` is what makes this render in place rather
+            // than appearing as a downloadable attachment at the bottom.
+            cid: img.cid,
+            contentDisposition: 'inline' as const,
+          })),
+        }
+      : {}),
+  };
 }

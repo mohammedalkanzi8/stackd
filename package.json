@@ -29,6 +29,7 @@
     "admin:passwd": "node scripts/admin-passwd.mjs",
     "admin:build": "npm run build --workspace @stackd/admin",
     "portal": "npm run dev --workspace @stackd/portal",
-    "portal:build": "npm run build --workspace @stackd/portal"
+    "portal:build": "npm run build --workspace @stackd/portal",
+    "sync:mail-assets": "tsx scripts/make-mail-assets.mjs"
   }
 }

@@ -9,6 +9,8 @@
 
 export * from './db.ts';
 export * from './mail.ts';
+export * from './mail-assets.ts';
+export * from './mail-template.ts';
 export * from './password.ts';
 export * from './money.ts';
 export * from './qr.ts';

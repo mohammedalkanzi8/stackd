@@ -65,6 +65,30 @@ test('both headlines carry the rate token', () => {
   }
 });
 
+/**
+ * ⚠ THIS IS THE POSTER BUG, TESTED WHERE IT COSTS NOTHING TO TEST.
+ *
+ * Poster.tsx sets the offer in gold by taking the filled `percent` token and
+ * searching for it inside the headline. When the headline held a literal "10%"
+ * and the token was built from the live rate, the search returned -1: the sheet
+ * printed the stale number with no highlight, no error and nothing in any log.
+ *
+ * The invariant is that the two are always built from the same value, and it
+ * holds without needing React, a browser or a rendered sheet.
+ */
+test('the highlight token is findable inside the filled headline', () => {
+  for (const locale of LOCALES) {
+    for (const rate of [10, 11, 7, 25]) {
+      const headline = fillRewards(REWARDS_COPY[locale].headline, locale, { p: rate });
+      const token = fillRewards(REWARDS_COPY[locale].percent, locale, { n: rate });
+      assert.ok(
+        headline.includes(token),
+        `${locale} at ${rate}%: headline "${headline}" does not contain the token "${token}"`,
+      );
+    }
+  }
+});
+
 test('filling produces the locale numerals and percent sign', () => {
   assert.equal(fillRewards('Get {p} back', 'en', { p: 11 }), 'Get 11% back');
   assert.equal(fillRewards('استرجع {p}', 'ar', { p: 11 }), 'استرجع ١١٪');

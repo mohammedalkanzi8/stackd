@@ -18,7 +18,17 @@
  */
 
 import { randomInt, randomBytes } from 'node:crypto';
-import { hashPassword, queryOne, sendMail, transaction, verifyPassword } from '@stackd/server';
+import {
+  REWARDS_MARK_CID,
+  REWARDS_MARK_PNG_BASE64,
+  emailHtml,
+  hashPassword,
+  queryOne,
+  sendMail,
+  transaction,
+  verifyPassword,
+  type Mail,
+} from '@stackd/server';
 
 /** How long a code lives. Long enough to find the mail, short enough to matter. */
 const TTL_MINUTES = 15;
@@ -55,7 +65,7 @@ function sixDigits(): string {
 export function resetEmail(
   code: string,
   name: string | null,
-): { subject: string; text: string } {
+): { subject: string; text: string; html: string; images: Mail['images'] } {
   const hello = name ? `Hi ${name},` : 'Hi,';
   return {
     subject: `${code} is your STACKD Rewards code`,
@@ -69,6 +79,34 @@ If you did not ask to reset your password, you can ignore this — nothing has c
 
 STACKD Rewards
 `,
+    // The same message, rendered. The text part above stays the authoritative
+    // one: it is what a text-only client, a screen reader and a watch show, and
+    // a multipart mail with no text part reads as spam.
+    html: emailHtml({
+      heading: 'Your password reset code',
+      blocks: [
+        { p: hello },
+        { p: 'Here is your STACKD Rewards code:' },
+        { code },
+        {
+          p: `Enter it in the app to set a new password. It works for the next ${TTL_MINUTES} minutes, and once only.`,
+        },
+        {
+          p: 'If you did not ask to reset your password you can ignore this. Nothing has changed on your account, and whoever typed your address cannot see this code.',
+        },
+      ],
+      footer: 'STACKD · Al Khobar Al Shamalia',
+    }),
+    // ⚠ No unsubscribe link on this one, deliberately. A password reset is a
+    // transactional message the customer just asked for; offering to opt out of
+    // it would let somebody lock a person out of their own account.
+    images: [
+      {
+        cid: REWARDS_MARK_CID,
+        filename: 'stackd-rewards.png',
+        base64: REWARDS_MARK_PNG_BASE64,
+      },
+    ],
   };
 }
 

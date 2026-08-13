@@ -18,6 +18,10 @@
 import { createTransport } from 'nodemailer';
 
 import { resetEmail } from '../apps/portal/lib/reset.ts';
+// ⚠ The same mapper the app uses. Spreading a Mail straight into sendMail()
+// silently drops inline images, which would send the branded template with a
+// broken logo from the one script whose job is proving delivery works.
+import { mailBody } from '../packages/server/src/mail.ts';
 
 const to = process.argv[2];
 if (!to) {
@@ -100,7 +104,7 @@ try {
 const mail = resetEmail('123456', null);
 
 console.log('Sending the real reset email…');
-const info = await transporter.sendMail({ from, to, ...mail });
+const info = await transporter.sendMail({ from, to, ...mailBody(mail) });
 
 console.log('\n✓ Accepted for delivery.');
 console.log(`  accepted: ${JSON.stringify(info.accepted)}`);
