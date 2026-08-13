@@ -31,6 +31,10 @@ GENERATED=(packages/shared/src/menu.ts packages/shared/src/rewards.ts)
 
 cd "$ROOT"
 
+# Remembered before the pull so the summary at the end can say whether anything
+# the website is built from actually moved.
+before_head=$(git rev-parse HEAD)
+
 # Reset only the generated files, and only if they are actually dirty, so the
 # command stays quiet on a clean tree.
 for f in "${GENERATED[@]}"; do
@@ -53,10 +57,19 @@ fi
 git pull --ff-only origin master
 git log --oneline -1
 
-# ⚠ The generated files are now the REPO's versions, not the database's, and
-# they stay that way until the next publish rewrites them. That is fine for the
-# portals — they read the database directly. It matters only for the static
-# website, which is built from these files, so let auto-publish notice: its
-# code_fingerprint() is a git tree hash and has just moved.
+# ⚠ RESETTING THOSE FILES DOES NOT TRIGGER A REPUBLISH, and it does not need to.
+# auto-publish's code_fingerprint() is `git rev-parse HEAD:...`, a hash of the
+# COMMITTED tree, so the working copy's state is invisible to it either way. The
+# website is rebuilt when the pull actually moves HEAD under apps/web or
+# packages/shared, and the publish container regenerates both files from the
+# database before building regardless of what they contained beforehand.
+#
+# So the working copy of a generated file never affects what customers see. Its
+# only consequence is the one this script exists to remove: a dirty tracked file
+# blocking the next pull.
 echo
-echo "auto-publish will rebuild the website within two minutes."
+if git diff --quiet "$before_head" HEAD -- apps/web packages/shared 2>/dev/null; then
+  echo "Website inputs unchanged — auto-publish will correctly do nothing."
+else
+  echo "Website inputs moved — auto-publish will rebuild within two minutes."
+fi
