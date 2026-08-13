@@ -140,7 +140,7 @@ async function sendPromotion(formData: FormData): Promise<void> {
 
   // ⚠ Checked BEFORE anything is written or sent. Without SMTP this would
   // otherwise record a campaign that reached nobody and report success.
-  if (!mailConfigured()) fail(t(lang, 'promo.errNoSmtp'));
+  if (!(await mailConfigured())) fail(t(lang, 'promo.errNoSmtp'));
 
   // ⚠ THE AUDIENCE IS RE-READ HERE, not taken from the count the page showed.
   // Someone may have unsubscribed between the page rendering and the button
@@ -202,6 +202,10 @@ async function sendPromotion(formData: FormData): Promise<void> {
         try {
           await sendMail({
             to: person.email,
+            // ⚠ MARKETING IDENTITY, not the transactional one. A customer who
+            // junks an offer sent from the reset address buries the reset codes
+            // they will need later.
+            kind: 'promo',
             subject,
             // ⚠ The plain-text part carries the unsubscribe URL too. A text-only
             // client that could not opt out would leave the customer with no way
@@ -294,6 +298,12 @@ export default async function PromotionsPage({
   const { ok, error } = await searchParams;
   const canSend = ADMIN.includes(staff.role);
 
+  // ⚠ Awaited into a variable. `mailConfigured()` is async since the SMTP
+  // settings moved into the database, and `!promise` is always false — written
+  // inline in the JSX this banner would never show, and the typechecker is
+  // perfectly happy with it.
+  const mailReady = await mailConfigured();
+
   const counts = await queryOne<{ total: number; opted: number; mailable: number }>(
     `select count(*)::int as total,
             count(*) filter (where marketing_opt_in)::int as opted,
@@ -321,7 +331,7 @@ export default async function PromotionsPage({
       {ok ? <div className="banner ok">{ok}</div> : null}
       {error ? <div className="banner bad">{error}</div> : null}
 
-      {!mailConfigured() ? (
+      {!mailReady ? (
         <div className="banner bad">{t(lang, 'promo.noSmtp')}</div>
       ) : null}
 

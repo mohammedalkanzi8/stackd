@@ -122,6 +122,16 @@ export function IconPromotions() {
   );
 }
 
+/** A cog. System settings. */
+export function IconSettings() {
+  return (
+    <svg {...base}>
+      <circle cx="12" cy="12" r="3.2" />
+      <path d="M12 3.5v2M12 18.5v2M20.5 12h-2M5.5 12h-2M18 6l-1.4 1.4M7.4 16.6 6 18M18 18l-1.4-1.4M7.4 7.4 6 6" />
+    </svg>
+  );
+}
+
 export function IconStaff() {
   return (
     <svg {...base}>

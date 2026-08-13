@@ -22,6 +22,7 @@ import {
   IconPromotions,
   IconQr,
   IconReports,
+  IconSettings,
   IconRewards,
   IconSignOut,
   IconStaff,
@@ -54,6 +55,8 @@ const NAV: { href: string; key: string; Icon: () => React.ReactElement; roles?: 
   { href: '/promotions', key: 'nav.promotions', Icon: IconPromotions, roles: ADMIN },
   { href: '/reports', key: 'nav.reports', Icon: IconReports, roles: ADMIN },
   { href: '/staff', key: 'nav.staff', Icon: IconStaff, roles: ['owner'] },
+  // Last, and owner-only: it holds the credential the shop sends mail with.
+  { href: '/settings', key: 'nav.settings', Icon: IconSettings, roles: ['owner'] },
 ];
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {

@@ -27,7 +27,11 @@ async function request(formData: FormData): Promise<void> {
   // no mailbox configured fails while the customer is still on this form and can
   // be told the truth — instead of sending them to wait for a mail that was
   // never going to arrive.
-  assertMailConfigured();
+  // ⚠ AWAITED. This became async when the SMTP settings moved into the
+  // database, and an un-awaited call throws nothing — it returns a rejected
+  // promise that nobody looks at, so a misconfigured deployment would happily
+  // issue reset codes that go nowhere.
+  await assertMailConfigured();
 
   // ⚠ Two limits, closing two different holes.
   //
@@ -65,6 +69,9 @@ export default async function ForgotPage({
   const lang = await getLang();
   if (await currentMember()) redirect('/points');
   const { error, email = '' } = await searchParams;
+  // Resolved here, not in the JSX: mailConfigured() returns a promise now, and
+  // `!promise` is ALWAYS false — the banner would simply never appear.
+  const mailReady = await mailConfigured();
 
   return (
     <div className="narrow">
@@ -81,7 +88,7 @@ export default async function ForgotPage({
             the server log instead of sent, and somebody testing the flow needs
             to know that before they sit waiting for an email. In production
             `assertMailConfigured()` throws instead of letting this happen. */}
-        {!mailConfigured() && process.env.NODE_ENV !== 'production' ? (
+        {!mailReady && process.env.NODE_ENV !== 'production' ? (
           <div className="banner bad">
             No <code>SMTP_URL</code> is set, so the code will be printed to the
             server log rather than emailed.

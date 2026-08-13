@@ -851,6 +851,36 @@ create table email_campaigns (
 );
 create index email_campaigns_recent on email_campaigns (created_at desc);
 
+-- ---------------------------------------------------------------------------
+-- Operational settings the owner can change without an SSH session
+--
+-- ⚠ Every column is NULLABLE and falls back to the environment when empty. That
+-- is what makes the settings form safe: nothing changes until somebody fills it
+-- in, and clearing a field returns that setting to deploy/.env rather than
+-- breaking mail.
+--
+-- ⚠ Two senders on purpose. A password reset is transactional and must reach the
+-- inbox; a promotion is the thing most likely to be reported as spam. One
+-- address for both means a customer junking an offer can bury the reset code
+-- they will need later.
+-- ---------------------------------------------------------------------------
+create table app_settings (
+  id                  boolean primary key default true check (id),
+  smtp_host           text,
+  smtp_port           int check (smtp_port is null or (smtp_port > 0 and smtp_port < 65536)),
+  -- true = implicit TLS (465), false = STARTTLS (587). Backwards, it hangs
+  -- rather than erroring, which is the hardest kind of wrong to diagnose.
+  smtp_secure         boolean not null default true,
+  smtp_user           text,
+  -- ⚠ CIPHERTEXT, never plaintext. AES-256-GCM keyed from STACKD_ADMIN_SECRET.
+  smtp_password_enc   text,
+  mail_from_reset     text,
+  mail_from_promo     text,
+  updated_at          timestamptz not null default now(),
+  updated_by          uuid references staff(id)
+);
+insert into app_settings (id) values (true) on conflict (id) do nothing;
+
 -- Cached balance for fast reads. Maintained by trigger below; the ledger stays
 -- the source of truth and can always rebuild this.
 create table loyalty_balances (
@@ -1532,6 +1562,9 @@ alter table rate_limits              enable row level security;
 -- What the shop is promoting and how large its list is. Staff-only, like the
 -- rest: no policy, so only the portals' own role reaches it.
 alter table email_campaigns           enable row level security;
+-- Holds an encrypted mail password and the shop's sending identity. Staff-only,
+-- no policy, like the credential tables.
+alter table app_settings              enable row level security;
 alter table device_tokens             enable row level security;
 alter table orders                    enable row level security;
 alter table order_items               enable row level security;
