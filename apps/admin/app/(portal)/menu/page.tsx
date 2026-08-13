@@ -41,7 +41,22 @@ interface Item {
  * time. That is why this writes to the other app's folder — and why a new photo
  * needs `npm run build` before anyone sees it.
  */
-const PHOTO_DIR = path.resolve(process.cwd(), '../web/public/menu');
+/**
+ * Where an uploaded photograph is written.
+ *
+ * ⚠ THE RELATIVE PATH IS ONLY CORRECT IN DEVELOPMENT. `npm run admin` runs with
+ * cwd `apps/admin`, so `../web/public/menu` lands where the website's build
+ * reads it. The container's WorkingDir is `/app`, where the same expression
+ * resolves to `/web/public/menu` — a directory outside the bind mount that
+ * mkdir happily creates, so uploads succeeded, wrote nowhere useful, vanished on
+ * the next rebuild, and left `image_url` pointing at a file the site does not
+ * have.
+ *
+ * The env var is the deployment's answer and the relative path is the local
+ * one; neither guesses.
+ */
+const PHOTO_DIR =
+  process.env.STACKD_PHOTO_DIR ?? path.resolve(process.cwd(), '../web/public/menu');
 
 /** webp first — that is what the eight existing photos are. */
 const ALLOWED: Record<string, string> = {

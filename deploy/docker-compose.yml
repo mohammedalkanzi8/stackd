@@ -104,6 +104,11 @@ services:
       db:
         condition: service_healthy
     environment:
+      # ⚠ Where uploaded menu photographs are written. Must be the bind mount
+      # below, or they land inside the container and never reach the website —
+      # the relative default in menu/page.tsx is correct only for `npm run
+      # admin`, whose cwd is apps/admin rather than /app.
+      STACKD_PHOTO_DIR: /app/apps/web/public/menu
       NODE_ENV: production
       PORT: '3001'
       DATABASE_URL: postgres://${POSTGRES_USER:-stackd}:${POSTGRES_PASSWORD}@db:5432/${STACKD_DB:-stackd}
