@@ -64,8 +64,15 @@ db_fingerprint() {
       select concat_ws(':', 'reward', r.name_en, r.name_ar, r.points_cost,
                        r.discount_amount, r.is_active) from rewards r
       union all
+      -- ⚠ earn_excludes_vat IS IN HERE FOR A REASON. The site's terms state
+      -- which figure on the bill the rate is taken from, so flipping the basis
+      -- changes published copy while every other number stays put. Left out,
+      -- the basis could be switched at the till and the website would go on
+      -- advertising the old one until some unrelated price edit happened to
+      -- rebuild it — which is the drift this whole fingerprint exists to stop.
       select concat_ws(':', 'settings', s.earn_percent, s.min_redeem_points,
-                       s.signup_bonus) from loyalty_settings s
+                       s.signup_bonus, s.earn_excludes_vat)
+        from loyalty_settings s
     ) t;" < /dev/null | tr -d '[:space:]'
 }
 
