@@ -93,8 +93,21 @@ Separately, `deploy/backup.sh` could not run by hand either: it sourced
 `deploy/.env` as shell, and `MAIL_FROM=STACKD Rewards <rewards@stackd.com.sa>` is
 valid Compose syntax and a bash syntax error. Mail worked the whole time, so
 nothing else looked wrong. The script now reads the two fields it needs instead of
-sourcing, and was proved by running it. **Installing the cron entry is still
-outstanding and is the owner's call** — the runbook line is in the script header.
+sourcing.
+
+**⚠ AND THE CRON LINE IN THE RUNBOOK COULD NEVER HAVE WORKED.** This VM has no
+`cron` running and no `crontab` binary, and `ubuntu` cannot write `/var/log/`, so
+the documented command would have failed twice over before the script ran. A
+backup that was never scheduled produces no error — it produces nothing, which is
+indistinguishable from quiet success right up until you need a dump. Now a
+systemd timer, `deploy/stackd-backup.timer`, which is what this box actually has
+and what the publish pipeline already uses. Installed, enabled, and **proved by
+running it through systemd** rather than by hand: `Result=success`, a valid 20 KB
+dump, next elapse 04:00 Riyadh. The runbook and the script header have been
+corrected so the next person is not sent the same way.
+
+The lesson worth keeping: **verify a schedule by asking the scheduler.**
+`systemctl list-timers` — or `crontab -l` — not by reading the file you wrote.
 
 ### What proves it
 

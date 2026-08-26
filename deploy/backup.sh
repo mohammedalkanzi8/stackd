@@ -5,8 +5,14 @@
 #   deploy/backup.sh                    # write a dump, prune old ones
 #   BACKUP_DIR=/mnt/backups deploy/backup.sh
 #
-# Install as a cron entry on the VM:
-#   0 4 * * *  cd /opt/stackd && deploy/backup.sh >> /var/log/stackd-backup.log 2>&1
+# Scheduled by deploy/stackd-backup.timer — a systemd timer, NOT cron. See the
+# note in that unit: this VM has no cron running and no crontab binary, so the
+# cron line this header used to carry could never have worked, and the nightly
+# backup existed only in the documentation for the first three weeks of live
+# trading.
+#
+#   sudo systemctl enable --now stackd-backup.timer
+#   systemctl list-timers stackd-backup.timer
 #
 # 04:00 Riyadh is deliberate: the branch closes at 03:00, so this runs when the
 # day's trade is finished and nobody is mid-order.

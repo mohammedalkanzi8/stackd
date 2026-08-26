@@ -219,11 +219,27 @@ warning banner while it still says localhost. Paper cannot be corrected.
 ## 7. Backups
 
 ```bash
-crontab -e
-# 0 4 * * *  cd /opt/stackd && deploy/backup.sh >> /var/log/stackd-backup.log 2>&1
+sudo cp deploy/stackd-backup.service deploy/stackd-backup.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now stackd-backup.timer
+systemctl list-timers stackd-backup.timer      # confirm it is actually scheduled
+journalctl -u stackd-backup                    # what it did last night
 ```
 
 04:00 Riyadh, after the 03:00 close, so it never runs mid-order.
+
+**⚠ THIS SAID `crontab -e` UNTIL 26 AUG 2026, AND THAT NEVER WORKED.** The VM
+image has no `cron` running and no `crontab` binary at all, and the `ubuntu`
+user cannot write `/var/log/`, so the documented line would have failed twice
+over before the script ran. Nobody noticed, because a backup that was never
+scheduled produces no error — it produces nothing, which looks identical to a
+quiet success until the day you need a dump and the newest one is two weeks old.
+That is exactly what was found. Systemd is what this box actually has, and the
+project already drives `stackd-publish.timer` with it.
+
+**Verify a schedule by asking the scheduler, not by reading the file you wrote.**
+`systemctl list-timers` prints the next elapse; if the unit is not listed, it is
+not scheduled.
 
 **Do the restore drill once, now, while nothing depends on it:**
 
