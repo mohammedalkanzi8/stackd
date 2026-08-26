@@ -1,0 +1,22 @@
+# 04:00 Riyadh, every day.
+#
+# The branch trades 16:00–04:00, so this is the quietest moment there is: the
+# night's orders are finished and the next day's have not started. A dump taken
+# mid-service is not wrong, but it is taken while rows are moving.
+#
+# ⚠ The VM's clock is UTC; OnCalendar honours this unit's own timezone, so the
+# zone is stated explicitly rather than assumed. Without it this would fire at
+# 04:00 UTC — 07:00 Riyadh, which is not a quiet moment, it is the morning after.
+[Unit]
+Description=Dump the STACKD database nightly at 04:00 Riyadh
+
+[Timer]
+OnCalendar=*-*-* 04:00:00 Asia/Riyadh
+# ⚠ Persistent=true, unlike the publish timer. A missed publish is caught by the
+# next fingerprint check two minutes later; a missed backup is simply a night
+# with no backup, so if the box was down at 04:00 the dump is taken at boot.
+Persistent=true
+Unit=stackd-backup.service
+
+[Install]
+WantedBy=timers.target

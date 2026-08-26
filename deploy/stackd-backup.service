@@ -1,0 +1,27 @@
+# Nightly database dump. Fired by the timer beside this file.
+#
+# ⚠ A SYSTEMD TIMER, NOT CRON, AND DELIBERATELY SO. The runbook and the header
+# of backup.sh both told you to add a crontab entry. That could never have
+# worked on this VM: `cron` is not running on it and `crontab` is not even
+# installed — the image is minimal, and systemd is what it actually has. The
+# nightly backup was "installed" in the documentation and nowhere else for the
+# first three weeks this system was live, which is how the newest dump came to
+# be two weeks old on 26 Aug 2026.
+#
+# Output goes to the journal — `journalctl -u stackd-backup` — rather than to
+# /var/log/stackd-backup.log, which the `ubuntu` user cannot write anyway. That
+# was the second half of the same trap: the documented command would have failed
+# on the redirect before the script ever ran.
+[Unit]
+Description=Dump the STACKD database
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/opt/stackd
+ExecStart=/opt/stackd/deploy/backup.sh
+# A dump of this size takes under a second. The ceiling is here so a hung
+# container cannot leave the unit running until the next night's tick.
+TimeoutStartSec=30min
