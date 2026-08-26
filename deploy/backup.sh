@@ -22,12 +22,29 @@ COMPOSE_FILE="${COMPOSE_FILE:-deploy/docker-compose.yml}"
 
 # Read the database name and user out of the same .env the stack uses, so this
 # cannot drift from what is actually running.
-if [ -f deploy/.env ]; then
-  # shellcheck disable=SC1091
-  set -a; . deploy/.env; set +a
-fi
-DB="${STACKD_DB:-stackd}"
-USER_NAME="${POSTGRES_USER:-stackd}"
+#
+# ⚠ READ, NOT SOURCED. `. deploy/.env` treats the file as shell, and Compose's
+# .env format is not shell: an unquoted value containing a space or a redirect
+# character is legal there and a syntax error here. That is not hypothetical —
+#
+#     MAIL_FROM=STACKD Rewards <rewards@stackd.com.sa>
+#
+# aborted this script on `set -euo pipefail` with "syntax error near unexpected
+# token `newline'", pointing at a line that has nothing to do with backups.
+# Mail kept working the whole time, because Compose reads the file correctly, so
+# nothing else in the system looked wrong. Found on 26 Aug 2026, when a
+# pre-migration backup would not run.
+#
+# Only the two fields this script needs are read, and only up to the first `=`,
+# so no future value can break it whatever it contains.
+envval() {
+  [ -f deploy/.env ] || return 0
+  sed -n "s/^$1=//p" deploy/.env | tail -1 | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'$/\1/"
+}
+DB="${STACKD_DB:-$(envval STACKD_DB)}"
+DB="${DB:-stackd}"
+USER_NAME="${POSTGRES_USER:-$(envval POSTGRES_USER)}"
+USER_NAME="${USER_NAME:-stackd}"
 
 mkdir -p "$BACKUP_DIR"
 STAMP="$(date +%Y-%m-%d_%H%M)"
