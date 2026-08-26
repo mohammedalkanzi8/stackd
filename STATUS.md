@@ -1,6 +1,6 @@
 # STACKD — where we left off
 
-**Last session:** 26 August 2026 · **LIVE**
+**Last session:** 26 August 2026 · **LIVE** · migration 0013 applied
 **Live now:** https://stackd.com.sa — verified serving, `www` 301s to the apex
 **Email:** MXroute, live and working (SPF + DKIM + DMARC all present). Password
 reset codes send as `rewards@stackd.com.sa`; `SMTP_URL` is required in production
@@ -66,6 +66,35 @@ small print of the website and on every sheet from the print studio.
 writes it. Turning the setting on means republishing the site, exactly as
 changing the earn rate does. The printed poster takes it as a prop for the same
 reason: a banner is the hardest surface in the business to correct.
+
+### Shipped to production, and two things it turned up on the way
+
+Applied in the safe order — **migration first, code second**. The old two-argument
+`points_for_amount` calls still resolve against the new four-argument function
+through its defaults, so there is no broken window between the two steps. Every
+existing order was checked to recompute to exactly what was minted for it.
+
+**⚠ THE OWNER FLIPPED THE BASIS TO THE NET AT 14:23 RIYADH,** one minute after
+the containers came back, and confirmed it was deliberate. The programme now pays
+on the pre-VAT net: a 27.00 burger earns 234 rather than 270. The website was
+republished to match and states it in both languages.
+
+**⚠ THE PUBLISH FINGERPRINT COULD NOT SEE THE BASIS.** `db_fingerprint()` hashed
+`earn_percent`, `min_redeem_points` and `signup_bonus` — not `earn_excludes_vat`.
+So the flip changed published copy while every number the pipeline watches stayed
+put, and the 14:25 run correctly concluded nothing had changed. The site sat
+advertising "VAT included" against a till paying the net until the field was added
+to the hash. Caught within six minutes of shipping the setting, by checking what
+stackd.com.sa actually served rather than trusting that the pipeline had fired.
+
+**⚠ THE NIGHTLY BACKUP CRON HAS NEVER BEEN INSTALLED.** Not failing — absent.
+There is no entry in any crontab, and the newest dump before today was 12 August.
+Separately, `deploy/backup.sh` could not run by hand either: it sourced
+`deploy/.env` as shell, and `MAIL_FROM=STACKD Rewards <rewards@stackd.com.sa>` is
+valid Compose syntax and a bash syntax error. Mail worked the whole time, so
+nothing else looked wrong. The script now reads the two fields it needs instead of
+sourcing, and was proved by running it. **Installing the cron entry is still
+outstanding and is the owner's call** — the runbook line is in the script header.
 
 ### What proves it
 
