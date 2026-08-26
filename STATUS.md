@@ -1,6 +1,6 @@
 # STACKD — where we left off
 
-**Last session:** 13 August 2026 · **LIVE**
+**Last session:** 26 August 2026 · **LIVE**
 **Live now:** https://stackd.com.sa — verified serving, `www` 301s to the apex
 **Email:** MXroute, live and working (SPF + DKIM + DMARC all present). Password
 reset codes send as `rewards@stackd.com.sa`; `SMTP_URL` is required in production
@@ -12,6 +12,68 @@ one — `mohamed.kanzi@` is an admin-portal login and is never shown to customer
 **Portals:** my.stackd.com.sa (customers) · admin.stackd.com.sa (staff, EN/AR) · Oracle Riyadh
 **Staff logins:** info@stackd.com.sa (Super Admin) · saddah.muawia@stackd.com.sa (Admin)
 **POS:** Kashier Pro by DKEYS — integration waiting on their support team
+
+---
+
+## 26 August 2026 — the earn rate gets a basis: including VAT, or excluding it
+
+The request was to say, on the Points page, whether the earn rate is taken
+including VAT or excluding it. It was neither, in the sense that nothing said:
+the rate was applied to the gross and three separate screens claimed otherwise.
+
+**⚠ THE DEFAULT IS `false` — INCLUDING VAT — WHICH IS EXACTLY TODAY'S
+BEHAVIOUR.** Migration `0013_earn_vat_basis.sql` changes nothing about what an
+existing balance is worth. The setting only starts to matter when the owner
+flips it.
+
+**⚠ FLIPPING IT REPRICES EVERY FUTURE ORDER BY ABOUT AN EIGHTH.** Menu prices in
+Saudi are VAT-inclusive, so the gross and the net are real money apart: at 15%
+VAT a 115.00 bill earns 1150 points on the total paid and 1000 on the net. That
+is ~13% off the cost of running the programme, bought with a number the customer
+can no longer reproduce from the receipt in their hand. Points already minted are
+untouched — the ledger records what happened, so it will legitimately hold rows
+computed on both bases.
+
+### Three screens were already lying about this, before any setting existed
+
+The copy said "pre-VAT net" in the admin lede, on the overview footer and in
+`tokens.ts`, while `points_for_amount()` had always used the gross. Nothing
+caught it because none of those strings is computed from anything. They now read
+from the setting, and the overview's worked example — "a 60.00 ticket earns 52",
+stale since a point became a halala — is gone rather than corrected: that page
+does not read the earn rate, so any example on it is a copy of a number rather
+than the number.
+
+### The one that would have shipped silently
+
+`points_for_amount` grew two arguments, so `create or replace` was not enough —
+it cannot change an argument list, and would have left the old two-argument
+function beside the new one. Every existing two-argument call would then have
+failed as *ambiguous*, because the new arguments have defaults. The migration
+drops first. Verified by building a database from the pre-change schema,
+migrating it, and diffing `pg_get_functiondef` against a fresh one: identical.
+
+**⚠ THE SELECT POSTS A STRING, AND EVERY NON-EMPTY STRING IS TRUTHY.**
+`Boolean(formData.get('earnBasis'))` would have read `"incl"` as *exclude the
+VAT* and cut the programme by a seventh with no error anywhere. It is compared
+against `'net'`. The same trap sits in `fillRewards`, where `v: false` is a real
+value and the common one — a truthiness check there leaves a raw `{v}` in the
+small print of the website and on every sheet from the print studio.
+
+### The website states the basis in its terms, so it has to be published
+
+`REWARDS.earnExcludesVat` joined the generated region and `npm run sync:menu`
+writes it. Turning the setting on means republishing the site, exactly as
+changing the earn rate does. The printed poster takes it as a prop for the same
+reason: a banner is the hardest surface in the business to correct.
+
+### What proves it
+
+`npm test` — 164 across the workspaces, including the SQL/TypeScript agreement
+test now run on **both** bases, because a drift on the one that happens to be off
+today is a drift that surfaces the day the owner flips it. The net basis is
+derived through `splitVatInclusive`, not a bare division, so the figure earned on
+is the figure the receipt prints, to the halala.
 
 ---
 

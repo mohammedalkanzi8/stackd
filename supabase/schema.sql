@@ -721,11 +721,24 @@ create table loyalty_settings (
   -- its price in halalas, and a customer can check the maths on their own
   -- receipt without being told an exchange rate.
   --
-  -- Earning is this percentage of the total PAID, VAT included, because that is
-  -- the figure printed on the receipt. At 10.00 a 115.00 SAR bill earns 1150
-  -- points, worth 11.50 SAR — a true 10% back.
+  -- Earning is this percentage of the bill. WHICH figure on the bill is
+  -- earn_excludes_vat, below. At 10.00 on the default basis a 115.00 SAR bill
+  -- earns 1150 points, worth 11.50 SAR — a true 10% back.
   earn_percent       numeric(5,2) not null default 10.00
                        check (earn_percent >= 0 and earn_percent <= 100),
+  -- Whether the earn rate is applied to the pre-VAT net instead of the total
+  -- paid. Menu prices are VAT-inclusive, so the two really are different money:
+  -- at 15% VAT the net basis pays about 13% less than the gross one.
+  --
+  -- false (default) — the basis is the total printed on the receipt, so a
+  --   customer can reproduce their own points without being told a rule.
+  -- true — the basis is the shop's revenue, which is the figure the cost of the
+  --   programme is actually measured against. Cheaper, but not checkable at the
+  --   counter.
+  --
+  -- ⚠ CHANGING THIS REPRICES THE PROGRAMME FOR EVERY FUTURE ORDER. It does not
+  -- touch points already earned; loyalty_transactions is a record of what was.
+  earn_excludes_vat  boolean not null default false,
   -- How long a redemption QR stays valid. Short on purpose: it is a bearer
   -- token for real money, shown on a screen at a counter.
   redeem_window_secs int not null default 180 check (redeem_window_secs between 30 and 3600),
@@ -948,31 +961,44 @@ create trigger loyalty_tx_apply
   after insert on loyalty_transactions
   for each row execute function apply_loyalty_transaction();
 
--- Points earned for a VAT-inclusive gross, on the pre-VAT net, floor-rounded.
+-- Points earned for a VAT-inclusive gross, floor-rounded, on whichever basis
+-- loyalty_settings.earn_excludes_vat selects.
 --
--- ⚠ This duplicates splitVatInclusive + pointsForOrder from
+-- ⚠ This duplicates splitVatInclusive + pointsForAmount from
 -- packages/shared/src/money.ts, in a second language. The duplication is
 -- deliberate — the app shows a projected balance before the server confirms it,
 -- and a mismatch there is a support ticket every time. supabase/schema.test.mjs
 -- asserts the two agree for every price on the menu; if you change one, that
 -- test is what tells you about the other.
 /**
- * Points earned on a gross amount, in halalas.
+ * Points earned on a gross (VAT-inclusive) amount, in halalas.
  *
- * A straight percentage of what the customer paid. VAT is deliberately NOT
- * extracted first: the earn basis is the total on the receipt, so the customer
- * can reproduce the figure themselves. Extracting VAT would be marginally
- * cheaper and would make the number unverifiable at the counter, which is a bad
- * trade for a few halalas.
+ * A straight percentage of the earn basis, floored so the shop never owes a
+ * fraction of a point.
  *
- * Floored, so the shop never owes a fraction of a point.
+ * ⚠ p_excl_vat DEFAULTS FALSE, AND CALLERS MUST PASS loyalty_settings.
+ * earn_excludes_vat. The default is here so a hand-typed `points_for_amount(x)`
+ * at a psql prompt still works; every call inside the schema reads the setting,
+ * because a function that silently ignored it would mint the wrong points with
+ * nothing to show for it.
+ *
+ * The net is derived the same way splitVatInclusive() derives it — round the
+ * VAT component, subtract — so the figure earned on is the figure printed on
+ * the receipt, to the halala. Dividing inline instead would drift by one.
  */
 create or replace function points_for_amount(
   p_gross        int,
-  p_earn_percent numeric default 10.00
+  p_earn_percent numeric default 10.00,
+  p_excl_vat     boolean default false,
+  p_vat_rate     numeric default 0.15
 ) returns int
 language sql immutable as $$
-  select floor(p_gross * p_earn_percent / 100.0)::int
+  select floor(
+    case
+      when p_excl_vat then p_gross - round(p_gross - p_gross / (1 + p_vat_rate))
+      else p_gross
+    end * p_earn_percent / 100.0
+  )::int
 $$;
 
 -- What an order earns, line by line.
@@ -989,26 +1015,37 @@ $$;
 -- Reward discounts are deliberately NOT deducted before earning. The customer
 -- already paid for that discount in points; charging them a second time by
 -- shrinking what the visit earns would be taking the same points twice.
+--
+-- ⚠ On the excl-VAT basis, a line-item order can earn a point or two less than
+-- the same total earned whole: the net is rounded per line rather than once.
+-- That is the same halala-level rounding the receipt already carries, and it
+-- errs towards the shop, never past the customer.
 create or replace function points_for_order(p_order_id uuid)
 returns int
 language sql stable as $$
-  with s as (select earn_percent from loyalty_settings),
-       o as (select grand_total from orders where id = p_order_id),
+  with s as (select earn_percent, earn_excludes_vat from loyalty_settings),
+       -- vat_rate comes from the ORDER, not from a constant: it is stored per
+       -- order precisely so a rate change cannot rewrite what an old ticket
+       -- earned.
+       o as (select grand_total, vat_rate from orders where id = p_order_id),
        lines as (
          select case
                   when mi.points_award is not null then mi.points_award * oi.quantity
-                  else points_for_amount(oi.line_total, s.earn_percent)
+                  else points_for_amount(oi.line_total, s.earn_percent,
+                                         s.earn_excludes_vat, o.vat_rate)
                 end as pts
          from order_items oi
          -- left join: menu_item_id is nullable, because an item can be deleted
          -- long after the order that sold it. Those lines earn by value.
          left join menu_items mi on mi.id = oi.menu_item_id
          cross join s
+         cross join o
          where oi.order_id = p_order_id
        )
   select coalesce(
     (select sum(pts)::int from lines),
-    (select points_for_amount(o.grand_total, s.earn_percent) from o, s),
+    (select points_for_amount(o.grand_total, s.earn_percent,
+                              s.earn_excludes_vat, o.vat_rate) from o, s),
     0
   )
 $$;
@@ -1715,7 +1752,8 @@ grant execute on function claim_order_points(text, uuid)     to service_role;
 -- Safe for clients: read-only, and they can already see the branch.
 grant execute on function is_branch_open(uuid, timestamptz) to anon, authenticated;
 grant execute on function riyadh_service_date(timestamptz)  to anon, authenticated;
-grant execute on function points_for_amount(int, numeric)    to anon, authenticated;
+grant execute on function points_for_amount(int, numeric, boolean, numeric)
+  to anon, authenticated;
 grant execute on function points_for_order(uuid)            to authenticated;
 
 -- ---------------------------------------------------------------------------

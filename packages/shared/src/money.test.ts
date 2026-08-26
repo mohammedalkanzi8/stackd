@@ -5,6 +5,7 @@ import {
   formatPrice,
   splitVatInclusive,
   addVat,
+  earnBasis,
   pointsForAmount,
   pointsToHalalas,
   VAT_RATE,
@@ -65,11 +66,45 @@ test('points are 10% of what was actually paid', () => {
   assert.equal(pointsForAmount(11500), 1150);
   // A single classic burger at 27.00 SAR earns 270 points, worth 2.70 SAR.
   assert.equal(pointsForAmount(2700), 270);
-  // VAT is deliberately NOT extracted first: the customer has to be able to
+  // The DEFAULT basis does not extract VAT: the customer has to be able to
   // check the figure against the total printed on their own receipt.
   assert.equal(pointsForAmount(10000), 1000);
   // A promotional rate is just a different percentage.
   assert.equal(pointsForAmount(2700, 20), 540);
+});
+
+test('the earn basis is a setting, and the two bases really differ', () => {
+  // 115.00 SAR is 100.00 net plus its VAT, so the two bases are clean figures.
+  assert.equal(pointsForAmount(11500, 10), 1150);
+  assert.equal(pointsForAmount(11500, 10, { excludeVat: true }), 1000);
+
+  // The net basis is the same net the receipt prints — splitVatInclusive's, not
+  // a bare division. On 2700 that is 2348, not 2347.83 rounded some other way.
+  assert.equal(splitVatInclusive(2700).net, 2348);
+  assert.equal(pointsForAmount(2700, 10, { excludeVat: true }), 234);
+
+  // ⚠ An absent option is the default basis, never the net one. Every existing
+  // caller passes no third argument and must keep earning on the gross.
+  assert.equal(pointsForAmount(2700, 10, {}), 270);
+  assert.equal(pointsForAmount(2700, 10, { excludeVat: false }), 270);
+
+  // Excluding VAT costs the programme 1/1.15 of itself, whatever the rate.
+  for (const gross of [2700, 6000, 11500, 4999]) {
+    assert.ok(
+      pointsForAmount(gross, 10, { excludeVat: true }) < pointsForAmount(gross, 10),
+      `${gross} should earn less on the net`,
+    );
+  }
+});
+
+test('earnBasis is the figure the receipt shows', () => {
+  for (const gross of [2700, 6000, 12345, 4999, 1]) {
+    assert.equal(earnBasis(gross), gross);
+    assert.equal(earnBasis(gross, { excludeVat: true }), splitVatInclusive(gross).net);
+    // net + vat = gross, so the basis never invents or loses a halala.
+    const { net, vat } = splitVatInclusive(gross);
+    assert.equal(net + vat, gross);
+  }
 });
 
 test('a point is worth a halala, so rewards price themselves', () => {

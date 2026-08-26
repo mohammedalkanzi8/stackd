@@ -270,18 +270,56 @@ dbTest('SQL and TypeScript compute the same points, for every price on the menu'
   // Plus realistic ticket totals, since a real order is several items.
   const totals = [...prices, 6000, 12345, 4999, 10000, 1, 99, 100];
 
-  const { rows } = await db.query(
-    'select g as gross, points_for_amount(g) as pts from unnest($1::int[]) as g',
-    [totals],
-  );
-
-  for (const { gross, pts } of rows) {
-    assert.equal(
-      pts,
-      pointsForAmount(gross),
-      `points disagree for ${gross} halalas — schema.sql and money.ts have drifted`,
+  // ⚠ BOTH BASES, because earn_excludes_vat picks between them and a drift on
+  // the one that happens to be off today is a drift that ships silently and
+  // surfaces the day the owner flips the setting.
+  for (const exclVat of [false, true]) {
+    const { rows } = await db.query(
+      `select g as gross, points_for_amount(g, 10.00, $2::boolean) as pts
+         from unnest($1::int[]) as g`,
+      [totals, exclVat],
     );
+
+    for (const { gross, pts } of rows) {
+      assert.equal(
+        pts,
+        pointsForAmount(gross, 10, { excludeVat: exclVat }),
+        `points disagree for ${gross} halalas at exclVat=${exclVat} — ` +
+          'schema.sql and money.ts have drifted',
+      );
+    }
   }
+});
+
+dbTest('the earn basis is a setting, and defaults to the bill total', async () => {
+  await withRollback(async () => {
+    const order = await makeOrder({ customer: null, source: 'pos', gross: 11500 });
+
+    // The shipped default must not change what an existing shop earns.
+    const before = await db.query('select points_for_order($1) as pts', [order.id]);
+    assert.equal(before.rows[0].pts, pointsForAmount(11500));
+    assert.equal(before.rows[0].pts, 1150);
+
+    await db.query('update loyalty_settings set earn_excludes_vat = true');
+    const after = await db.query('select points_for_order($1) as pts', [order.id]);
+    // 115.00 is 100.00 net plus its VAT, so the net basis earns a round 1000.
+    assert.equal(after.rows[0].pts, pointsForAmount(11500, 10, { excludeVat: true }));
+    assert.equal(after.rows[0].pts, 1000);
+  });
+});
+
+dbTest('the net basis is the net the receipt prints, not a bare division', async () => {
+  await withRollback(async () => {
+    await db.query('update loyalty_settings set earn_excludes_vat = true');
+    for (const gross of [2700, 6000, 12345, 4999, 300, 1]) {
+      const order = await makeOrder({ customer: null, source: 'pos', gross });
+      const { rows } = await db.query('select points_for_order($1) as pts', [order.id]);
+      // splitVatInclusive is what the orders table's own check constraint
+      // enforces, so earning has to agree with it or a customer's points and
+      // their receipt's VAT line come from two different numbers.
+      assert.equal(rows[0].pts, Math.floor((splitVatInclusive(gross).net * 10) / 100));
+    }
+  });
 });
 
 dbTest('the VAT check constraint matches splitVatInclusive exactly', async () => {

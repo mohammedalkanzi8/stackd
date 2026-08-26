@@ -1,4 +1,4 @@
-import { formatSar, query, queryOne } from '@stackd/server';
+import { query, queryOne } from '@stackd/server';
 import Link from 'next/link';
 
 import { getLang } from '@/lib/prefs.ts';
@@ -161,7 +161,12 @@ export default async function OverviewPage() {
       </div>
 
       <p className="muted" style={{ fontSize: 13, marginBlockStart: 24 }}>
-        {tf(lang, 'ov.foot', { sar: formatSar(6000), pts: 52, gross: 60 })}
+        {/* No worked example here on purpose. It used to state one — "a 60.00
+            ticket earns 52" — computed from an earn rate this page does not
+            read, and it went stale twice: once when a point became a halala,
+            once when the earn basis became a setting. The Points page states
+            the figure and computes it. */}
+        {t(lang, 'ov.foot')}
       </p>
     </>
   );

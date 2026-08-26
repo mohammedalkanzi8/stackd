@@ -133,6 +133,31 @@ test('filled copy never leaves a stray token behind', () => {
   }
 });
 
+/**
+ * The earn basis is a setting too, and the terms are where it is stated.
+ *
+ * ⚠ `v: false` IS A REAL VALUE, NOT AN ABSENT ONE. It is the default basis and
+ * the one nearly every call passes, so a truthiness check inside fillRewards
+ * would leave `{v}` printed raw in the small print of the website and on every
+ * sheet coming out of the print studio.
+ */
+test('the terms name the earn basis from the setting, never from the copy', () => {
+  for (const locale of LOCALES) {
+    const copy = REWARDS_COPY[locale];
+    assert.ok(copy.fine.includes('{v}'), `${locale}.fine must carry the {v} token`);
+
+    const incl = fillRewards(copy.fine, locale, { v: false });
+    const excl = fillRewards(copy.fine, locale, { v: true });
+
+    for (const [name, filled] of [['incl', incl], ['excl', excl]] as const) {
+      assert.ok(!filled.includes('{v}'), `${locale}.fine (${name}) left the token raw`);
+    }
+    assert.notEqual(incl, excl, `${locale}: both bases produced the same sentence`);
+    assert.ok(incl.includes(copy.basisIncl));
+    assert.ok(excl.includes(copy.basisExcl));
+  }
+});
+
 test('Arabic copy gets Arabic-Indic digits', () => {
   assert.equal(rewardsNumber('ar', 11), '١١');
   assert.equal(rewardsNumber('en', 11), '11');

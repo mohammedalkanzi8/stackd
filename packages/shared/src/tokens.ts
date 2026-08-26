@@ -200,10 +200,14 @@ export const fontSize = {
  * arithmetic: burger (27–48) + fries (9) + drink (8).
  *
  * At 1 pt/SAR the reward catalogue in seed.sql targets ~7% effective return —
- * in line with QSR norms and sustainable on food cost. Points accrue on the
- * pre-VAT net, so a 60 SAR ticket earns 52, not 60.
+ * in line with QSR norms and sustainable on food cost.
  *
- * Change `earnPercent` to 20 for a promo weekend; nothing else needs touching.
+ * ⚠ THESE ARE DEFAULTS FOR SOMETHING WITH NO DATABASE. The live figures are in
+ * `loyalty_settings`, and that includes WHICH figure on the bill the rate is
+ * taken from — `earn_excludes_vat`. This comment used to state the answer ("a
+ * 60 SAR ticket earns 52, not 60") and was wrong on both counts: earning has
+ * always used the gross, and a point has been a halala since well before that
+ * line was written.
  */
 export const loyalty = {
   // Percent of the bill returned as points. One point is one halala.

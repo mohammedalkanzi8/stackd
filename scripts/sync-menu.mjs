@@ -226,7 +226,8 @@ async function syncRewards() {
   let row;
   try {
     const { rows } = await db.query(
-      'select earn_percent, min_redeem_points, signup_bonus from loyalty_settings limit 1',
+      'select earn_percent, min_redeem_points, signup_bonus, earn_excludes_vat' +
+        ' from loyalty_settings limit 1',
     );
     row = rows[0];
   } finally {
@@ -248,11 +249,16 @@ async function syncRewards() {
     `${R_BEGIN}\n` +
     `  earnPercent: ${Number(row.earn_percent)},\n` +
     `  minRedeemPoints: ${row.min_redeem_points},\n` +
-    `  signupBonus: ${row.signup_bonus},\n  `;
+    `  signupBonus: ${row.signup_bonus},\n` +
+    // The terms on the website name the earn basis. Left out of this block it
+    // would sit at whatever was last committed, which is the exact drift the
+    // generated region exists to prevent.
+    `  earnExcludesVat: ${row.earn_excludes_vat === true},\n  `;
 
   await writeFile(REWARDS_TARGET, source.slice(0, start) + block + source.slice(stop));
   console.log(
-    `rewards.ts regenerated — ${Number(row.earn_percent)}% back, ` +
+    `rewards.ts regenerated — ${Number(row.earn_percent)}% back on the ` +
+      `${row.earn_excludes_vat ? 'pre-VAT net' : 'bill total'}, ` +
       `${row.min_redeem_points} minimum, ${row.signup_bonus} signup bonus`,
   );
 }

@@ -187,7 +187,12 @@ export default async function RewardsPage({
               {t(locale, 'hero.viewMenu')}
             </Link>
           </div>
-          <p className="rw-fine">{copy.fine}</p>
+          {/* ⚠ FILLED, NOT PRINTED. The terms name the earn basis, and that is
+              a setting — REWARDS.earnExcludesVat, written here by sync:menu. A
+              bare {copy.fine} would leave a raw {v} in the small print. */}
+          <p className="rw-fine">
+            {fillRewards(copy.fine, locale, { v: REWARDS.earnExcludesVat })}
+          </p>
         </div>
       </section>
     </>

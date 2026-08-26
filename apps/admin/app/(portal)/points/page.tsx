@@ -1,4 +1,5 @@
 import { formatSar, query, queryOne } from '@stackd/server';
+import { pointsForAmount } from '@stackd/shared';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
@@ -12,6 +13,8 @@ export const dynamic = 'force-dynamic';
 
 interface Settings {
   earn_percent: string;
+  /** false: the rate is taken on the total paid. true: on the pre-VAT net. */
+  earn_excludes_vat: boolean;
   expiry_months: number;
   claim_window_days: number;
   redeem_window_secs: number;
@@ -43,13 +46,18 @@ function done(message: string): never {
 
 async function saveSettings(formData: FormData): Promise<void> {
   'use server';
-  // Super Admin only, on the owner's instruction (12 Aug 2026). These five
-  // numbers set what every riyal spent in the shop is worth; changing the earn
-  // rate reprices the whole programme retroactively for everyone still holding
-  // a balance.
+  // Super Admin only, on the owner's instruction (12 Aug 2026). These numbers
+  // set what every riyal spent in the shop is worth; changing the earn rate
+  // reprices the whole programme retroactively for everyone still holding a
+  // balance.
   await requireRole(...SUPER_ADMIN);
 
   const percent = Number(String(formData.get('earnPercent') ?? '').trim());
+  // ⚠ COMPARED AGAINST 'net', NOT COERCED WITH Boolean(). A select posts a
+  // string, and every non-empty string is truthy — Boolean(formData.get(...))
+  // would read "incl" as "exclude the VAT" and quietly cut the programme by a
+  // seventh with no error anywhere.
+  const exclVat = String(formData.get('earnBasis') ?? 'incl').trim() === 'net';
   const expiry = Number(String(formData.get('expiryMonths') ?? '').trim());
   const claimDays = Number(String(formData.get('claimWindowDays') ?? '').trim());
   const redeemSecs = Number(String(formData.get('redeemWindowSecs') ?? '').trim());
@@ -73,8 +81,8 @@ async function saveSettings(formData: FormData): Promise<void> {
     `update loyalty_settings
         set earn_percent = $1, expiry_months = $2, claim_window_days = $3,
             redeem_window_secs = $4, signup_bonus = $5, min_redeem_points = $6,
-            updated_at = now()`,
-    [percent, expiry, claimDays, redeemSecs, signup, minRedeem],
+            earn_excludes_vat = $7, updated_at = now()`,
+    [percent, expiry, claimDays, redeemSecs, signup, minRedeem, exclVat],
   );
   done(t(await getLang(), 'err.saved'));
 }
@@ -128,13 +136,19 @@ export default async function PointsPage({
   const items = await query<ItemRow>(`
     select mi.id, mi.slug, mi.name_en, mi.price, mi.points_award,
            c.name_en as category, c.slug as category_slug,
-           points_for_amount(mi.price, s.earn_percent) as by_value
+           -- On the live basis, so this column and the till never disagree.
+           points_for_amount(mi.price, s.earn_percent, s.earn_excludes_vat) as by_value
       from menu_items mi
       join categories c on c.id = mi.category_id
       cross join loyalty_settings s
      where mi.is_active
      order by c.sort_order, mi.sort_order
   `);
+
+  // A 115.00 SAR bill, which is 100.00 net plus its VAT.
+  const example = pointsForAmount(11500, Number(settings.earn_percent), {
+    excludeVat: settings.earn_excludes_vat,
+  });
 
   const categories = [...new Map(items.map((i) => [i.category_slug, i.category])).entries()];
   const overridden = items.filter((i) => i.points_award !== null).length;
@@ -170,6 +184,21 @@ export default async function PointsPage({
                   required
                   defaultValue={Number(settings.earn_percent)}
                 />
+              </div>
+              <div className="field">
+                <label htmlFor="earnBasis">
+                  {t(lang, 'pts.earnBasis')} <span className="hint">{t(lang, 'pts.basisHint')}</span>
+                </label>
+                {/* Menu prices are VAT-inclusive, so these two are not the same
+                    money: at 15% VAT the net basis pays about 13% less. */}
+                <select
+                  id="earnBasis"
+                  name="earnBasis"
+                  defaultValue={settings.earn_excludes_vat ? 'net' : 'incl'}
+                >
+                  <option value="incl">{t(lang, 'pts.basisIncl')}</option>
+                  <option value="net">{t(lang, 'pts.basisExcl')}</option>
+                </select>
               </div>
               <div className="field field-sm">
                 <label htmlFor="signupBonus">{t(lang, 'pts.signupBonus')}</label>
@@ -244,19 +273,28 @@ export default async function PointsPage({
                 {t(lang, 'a.save')}
               </button>
             </div>
+            {/* ⚠ THE EXAMPLE IS COMPUTED, NOT WRITTEN. It uses the same
+                pointsForAmount() the till earns through, so the sentence under
+                the form cannot promise a number the database would not mint.
+                The 115.00 bill is chosen because it is 100.00 plus its VAT:
+                both bases land on a round figure. */}
             <p className="muted" style={{ fontSize: 13, margin: 0 }}>
-              {tf(lang, 'pts.halalaNote', {
+              {tf(lang, settings.earn_excludes_vat ? 'pts.halalaNoteExcl' : 'pts.halalaNoteIncl', {
                 pct: Number(settings.earn_percent),
                 bill: formatSar(11500),
-                pts: Math.floor((11500 * Number(settings.earn_percent)) / 100),
-                worth: formatSar(Math.floor((11500 * Number(settings.earn_percent)) / 100)),
+                pts: example,
+                worth: formatSar(example),
               })}
+            </p>
+            <p className="muted" style={{ fontSize: 13, margin: 0 }}>
+              {t(lang, 'pts.basisNote')}
             </p>
           </form>
         ) : (
           <p className="muted">
             {tf(lang, 'pts.readOnly', {
               pct: Number(settings.earn_percent),
+              basis: t(lang, settings.earn_excludes_vat ? 'pts.basisExcl' : 'pts.basisIncl'),
               months: settings.expiry_months,
               days: settings.claim_window_days,
               secs: settings.redeem_window_secs,

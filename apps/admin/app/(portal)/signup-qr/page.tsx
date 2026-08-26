@@ -31,9 +31,11 @@ export default async function SignupQrPage({
 
   const url = registrationUrl();
   const qr = await qrSvg(url);
-  const settings = await queryOne<{ signup_bonus: number; earn_percent: string }>(
-    'select signup_bonus, earn_percent from loyalty_settings',
-  );
+  const settings = await queryOne<{
+    signup_bonus: number;
+    earn_percent: string;
+    earn_excludes_vat: boolean;
+  }>('select signup_bonus, earn_percent, earn_excludes_vat from loyalty_settings');
   const earnPercent = Number(settings?.earn_percent ?? 10);
 
   const onLocalhost = url.includes('localhost');
@@ -129,6 +131,7 @@ export default async function SignupQrPage({
           qrSvg={qr}
           url={url}
           earnPercent={earnPercent}
+          earnExcludesVat={settings?.earn_excludes_vat ?? false}
           signupBonus={settings?.signup_bonus ?? 0}
         />
       </div>

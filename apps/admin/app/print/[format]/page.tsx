@@ -61,9 +61,11 @@ export default async function PrintPage({
   const f = FORMATS[format];
   const url = registrationUrl();
   const qr = await qrSvg(url);
-  const settings = await queryOne<{ signup_bonus: number; earn_percent: string }>(
-    'select signup_bonus, earn_percent from loyalty_settings',
-  );
+  const settings = await queryOne<{
+    signup_bonus: number;
+    earn_percent: string;
+    earn_excludes_vat: boolean;
+  }>('select signup_bonus, earn_percent, earn_excludes_vat from loyalty_settings');
 
   return (
     <>
@@ -75,6 +77,7 @@ export default async function PrintPage({
           qrSvg={qr}
           url={url}
           earnPercent={Number(settings?.earn_percent ?? 10)}
+          earnExcludesVat={settings?.earn_excludes_vat ?? false}
           signupBonus={settings?.signup_bonus ?? 0}
         />
       </div>

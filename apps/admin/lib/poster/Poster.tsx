@@ -33,6 +33,7 @@ export function Poster({
   qrSvg,
   url,
   earnPercent,
+  earnExcludesVat,
   signupBonus,
 }: {
   /** Which language speaks first. The other still appears, smaller. */
@@ -42,6 +43,12 @@ export function Poster({
   url: string;
   /** Read from loyalty_settings, so paper cannot outlive a change to the rate. */
   earnPercent: number;
+  /**
+   * Whether the rate is taken on the pre-VAT net. Also from loyalty_settings,
+   * and for the same reason: the terms at the foot of the sheet name the basis,
+   * and a printed banner is the hardest surface in the business to correct.
+   */
+  earnExcludesVat: boolean;
   signupBonus: number;
 }) {
   const sub = otherLocale(lead);
@@ -146,10 +153,10 @@ export function Poster({
         <p className="ph-url">{displayUrl(url)}</p>
 
         <p className="ph-fine">
-          {a.fine}
+          {fillRewards(a.fine, lead, { v: earnExcludesVat })}
           <br />
           <span lang={sub} dir={rtl(sub)}>
-            {b.fine}
+            {fillRewards(b.fine, sub, { v: earnExcludesVat })}
           </span>
         </p>
       </div>

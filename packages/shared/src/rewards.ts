@@ -26,12 +26,18 @@ import { toArabicDigits } from './i18n.ts';
  *
  * `pointsPerRiyal` is outside the region on purpose: one point is one halala by
  * the programme's design, not by a setting, and there is no row to read it from.
+ *
+ * `earnExcludesVat` is in it because the terms state which figure on the bill
+ * the rate is taken from, and that is now `loyalty_settings.earn_excludes_vat`.
+ * A site advertising "including VAT" while the till pays on the net is the same
+ * class of drift as advertising the wrong percentage.
  */
 export const REWARDS = {
   // <generated:rewards>
   earnPercent: 10,
   minRedeemPoints: 500,
   signupBonus: 0,
+  earnExcludesVat: false,
   // </generated:rewards>
   /** Points per riyal of value when spending. One point is one halala. */
   pointsPerRiyal: 100,
@@ -82,8 +88,21 @@ interface RewardsCopy {
   points: { title: string; body: string }[];
   joinCta: string;
   signInCta: string;
-  /** The terms in one sentence. Small on screen, small on paper, always present. */
+  /**
+   * The terms in one sentence. Small on screen, small on paper, always present.
+   *
+   * `{v}` is the earn basis, expanded from `basisIncl` / `basisExcl` below.
+   */
   fine: string;
+  /**
+   * What `{v}` expands to, one per setting of `loyalty_settings.earn_excludes_vat`.
+   *
+   * Two written sentences rather than a built one: Arabic and English put the
+   * qualifier in different places relative to "the bill total", and stitching
+   * it on produced a line that read as translated rather than written.
+   */
+  basisIncl: string;
+  basisExcl: string;
   /**
    * The joining bonus line. `{n}` is replaced with the live figure.
    *
@@ -148,7 +167,9 @@ export const REWARDS_COPY: Record<Locale, RewardsCopy> = {
     joinCta: 'Join now',
     signInCta: 'I already have an account',
     fine:
-      'Points are earned on the bill total including VAT, and lapse after 12 months with no activity. STACKD Al Khobar Al Shamalia.',
+      'Points are earned on {v}, and lapse after 12 months with no activity. STACKD Al Khobar Al Shamalia.',
+    basisIncl: 'the bill total, VAT included',
+    basisExcl: 'the bill total before VAT',
     bonus: '{n} points just for joining',
     percent: '{n}%',
   },
@@ -187,7 +208,9 @@ export const REWARDS_COPY: Record<Locale, RewardsCopy> = {
     joinCta: 'سجّل الحين',
     signInCta: 'عندي حساب',
     fine:
-      'النقاط تُحتسب على إجمالي الفاتورة شامل الضريبة، وتنتهي بعد ١٢ شهراً من عدم النشاط. ستاكد - الخبر الشمالية.',
+      'النقاط تُحتسب على {v}، وتنتهي بعد ١٢ شهراً من عدم النشاط. ستاكد - الخبر الشمالية.',
+    basisIncl: 'إجمالي الفاتورة شامل الضريبة',
+    basisExcl: 'إجمالي الفاتورة قبل الضريبة',
     bonus: '{n} نقطة هدية عند التسجيل',
     percent: '{n}٪',
   },
@@ -217,6 +240,8 @@ export function rewardsNumber(locale: Locale, n: number): string {
  *   {n}  a plain count — the redemption floor, or the joining bonus
  *   {p}  the earn rate, already carrying its percent sign in the right place
  *        for the language (`11%` / `١١٪`)
+ *   {v}  the earn basis, as a phrase — "the bill total, VAT included" or
+ *        "the bill total before VAT"
  *
  * ⚠ ONE FUNCTION FOR BOTH, DELIBERATELY. This used to fill `{n}` only, and the
  * earn rate was typed into the headline and the first card as a literal "10%".
@@ -232,7 +257,7 @@ export function rewardsNumber(locale: Locale, n: number): string {
 export function fillRewards(
   template: string,
   locale: Locale,
-  values: { n?: number; p?: number },
+  values: { n?: number; p?: number; v?: boolean },
 ): string {
   let out = template;
   if (values.n !== undefined) out = out.split('{n}').join(rewardsNumber(locale, values.n));
@@ -241,6 +266,13 @@ export function fillRewards(
     // ٪ after Arabic-Indic digits and English gets % after Western ones.
     const pct = REWARDS_COPY[locale].percent.replace('{n}', rewardsNumber(locale, values.p));
     out = out.split('{p}').join(pct);
+  }
+  if (values.v !== undefined) {
+    // ⚠ `!== undefined`, NOT a truthiness test. `v: false` is the DEFAULT basis
+    // — VAT included — and is the value most calls will pass; a truthy check
+    // would leave `{v}` sitting raw in the terms on almost every page.
+    const copy = REWARDS_COPY[locale];
+    out = out.split('{v}').join(values.v ? copy.basisExcl : copy.basisIncl);
   }
   return out;
 }
